@@ -8,12 +8,24 @@ class FichaService {
   final _uuid = const Uuid();
   static const String _bucket = 'fotos_fichas';
 
-  /// Obtiene todas las fichas activas y cerradas (excluye eliminadas).
+  /// Obtiene todas las fichas activas (y pausadas, excluye cerradas del muro principal, a menos que se quiera así).
+  /// Asumiremos que el feed general muestra activos y pausados o cerrados según la lógica anterior.
   Future<List<FichaModel>> obtenerFichas() async {
     final data = await _client
         .from('fichas')
         .select()
-        .inFilter('estado', ['activo', 'cerrado'])
+        .inFilter('estado', ['activo', 'cerrado', 'pausado'])
+        .order('id', ascending: false);
+
+    return (data as List).map((e) => FichaModel.fromMap(e)).toList();
+  }
+
+  /// Obtiene solo las fichas creadas por un usuario específico
+  Future<List<FichaModel>> obtenerMisFichas(String userId) async {
+    final data = await _client
+        .from('fichas')
+        .select()
+        .eq('creado_por', userId)
         .order('id', ascending: false);
 
     return (data as List).map((e) => FichaModel.fromMap(e)).toList();
@@ -97,19 +109,35 @@ class FichaService {
     await _client.from('fichas').delete().eq('id', id);
   }
 
-  /// Cierra la búsqueda cambiando el estado a 'cerrado'.
-  Future<void> cerrarFicha(String id) async {
-    await _client
-        .from('fichas')
-        .update({'estado': 'cerrado'})
-        .eq('id', id);
+  /// Cambia el estado de la ficha (activo, pausado, cerrado) y opcionalmente guarda una justificación.
+  Future<void> cambiarEstadoFicha(String id, String estado, {String? justificacion}) async {
+    final Map<String, dynamic> updateData = {'estado': estado};
+    if (justificacion != null) {
+      updateData['justificacion'] = justificacion;
+    } else if (estado == 'activo') {
+      // Si se reabre, podríamos limpiar la justificación, o mantenerla.
+      // updateData['justificacion'] = null; // opcional
+    }
+
+    await _client.from('fichas').update(updateData).eq('id', id);
   }
 
-  /// Reabre una búsqueda cerrada, volviendo su estado a 'activo'.
+  /// Cierra la búsqueda cambiando el estado a 'cerrado'.
+  Future<void> cerrarFicha(String id, {String? justificacion}) async {
+    await cambiarEstadoFicha(id, 'cerrado', justificacion: justificacion);
+  }
+
+  /// Pausa la búsqueda cambiando el estado a 'pausado'.
+  Future<void> pausarFicha(String id, {String? justificacion}) async {
+    await cambiarEstadoFicha(id, 'pausado', justificacion: justificacion);
+  }
+
+  /// Reabre una búsqueda cerrada o pausada, volviendo su estado a 'activo'.
   Future<void> reabrirFicha(String id) async {
+    // Al reabrir podemos blanquear la justificación si se desea.
     await _client
         .from('fichas')
-        .update({'estado': 'activo'})
+        .update({'estado': 'activo', 'justificacion': null})
         .eq('id', id);
   }
 }

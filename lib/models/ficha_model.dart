@@ -8,6 +8,7 @@ class FichaModel {
   final double? longitud;
   final List<dynamic>? cuadrantes;
   final String estado;
+  final String? justificacion;
 
   FichaModel({
     required this.id,
@@ -19,6 +20,7 @@ class FichaModel {
     this.longitud,
     this.cuadrantes,
     this.estado = 'activo',
+    this.justificacion,
   });
 
   factory FichaModel.fromMap(Map<String, dynamic> map) {
@@ -32,6 +34,7 @@ class FichaModel {
       longitud: (map['longitud'] as num?)?.toDouble(),
       cuadrantes: map['cuadrantes'] as List<dynamic>?,
       estado: map['estado'] as String? ?? 'activo',
+      justificacion: map['justificacion'] as String?,
     );
   }
 
@@ -46,6 +49,7 @@ class FichaModel {
       'longitud': longitud,
       'cuadrantes': cuadrantes ?? [],
       'estado': estado,
+      if (justificacion != null) 'justificacion': justificacion,
     };
   }
 }

@@ -4,6 +4,7 @@ import '../../viewmodels/detalle_ficha_viewmodel.dart';
 import '../../viewmodels/editar_ficha_viewmodel.dart';
 import '../editar_ficha/editar_ficha_view.dart';
 import '../mapa/mapa_operativo_view.dart';
+import '../panel_control/panel_control_view.dart';
 
 class DetalleFichaView extends StatefulWidget {
   final String fichaId;
@@ -48,108 +49,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
             success ? const Color(0xFF1B5E20) : Colors.red.shade700,
       ),
     );
-  }
-
-  Future<void> _onCerrarBusqueda() async {
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.lock_outlined, color: Color(0xFFFF9800)),
-            SizedBox(width: 8),
-            Text('Cerrar búsqueda'),
-          ],
-        ),
-        content: const Text(
-          'Al cerrar la búsqueda, ningún voluntario nuevo podrá unirse. '
-          'Los participantes actuales no se verán afectados.\n\n'
-          '¿Deseas continuar?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF9800),
-            ),
-            child: const Text('Cerrar búsqueda'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmar != true || !mounted) return;
-
-    final vm = context.read<DetalleFichaViewModel>();
-    final success = await vm.cerrarBusqueda(widget.fichaId);
-
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(success
-            ? 'Búsqueda cerrada. No se admiten nuevos voluntarios.'
-            : (vm.errorMessage ?? 'Error al cerrar la búsqueda.')),
-        backgroundColor:
-            success ? const Color(0xFFFF9800) : Colors.red.shade700,
-      ),
-    );
-    // No hacemos pop — la ficha sigue visible con estado 'cerrado'
-  }
-
-  Future<void> _onReabrirBusqueda() async {
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.lock_open, color: Color(0xFF1B5E20)),
-            SizedBox(width: 8),
-            Text('Reabrir búsqueda'),
-          ],
-        ),
-        content: const Text(
-          '¿Deseas reabrir la búsqueda? Los voluntarios podrán volver a unirse.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1B5E20),
-            ),
-            child: const Text('Reabrir'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmar != true || !mounted) return;
-
-    final vm = context.read<DetalleFichaViewModel>();
-    final success = await vm.reabrirBusqueda(widget.fichaId);
-
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(success
-            ? '¡Búsqueda reabierta! Los voluntarios pueden unirse nuevamente.'
-            : (vm.errorMessage ?? 'Error al reabrir.')),
-        backgroundColor:
-            success ? const Color(0xFF1B5E20) : Colors.red.shade700,
-      ),
-    );
-    // No hacemos pop — la ficha sigue visible con estado 'activo'
   }
 
   Future<void> _onEliminar() async {
@@ -230,7 +129,8 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
 
     final ficha = vm.ficha!;
     final esCreador = ficha.creadoPor == widget.currentUserId;
-    final esCerrado = ficha.estado.toLowerCase() == 'cerrado';
+    final esBloqueado = ficha.estado.toLowerCase() != 'activo';
+    final estadoText = ficha.estado.toLowerCase();
 
     return Scaffold(
       appBar: AppBar(
@@ -417,7 +317,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                   const SizedBox(height: 28),
 
                   // Botones de acción según rol y estado
-                  _buildActionArea(vm, esCreador, esCerrado),
+                  _buildActionArea(vm, esCreador, esBloqueado, estadoText),
                   const SizedBox(height: 8),
                 ],
               ),
@@ -429,104 +329,46 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
   }
 
   Widget _buildActionArea(
-      DetalleFichaViewModel vm, bool esCreador, bool esCerrado) {
+      DetalleFichaViewModel vm, bool esCreador, bool esBloqueado, String estadoText) {
     if (esCreador) {
       return Column(
         children: [
-          // Botón Panel de Control (siempre inactivo por ahora)
+          // Botón Panel de Control
           SizedBox(
             width: double.infinity,
             height: 50,
             child: ElevatedButton.icon(
-              onPressed: null,
-              // TODO: Navegar a la vista de gestión administrativa del Panel de Control.
+              onPressed: () async {
+                final detaVm = context.read<DetalleFichaViewModel>();
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PanelControlView(fichaId: widget.fichaId),
+                  ),
+                );
+                // Recargar al volver
+                if (mounted) {
+                  detaVm.cargarFicha(widget.fichaId, widget.currentUserId);
+                }
+              },
               icon: const Icon(Icons.admin_panel_settings_outlined),
               label: const Text('Ir al Panel de Control del Operativo'),
               style: ElevatedButton.styleFrom(
-                disabledBackgroundColor: const Color(0xFF9E9E9E),
-                disabledForegroundColor: Colors.white,
+                backgroundColor: const Color(0xFF1B5E20),
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
             ),
           ),
           const SizedBox(height: 12),
-
-          // Cerrar o Reabrir según el estado actual
-          if (!esCerrado)
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: OutlinedButton.icon(
-                onPressed: vm.isLoading ? null : _onCerrarBusqueda,
-                icon: vm.isLoading
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.lock_outline,
-                        color: Color(0xFFE65100)),
-                label: const Text(
-                  'Cerrar búsqueda',
-                  style: TextStyle(
-                    color: Color(0xFFE65100),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side:
-                      const BorderSide(color: Color(0xFFFF9800), width: 1.5),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            )
-          else
-            Column(
-              children: [
-                // Banner cerrado
-                _BannerCerrado(),
-                const SizedBox(height: 12),
-                // Botón reabrir
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: OutlinedButton.icon(
-                    onPressed: vm.isLoading ? null : _onReabrirBusqueda,
-                    icon: vm.isLoading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child:
-                                CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.lock_open,
-                            color: Color(0xFF1B5E20)),
-                    label: const Text(
-                      'Reabrir búsqueda',
-                      style: TextStyle(
-                        color: Color(0xFF1B5E20),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(
-                          color: Color(0xFF4CAF50), width: 1.5),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          if (esBloqueado) _BannerBloqueado(estado: estadoText),
         ],
       );
     }
 
     // — Voluntario —
-    if (esCerrado) {
-      return _BannerCerrado();
+    if (esBloqueado) {
+      return _BannerBloqueado(estado: estadoText);
     }
 
     if (vm.yaVinculado) {
@@ -586,8 +428,12 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
   }
 }
 
-/// Banner que indica que la búsqueda está cerrada.
-class _BannerCerrado extends StatelessWidget {
+/// Banner que indica que la búsqueda está cerrada o pausada.
+class _BannerBloqueado extends StatelessWidget {
+  final String estado;
+
+  const _BannerBloqueado({required this.estado});
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -598,24 +444,24 @@ class _BannerCerrado extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFFF9800), width: 1.5),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.lock, color: Color(0xFFE65100), size: 22),
-          SizedBox(width: 10),
+          const Icon(Icons.lock, color: Color(0xFFE65100), size: 22),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Búsqueda cerrada',
-                  style: TextStyle(
+                  'Búsqueda $estado',
+                  style: const TextStyle(
                     color: Color(0xFFE65100),
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
                 ),
-                SizedBox(height: 2),
-                Text(
+                const SizedBox(height: 2),
+                const Text(
                   'No se admiten nuevos voluntarios.',
                   style:
                       TextStyle(color: Color(0xFF5F6368), fontSize: 12),
@@ -692,17 +538,26 @@ class _EstadoBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isActive = estado.toLowerCase() == 'activo';
+    Color bg;
+    Color border;
+
+    if (isActive) {
+      bg = const Color(0xFFE8F5E9);
+      border = const Color(0xFF4CAF50);
+    } else if (estado.toLowerCase() == 'pausado') {
+      bg = const Color(0xFFFFF3E0);
+      border = const Color(0xFFFF9800);
+    } else {
+      bg = const Color(0xFFFFEBEE);
+      border = const Color(0xFFF44336);
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
-        color:
-            isActive ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
+        color: bg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isActive
-              ? const Color(0xFF4CAF50)
-              : const Color(0xFFFF9800),
-        ),
+        border: Border.all(color: border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -711,9 +566,7 @@ class _EstadoBadge extends StatelessWidget {
             width: 8,
             height: 8,
             decoration: BoxDecoration(
-              color: isActive
-                  ? const Color(0xFF4CAF50)
-                  : const Color(0xFFFF9800),
+              color: border,
               shape: BoxShape.circle,
             ),
           ),
@@ -722,9 +575,7 @@ class _EstadoBadge extends StatelessWidget {
             estado.toUpperCase(),
             style: TextStyle(
               fontSize: 12,
-              color: isActive
-                  ? const Color(0xFF1B5E20)
-                  : const Color(0xFFE65100),
+              color: border,
               fontWeight: FontWeight.bold,
             ),
           ),

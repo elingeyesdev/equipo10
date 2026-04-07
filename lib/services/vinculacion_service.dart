@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import '../models/perfil_model.dart';
 
 class VinculacionService {
   final SupabaseClient _client = Supabase.instance.client;
@@ -42,5 +43,24 @@ class VinculacionService {
         .maybeSingle();
 
     return data != null;
+  }
+
+  /// Obtiene los perfiles de los voluntarios unidos a una ficha.
+  Future<List<PerfilModel>> obtenerVoluntarios(String fichaId) async {
+    final bindings = await _client
+        .from('vinculaciones')
+        .select('usuario_id')
+        .eq('ficha_id', fichaId);
+
+    if ((bindings as List).isEmpty) return [];
+
+    final userIds = bindings.map((e) => e['usuario_id'] as String).toList();
+
+    final perfiles = await _client
+        .from('perfiles')
+        .select()
+        .inFilter('id', userIds);
+
+    return (perfiles as List).map((e) => PerfilModel.fromMap(e)).toList();
   }
 }
