@@ -1,0 +1,62 @@
+services:
+  laravel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: amigate-laravel
+    volumes:
+      - .:/var/www
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: db # Nombre del servicio del contenedor de postgres
+      DB_PORT: 5432
+      DB_DATABASE: amigate
+      DB_USERNAME: postgres
+      DB_PASSWORD: admin
+      OPENWEATHER_API_KEY: mi_api_key
+      FIRMS_API_KEY: cfc7d38ed62916315185b7a1853bdd8d
+    depends_on:
+      - db
+    networks:
+      - amigate-net
+  nginx:
+    image: nginx:latest
+    container_name: amigate-web
+    expose:
+      - "80"
+    ports:
+      - "8080:80" #---> despliegue local con puerto 8080
+    volumes:
+      - .:/var/www
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - laravel
+    networks:
+      - amigate-net
+      - internal-network
+      - proxy-network
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: amigate-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: amigate
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5434:5432"
+    volumes:
+      - db-data:/var/lib/postgresql
+    networks:
+      - amigate-net
+
+networks:
+  amigate-net:
+    driver: bridge
+  internal-network:
+    external: true
+  proxy-network:
+    external: true
+
+volumes:
+  db-data:
