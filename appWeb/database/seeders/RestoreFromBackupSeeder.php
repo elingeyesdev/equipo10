@@ -10,6 +10,11 @@ class RestoreFromBackupSeeder extends Seeder
 {
     public function run(): void
     {
+        if (DB::table('cuadrantes')->exists()) {
+            $this->command->info('Data already restored. Skipping backup restoration.');
+            return;
+        }
+
         $backupPath = base_path('backup.sql');
 
         if (!File::exists($backupPath)) {

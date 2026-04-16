@@ -36,4 +36,4 @@ echo "🌱 Ejecutando Seeder..."
 php artisan db:seed --force || true
 
 echo "🚀 Iniciando PHP-FPM..."
-exec php-fpm
+exec "$@"
