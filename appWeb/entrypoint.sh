@@ -32,8 +32,8 @@ php artisan optimize:clear
 echo "🚀 Optimizando aplicación..."
 php artisan optimize
 
-echo "🌱 Ejecutando Seeder..."
-php artisan db:seed --force || true
+#echo "🌱 Ejecutando Seeder..."
+#php artisan db:seed --force || true
 
 echo "🚀 Iniciando PHP-FPM..."
 exec "$@"
