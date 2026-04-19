@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../viewmodels/crear_ficha_viewmodel.dart';
+import '../../viewmodels/auth_viewmodel.dart';
 import 'lpp_picker_view.dart';
 
 class CrearFichaView extends StatefulWidget {
@@ -26,8 +26,7 @@ class _CrearFichaViewState extends State<CrearFichaView> {
   Future<void> _onCrear() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final currentUserId =
-        Supabase.instance.client.auth.currentUser?.id ?? '';
+    final currentUserId = context.read<AuthViewModel>().currentUserId ?? '';
 
     if (currentUserId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(

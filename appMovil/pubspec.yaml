@@ -16,8 +16,9 @@ dependencies:
   # State Management
   provider: ^6.1.2
 
-  # Supabase Backend
-  supabase_flutter: ^2.5.6
+  # Backend REST
+  shared_preferences: ^2.2.3
+  dio: ^5.4.3+1
 
   # Env variables
   flutter_dotenv: ^5.1.0

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/mis_operativos_viewmodel.dart';
-import '../../models/ficha_model.dart';
+import '../../models/reporte_model.dart';
 import '../detalle_ficha/detalle_ficha_view.dart';
 import '../widgets/main_drawer.dart';
 
@@ -18,7 +18,7 @@ class _MisOperativosViewState extends State<MisOperativosView> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
+      final currentUserId = context.read<AuthViewModel>().currentUserId ?? '';
       context.read<MisOperativosViewModel>().cargarMisFichas(currentUserId);
     });
   }
@@ -26,7 +26,7 @@ class _MisOperativosViewState extends State<MisOperativosView> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<MisOperativosViewModel>();
-    final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    final currentUserId = context.read<AuthViewModel>().currentUserId ?? '';
 
     return Scaffold(
       appBar: AppBar(
@@ -95,7 +95,7 @@ class _MisOperativosViewState extends State<MisOperativosView> {
 }
 
 class _MiFichaCard extends StatelessWidget {
-  final FichaModel ficha;
+  final ReporteModel ficha;
   final String currentUserId;
 
   const _MiFichaCard({required this.ficha, required this.currentUserId});

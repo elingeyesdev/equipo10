@@ -22,6 +22,31 @@ use Carbon\Carbon;
 class ReporteController extends Controller
 {
     /**
+     * Obtener el Feed General (Todos los reportes activos globales)
+     */
+    public function index()
+    {
+        try {
+            $reportes = Reporte::where('estado', 'activo')
+                ->orWhere('estado', 'pausado')
+                ->with(['categoria', 'usuario', 'cuadrante'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $reportes
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener reportes',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Crear reporte
      */
     public function store(Request $request)

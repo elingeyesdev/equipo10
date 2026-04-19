@@ -1,10 +1,9 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:image_picker/image_picker.dart';
-import '../models/ficha_model.dart';
+import '../models/ficha_model.dart'; // Mantener por compatibilidad local momentanea
 
 class FichaService {
-  final SupabaseClient _client = Supabase.instance.client;
+  dynamic _client;
   final _uuid = const Uuid();
   static const String _bucket = 'fotos_fichas';
 
@@ -50,10 +49,6 @@ class FichaService {
     await _client.storage.from(_bucket).uploadBinary(
           filePath,
           bytes,
-          fileOptions: FileOptions(
-            contentType: 'image/$extension',
-            upsert: false,
-          ),
         );
 
     return _client.storage.from(_bucket).getPublicUrl(filePath);

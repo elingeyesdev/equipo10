@@ -1,9 +1,8 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../models/perfil_model.dart';
 
 class VinculacionService {
-  final SupabaseClient _client = Supabase.instance.client;
+  dynamic _client;
   final _uuid = const Uuid();
 
   /// Une al usuario a la búsqueda de una ficha.

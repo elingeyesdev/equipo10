@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
-import '../models/ficha_model.dart';
-import '../services/ficha_service.dart';
+import '../models/reporte_model.dart';
+import '../services/reporte_service.dart';
 
 class FeedViewModel extends ChangeNotifier {
-  final FichaService _fichaService = FichaService();
+  final ReporteService _reporteService = ReporteService();
 
-  List<FichaModel> _fichas = [];
+  List<ReporteModel> _reportes = [];
   bool _isLoading = false;
   String? _errorMessage;
 
-  List<FichaModel> get fichas => _fichas;
+  List<ReporteModel> get reportes => _reportes;
+  
+  // Para compatibilidad visual si los views usan la propiedad fichas
+  List<ReporteModel> get fichas => _reportes;
+  
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -18,12 +22,12 @@ class FeedViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Carga todas las fichas (activas y cerradas) desde Supabase.
+  /// Carga todos los reportes desde Laravel API.
   Future<void> cargarFichas() async {
     _setLoading(true);
     _errorMessage = null;
     try {
-      _fichas = await _fichaService.obtenerFichas();
+      _reportes = await _reporteService.obtenerReportes();
     } catch (e) {
       _errorMessage = e.toString();
     } finally {

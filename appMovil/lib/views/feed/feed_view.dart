@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/feed_viewmodel.dart';
-import '../../models/ficha_model.dart';
+import '../../models/reporte_model.dart';
 import '../auth/login_view.dart';
 import '../crear_ficha/crear_ficha_view.dart';
 import '../detalle_ficha/detalle_ficha_view.dart';
@@ -38,7 +37,7 @@ class _FeedViewState extends State<FeedView> {
   @override
   Widget build(BuildContext context) {
     final feedVm = context.watch<FeedViewModel>();
-    final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    final currentUserId = context.read<AuthViewModel>().currentUserId ?? '';
 
     return Scaffold(
       appBar: AppBar(
@@ -135,7 +134,7 @@ class _FeedViewState extends State<FeedView> {
 
 /// Tarjeta horizontal: imagen al lado izquierdo + contenido a la derecha.
 class _FichaCard extends StatelessWidget {
-  final FichaModel ficha;
+  final ReporteModel ficha;
   final String currentUserId;
 
   const _FichaCard({required this.ficha, required this.currentUserId});

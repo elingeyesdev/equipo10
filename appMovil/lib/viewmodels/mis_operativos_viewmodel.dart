@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import '../models/ficha_model.dart';
-import '../services/ficha_service.dart';
+import '../models/reporte_model.dart';
+import '../services/reporte_service.dart';
 
 class MisOperativosViewModel extends ChangeNotifier {
-  final FichaService _fichaService = FichaService();
+  final ReporteService _reporteService = ReporteService();
 
-  List<FichaModel> _fichas = [];
+  List<ReporteModel> _reportes = [];
   bool _isLoading = false;
   String? _errorMessage;
 
-  List<FichaModel> get fichas => _fichas;
+  List<ReporteModel> get reportes => _reportes;
+  List<ReporteModel> get fichas => _reportes; // alias
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -19,7 +20,7 @@ class MisOperativosViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _fichas = await _fichaService.obtenerMisFichas(userId);
+      _reportes = await _reporteService.obtenerMisReportes(userId);
     } catch (e) {
       _errorMessage = 'Error al cargar tus operativos: $e';
     } finally {

@@ -107,6 +107,9 @@ Route::prefix('reportes')->group(function () {
     // Verificar expansiones automáticas (ejecutar periódicamente)
     Route::post('verificar-expansiones', [ReporteController::class, 'verificarExpansionesAutomaticas']);
     
+    // Obtener todos los reportes públicos activos (Feed principal)
+    Route::get('/', [ReporteController::class, 'index']);
+    
     // Obtener reportes del usuario
     Route::get('usuario/{usuarioId}', [ReporteController::class, 'reportesDelUsuario']);
     
