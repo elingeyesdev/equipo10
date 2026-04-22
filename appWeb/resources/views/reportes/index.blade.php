@@ -18,6 +18,7 @@
                             <select name="estado" class="form-select">
                                 <option value="">Estado: Todos</option>
                                 <option value="activo" {{ request('estado') == 'activo' ? 'selected' : '' }}>Activo</option>
+                                <option value="pausado" {{ request('estado') == 'pausado' ? 'selected' : '' }}>Pausado</option>
                                 <option value="resuelto" {{ request('estado') == 'resuelto' ? 'selected' : '' }}>Resuelto</option>
                                 <option value="inactivo" {{ request('estado') == 'inactivo' ? 'selected' : '' }}>Inactivo</option>
                             </select>
@@ -96,6 +97,9 @@
                                     @case('activo')
                                         <span class="badge bg-primary-subtle text-primary border border-primary">Activo</span>
                                         @break
+                                    @case('pausado')
+                                        <span class="badge bg-warning-subtle text-warning border border-warning">Pausado</span>
+                                        @break
                                     @case('resuelto')
                                         <span class="badge bg-success-subtle text-success border border-success">Resuelto</span>
                                         @break
@@ -105,6 +109,8 @@
                                     @case('spam')
                                         <span class="badge bg-danger-subtle text-danger border border-danger">Spam</span>
                                         @break
+                                    @default
+                                        <span class="badge bg-light text-dark border">{{ $reporte->estado }}</span>
                                 @endswitch
                             </td>
                             <td>

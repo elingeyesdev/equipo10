@@ -1,10 +1,14 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../services/ficha_service.dart';
+import '../services/reporte_service.dart';
+import '../services/categoria_service.dart';
+import '../models/categoria_model.dart';
+import 'package:dio/dio.dart'; // Para FormData si subimos archivo.
 
 class CrearFichaViewModel extends ChangeNotifier {
-  final FichaService _fichaService = FichaService();
+  final ReporteService _reporteService = ReporteService();
+  final CategoriaService _categoriaService = CategoriaService();
   final ImagePicker _imagePicker = ImagePicker();
 
   XFile? _xFile;
@@ -14,7 +18,10 @@ class CrearFichaViewModel extends ChangeNotifier {
 
   double? _latitudLPP;
   double? _longitudLPP;
-  List<dynamic>? _cuadrantes;
+  List<dynamic>? _cuadrantes; // Mantenido temporalmente para compatibilidad LPP, pero ya no se envía
+
+  List<CategoriaModel> categorias = [];
+  String? categoriaSeleccionadaId;
 
   Uint8List? get imageBytes => _imageBytes;
   bool get tieneImagen => _xFile != null;
@@ -22,6 +29,30 @@ class CrearFichaViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   double? get latitudLPP => _latitudLPP;
   double? get longitudLPP => _longitudLPP;
+
+  CrearFichaViewModel() {
+    _cargarCategorias();
+  }
+
+  Future<void> _cargarCategorias() async {
+    _setLoading(true);
+    try {
+      categorias = await _categoriaService.obtenerCategorias();
+      if (categorias.isNotEmpty) {
+        categoriaSeleccionadaId = categorias.first.id;
+      }
+      _errorMessage = null;
+    } catch (e) {
+      _errorMessage = 'Error al cargar categorías: $e';
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  void seleccionarCategoria(String id) {
+    categoriaSeleccionadaId = id;
+    notifyListeners();
+  }
 
   void setUbicacion(double lat, double lng, List<dynamic> cuadrantesGenerados) {
     _latitudLPP = lat;
@@ -64,9 +95,25 @@ class CrearFichaViewModel extends ChangeNotifier {
     required String creadoPor,
     required String titulo,
     required String descripcion,
+    String? telefonoContacto,
+    double? recompensa,
+    String? direccionReferencia,
+    String? fechaPerdida,
   }) async {
     if (titulo.trim().isEmpty || descripcion.trim().isEmpty) {
       _errorMessage = 'El título y la descripción son obligatorios.';
+      notifyListeners();
+      return false;
+    }
+
+    if (categoriaSeleccionadaId == null) {
+      _errorMessage = 'Selecciona una categoría.';
+      notifyListeners();
+      return false;
+    }
+
+    if (_latitudLPP == null || _longitudLPP == null) {
+      _errorMessage = 'Debes seleccionar una ubicación en el mapa.';
       notifyListeners();
       return false;
     }
@@ -76,25 +123,32 @@ class CrearFichaViewModel extends ChangeNotifier {
     try {
       String? fotoUrl;
       if (_xFile != null) {
-        fotoUrl = await _fichaService.subirImagen(_xFile!);
+        // En _reporteService ya está usando _api.client.post con FormData.
+        // Pero requiere que le pasemos el _xFile de image_picker en Flutter
+        fotoUrl = await _reporteService.subirImagen(_xFile!);
       }
 
-      await _fichaService.crearFicha(
-        creadoPor: creadoPor,
+      await _reporteService.crearReporte(
+        usuarioId: creadoPor,
+        categoriaId: categoriaSeleccionadaId!,
         titulo: titulo.trim(),
         descripcion: descripcion.trim(),
+        latitud: _latitudLPP!,
+        longitud: _longitudLPP!,
         fotoUrl: fotoUrl,
-        latitud: _latitudLPP,
-        longitud: _longitudLPP,
-        cuadrantes: _cuadrantes,
+        telefonoContacto: telefonoContacto,
+        recompensa: recompensa,
+        direccionReferencia: direccionReferencia,
+        fechaPerdida: fechaPerdida,
       );
 
-      // Reset
+      // Reset form on success
       _xFile = null;
       _imageBytes = null;
       _latitudLPP = null;
       _longitudLPP = null;
       _cuadrantes = null;
+      if (categorias.isNotEmpty) categoriaSeleccionadaId = categorias.first.id;
       
       return true;
     } catch (e) {

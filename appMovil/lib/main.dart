@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'services/api_service.dart';
 import 'theme/app_theme.dart';
 import 'viewmodels/auth_viewmodel.dart';
 import 'viewmodels/feed_viewmodel.dart';
@@ -14,9 +15,6 @@ import 'viewmodels/panel_control_viewmodel.dart';
 import 'views/auth/login_view.dart';
 import 'views/feed/feed_view.dart';
 
-// Constante global para la URL de la API de Laravel
-const String apiUrl = 'http://localhost:8081/api';
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -26,7 +24,10 @@ Future<void> main() async {
     debugPrint('No se pudo cargar el archivo .env o está vacío: $e');
   }
 
-  // Comprobar token inicial asíncronamente
+  // Cargar sesión previa en memoria (token + userId)
+  final apiService = ApiService();
+  await apiService.loadSession();
+
   final prefs = await SharedPreferences.getInstance();
   final hasToken = prefs.getString('auth_token') != null;
 

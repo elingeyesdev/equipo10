@@ -37,6 +37,7 @@ class Reporte extends Model
         'telefono_contacto',
         'email_contacto',
         'recompensa',
+        'justificacion',
         'vistas',
         
     ];

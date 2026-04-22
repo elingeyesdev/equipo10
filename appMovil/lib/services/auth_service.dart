@@ -31,10 +31,24 @@ class AuthService {
         final user = response.data['data']['usuario'];
         await _api.saveSession(token, user['id']);
       } else {
-        throw Exception(response.data['message'] ?? 'Error desconocido');
+        throw Exception(response.data['message'] ?? 'Error al registrarse');
       }
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? e.message);
+      final statusCode = e.response?.statusCode;
+      final data = e.response?.data;
+
+      if (statusCode == 422) {
+        // Errores de validación (correo ya existe, teléfono inválido, etc.)
+        final errors = data?['errors'];
+        if (errors is Map && errors.isNotEmpty) {
+          final firstField = errors.values.first;
+          final firstMsg = firstField is List ? firstField.first : firstField.toString();
+          throw Exception(firstMsg.toString());
+        }
+        throw Exception('Datos inválidos. Verifica que tu correo no esté ya registrado.');
+      }
+
+      throw Exception(data?['message'] ?? 'Error de conexión. Intenta nuevamente.');
     }
   }
 
@@ -54,10 +68,20 @@ class AuthService {
         final user = response.data['data']['usuario'];
         await _api.saveSession(token, user['id']);
       } else {
-        throw Exception(response.data['message'] ?? 'Logueo fallido');
+        throw Exception(response.data['message'] ?? 'Credenciales incorrectas');
       }
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? e.message);
+      final statusCode = e.response?.statusCode;
+      final data = e.response?.data;
+
+      if (statusCode == 401) {
+        throw Exception('Correo o contraseña incorrectos. Verifica tus datos e intenta de nuevo.');
+      }
+      if (statusCode == 403) {
+        throw Exception('Tu cuenta está desactivada. Contacta al administrador.');
+      }
+
+      throw Exception(data?['message'] ?? 'Error de conexión. Intenta nuevamente.');
     }
   }
 

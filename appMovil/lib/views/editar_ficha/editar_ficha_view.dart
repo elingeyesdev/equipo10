@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../models/ficha_model.dart';
+import '../../models/reporte_model.dart';
 import '../../viewmodels/editar_ficha_viewmodel.dart';
 
 class EditarFichaView extends StatefulWidget {
-  final FichaModel ficha;
+  final ReporteModel ficha;
 
   const EditarFichaView({super.key, required this.ficha});
 

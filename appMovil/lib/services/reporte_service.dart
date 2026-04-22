@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'api_service.dart';
 import '../models/reporte_model.dart';
 
@@ -34,12 +35,139 @@ class ReporteService {
   }
 
   /// Marca temporalmente el reporte como Oculto/Cerrado (Resuelto)
-  Future<void> marcarResuelto(String reporteId) async {
-    final response = await _api.client.put('/reportes/$reporteId/resuelto');
+  Future<void> marcarResuelto(String reporteId, {String? justificacion}) async {
+    final Map<String, dynamic> data = {
+      'justificacion': (justificacion != null && justificacion.isNotEmpty) ? justificacion : null,
+    };
+    
+    final response = await _api.client.put(
+      '/reportes/$reporteId/resuelto',
+      data: data,
+      options: Options(headers: {'Content-Type': 'application/json'}),
+    );
     if (response.statusCode != 200) {
       throw Exception('Fallo al cerrar o resolver el reporte.');
     }
   }
 
-  // TODO: Agregar POST para crear reporte
+  /// Pausa el reporte, opcionalmente recibiendo una justificación
+  Future<void> pausarReporte(String reporteId, {String? justificacion}) async {
+    final Map<String, dynamic> data = {
+      'justificacion': (justificacion != null && justificacion.isNotEmpty) ? justificacion : null,
+    };
+    
+    final response = await _api.client.put(
+      '/reportes/$reporteId/pausar',
+      data: data,
+      options: Options(headers: {'Content-Type': 'application/json'}),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Fallo al pausar el reporte.');
+    }
+  }
+
+  /// Reabre un reporte marcándolo como Activo
+  Future<void> reabrirReporte(String reporteId) async {
+    final response = await _api.client.put('/reportes/$reporteId/reabrir');
+    if (response.statusCode != 200) {
+      throw Exception('Fallo al reabrir el reporte.');
+    }
+  }
+
+  /// Sube una imagen usando MultipartFile y devuelve la URL pública.
+  Future<String> subirImagen(dynamic xFile) async {
+    final bytes = await xFile.readAsBytes();
+    final fileName = xFile.name;
+    final String ext = fileName.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+
+    final formData = FormData.fromMap({
+      'imagen': MultipartFile.fromBytes(
+        bytes, 
+        filename: fileName,
+        contentType: DioMediaType('image', ext),
+      ),
+    });
+
+    // Dio tomará automáticamente el FormData y le pondrá el multipart/form-data y boundary correctos
+    final response = await _api.client.post(
+      '/reportes/upload-image', 
+      data: formData,
+    );
+    
+    if (response.statusCode == 200 && response.data['success'] == true) {
+      return response.data['url'];
+    }
+    throw Exception('Error al subir la imagen');
+  }
+
+  /// Crea un nuevo reporte
+  Future<ReporteModel> crearReporte({
+    required String usuarioId,
+    required String categoriaId,
+    required String titulo,
+    required String descripcion,
+    required double latitud,
+    required double longitud,
+    String? fotoUrl,
+    String? fechaPerdida,
+    String? direccionReferencia,
+    String? telefonoContacto,
+    double? recompensa,
+  }) async {
+    final Map<String, dynamic> data = {
+      'usuario_id': usuarioId,
+      'categoria_id': categoriaId,
+      'tipo_reporte': 'perdido', // Móvil solo crea 'perdidos'
+      'titulo': titulo,
+      'descripcion': descripcion,
+      'ubicacion_exacta_lat': latitud,
+      'ubicacion_exacta_lng': longitud,
+      'contacto_publico': true,
+    };
+
+    if (fotoUrl != null) data['imagenes'] = [fotoUrl];
+    if (fechaPerdida != null) data['fecha_perdida'] = fechaPerdida;
+    if (direccionReferencia != null) data['direccion_referencia'] = direccionReferencia;
+    if (telefonoContacto != null) data['telefono_contacto'] = telefonoContacto;
+    if (recompensa != null) data['recompensa'] = recompensa;
+
+    final response = await _api.client.post('/reportes', data: data);
+    
+    if (response.statusCode == 201 && response.data['success'] == true) {
+      return ReporteModel.fromMap(response.data['data']);
+    }
+    throw Exception('Error al crear el reporte: ${response.data['message'] ?? 'Desconocido'}');
+  }
+
+  /// Edita un reporte
+  Future<void> editarFicha({
+    required String id,
+    required String titulo,
+    required String descripcion,
+    String? fotoUrl,
+  }) async {
+    final Map<String, dynamic> data = {
+      'titulo': titulo,
+      'descripcion': descripcion,
+    };
+
+    if (fotoUrl != null) {
+      data['imagenes'] = [fotoUrl];
+    } else {
+      data['imagenes'] = [];
+    }
+
+    final response = await _api.client.put('/reportes/$id', data: data);
+    if (response.statusCode != 200) {
+      throw Exception('Fallo al actualizar el reporte.');
+    }
+  }
+
+  /// Elimina un reporte
+  Future<void> eliminarFicha(String id) async {
+    final response = await _api.client.delete('/reportes/$id');
+    if (response.statusCode != 200) {
+      throw Exception('Fallo al eliminar el reporte.');
+    }
+  }
 }

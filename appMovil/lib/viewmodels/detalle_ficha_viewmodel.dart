@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import '../models/ficha_model.dart';
-import '../services/ficha_service.dart';
+import '../models/reporte_model.dart';
+import '../services/reporte_service.dart';
 import '../services/vinculacion_service.dart';
 
 class DetalleFichaViewModel extends ChangeNotifier {
-  final FichaService _fichaService = FichaService();
+  final ReporteService _reporteService = ReporteService();
   final VinculacionService _vinculacionService = VinculacionService();
 
-  FichaModel? _ficha;
+  ReporteModel? _ficha;
   bool _isLoading = false;
   bool _yaVinculado = false;
   String? _errorMessage;
   String? _successMessage;
 
-  FichaModel? get ficha => _ficha;
+  ReporteModel? get ficha => _ficha;
   bool get isLoading => _isLoading;
   bool get yaVinculado => _yaVinculado;
   String? get errorMessage => _errorMessage;
@@ -29,7 +29,7 @@ class DetalleFichaViewModel extends ChangeNotifier {
     _setLoading(true);
     _errorMessage = null;
     try {
-      _ficha = await _fichaService.obtenerFichaPorId(fichaId);
+      _ficha = await _reporteService.obtenerReportePorId(fichaId);
       _yaVinculado = await _vinculacionService.estaVinculado(
         fichaId: fichaId,
         usuarioId: usuarioId,
@@ -37,7 +37,9 @@ class DetalleFichaViewModel extends ChangeNotifier {
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
-      _setLoading(false);
+      if (hasListeners) {
+          _setLoading(false);
+      }
     }
   }
 
@@ -58,7 +60,9 @@ class DetalleFichaViewModel extends ChangeNotifier {
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
       return false;
     } finally {
-      _setLoading(false);
+      if (hasListeners) {
+          _setLoading(false);
+      }
     }
   }
 
@@ -67,18 +71,9 @@ class DetalleFichaViewModel extends ChangeNotifier {
     _setLoading(true);
     _errorMessage = null;
     try {
-      await _fichaService.cerrarFicha(fichaId);
+      await _reporteService.marcarResuelto(fichaId);
       if (_ficha != null) {
-        _ficha = FichaModel(
-          id: _ficha!.id,
-          creadoPor: _ficha!.creadoPor,
-          titulo: _ficha!.titulo,
-          descripcion: _ficha!.descripcion,
-          fotoUrl: _ficha!.fotoUrl,
-          latitud: _ficha!.latitud,
-          longitud: _ficha!.longitud,
-          estado: 'cerrado',
-        );
+        _ficha = _ficha!.copyWith(estado: 'resuelto');
       }
       notifyListeners();
       return true;
@@ -90,32 +85,12 @@ class DetalleFichaViewModel extends ChangeNotifier {
     }
   }
 
-  /// Reabre la búsqueda (solo el creador). Actualiza localmente sin navegar.
+  /// Reabre la búsqueda (solo el creador). 
+  /// Si el API no tiene endpoint explícito para reabrir, este método podría no estar soportado.
   Future<bool> reabrirBusqueda(String fichaId) async {
-    _setLoading(true);
-    _errorMessage = null;
-    try {
-      await _fichaService.reabrirFicha(fichaId);
-      if (_ficha != null) {
-        _ficha = FichaModel(
-          id: _ficha!.id,
-          creadoPor: _ficha!.creadoPor,
-          titulo: _ficha!.titulo,
-          descripcion: _ficha!.descripcion,
-          fotoUrl: _ficha!.fotoUrl,
-          latitud: _ficha!.latitud,
-          longitud: _ficha!.longitud,
-          estado: 'activo',
-        );
-      }
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      return false;
-    } finally {
-      _setLoading(false);
-    }
+    _errorMessage = 'Función no disponible en el nuevo sistema web. Comunícate con un administrador.';
+    notifyListeners();
+    return false;
   }
 }
 

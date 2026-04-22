@@ -15,12 +15,33 @@ class _CrearFichaViewState extends State<CrearFichaView> {
   final _formKey = GlobalKey<FormState>();
   final _tituloCtrl = TextEditingController();
   final _descripcionCtrl = TextEditingController();
+  final _telefonoCtrl = TextEditingController();
+  final _recompensaCtrl = TextEditingController();
+  final _direccionCtrl = TextEditingController();
+  DateTime? _fechaPerdida;
 
   @override
   void dispose() {
     _tituloCtrl.dispose();
     _descripcionCtrl.dispose();
+    _telefonoCtrl.dispose();
+    _recompensaCtrl.dispose();
+    _direccionCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _seleccionarFecha(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && picked != _fechaPerdida) {
+      setState(() {
+        _fechaPerdida = picked;
+      });
+    }
   }
 
   Future<void> _onCrear() async {
@@ -43,6 +64,10 @@ class _CrearFichaViewState extends State<CrearFichaView> {
       creadoPor: currentUserId,
       titulo: _tituloCtrl.text,
       descripcion: _descripcionCtrl.text,
+      telefonoContacto: _telefonoCtrl.text.isEmpty ? null : _telefonoCtrl.text,
+      recompensa: _recompensaCtrl.text.isEmpty ? null : double.tryParse(_recompensaCtrl.text),
+      direccionReferencia: _direccionCtrl.text.isEmpty ? null : _direccionCtrl.text,
+      fechaPerdida: _fechaPerdida?.toIso8601String(),
     );
 
     if (!mounted) return;
@@ -105,6 +130,31 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                       ),
                       const SizedBox(height: 16),
 
+                      // Dropdown de Categoría
+                      if (vm.categorias.isNotEmpty) ...[
+                        DropdownButtonFormField<String>(
+                          value: vm.categoriaSeleccionadaId,
+                          decoration: const InputDecoration(
+                            labelText: 'Categoría',
+                            prefixIcon: Icon(Icons.category),
+                          ),
+                          items: vm.categorias.map((cat) {
+                            return DropdownMenuItem(
+                              value: cat.id,
+                              child: Text(cat.nombre),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) vm.seleccionarCategoria(val);
+                          },
+                          validator: (val) => val == null ? 'Seleccione una categoría' : null,
+                        ),
+                        const SizedBox(height: 16),
+                      ] else ...[
+                        const Center(child: CircularProgressIndicator()),
+                        const SizedBox(height: 16),
+                      ],
+
                       // Título
                       TextFormField(
                         controller: _tituloCtrl,
@@ -126,7 +176,7 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                         maxLines: 4,
                         textCapitalization: TextCapitalization.sentences,
                         decoration: const InputDecoration(
-                          labelText: 'Descripción',
+                          labelText: 'Descripción detallada',
                           hintText:
                               'Descripción física, última vez visto, ropa, etc.',
                           prefixIcon: Icon(Icons.description_outlined),
@@ -138,7 +188,72 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                       ),
                       const SizedBox(height: 16),
 
+                      // Opcionales (Teléfono, Recompensa, Referencia)
+                      const Text(
+                        'Datos Opcionales',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1B5E20),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Fecha Perdida
+                      InkWell(
+                        onTap: () => _seleccionarFecha(context),
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Fecha del incidente (opcional)',
+                            prefixIcon: Icon(Icons.calendar_today),
+                          ),
+                          child: Text(
+                            _fechaPerdida == null
+                                ? 'Seleccionar fecha'
+                                : '${_fechaPerdida!.day}/${_fechaPerdida!.month}/${_fechaPerdida!.year}',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      TextFormField(
+                        controller: _direccionCtrl,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                          labelText: 'Dirección o Referencia (opcional)',
+                          hintText: 'Ej: Cerca del parque X',
+                          prefixIcon: Icon(Icons.place),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      TextFormField(
+                        controller: _telefonoCtrl,
+                        keyboardType: TextInputType.phone,
+                        decoration: const InputDecoration(
+                          labelText: 'Teléfono de contacto (opcional)',
+                          hintText: 'Ej: 71234567',
+                          prefixIcon: Icon(Icons.phone),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      TextFormField(
+                        controller: _recompensaCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Recompensa en Bs. (opcional)',
+                          hintText: 'Ej: 500',
+                          prefixIcon: Icon(Icons.attach_money),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
                       // Selector de mapa (LPP)
+                      const Text(
+                        'Ubicación del incidente',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
                       InkWell(
                         onTap: () {
                           Navigator.push(
@@ -162,8 +277,8 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                               Expanded(
                                 child: Text(
                                   vm.latitudLPP != null
-                                      ? 'Ubicación seleccionada: LPP y Cuadrantes listos.'
-                                      : 'Toca aquí para establecer el LPP en el mapa',
+                                      ? 'Ubicación seleccionada: ${vm.latitudLPP!.toStringAsFixed(4)}, ${vm.longitudLPP!.toStringAsFixed(4)}'
+                                      : 'Toca aquí para marcar la ubicación en el mapa',
                                   style: const TextStyle(
                                       color: Color(0xFF0277BD), fontSize: 13, fontWeight: FontWeight.w600),
                                 ),
@@ -182,14 +297,14 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                                 children: [
                                   CircularProgressIndicator(),
                                   SizedBox(height: 8),
-                                  Text('Subiendo ficha...'),
+                                  Text('Creando reporte...'),
                                 ],
                               ),
                             )
                           : ElevatedButton.icon(
                               onPressed: _onCrear,
                               icon: const Icon(Icons.send),
-                              label: const Text('Publicar Ficha'),
+                              label: const Text('Publicar Reporte'),
                             ),
                     ],
                   ),

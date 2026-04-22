@@ -19,7 +19,7 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:100',
-            'email' => 'required|string|email|max:255|unique:usuarios',
+            'email' => 'required|string|email|max:255',
             'contrasena' => 'required|string|min:6',
             'telefono' => 'nullable|string|max:20'
         ]);
@@ -32,25 +32,54 @@ class AuthController extends Controller
         }
 
         try {
+            // Verificar si ya existe un usuario con ese correo
+            $usuarioExistente = Usuario::where('email', $request->email)->first();
+
+            if ($usuarioExistente) {
+                // Si ya tiene contraseña configurada, es un registro duplicado real
+                if ($usuarioExistente->contrasena_set) {
+                    return response()->json([
+                        'success' => false,
+                        'errors' => [
+                            'email' => ['Este correo ya está registrado. Intenta iniciar sesión.']
+                        ]
+                    ], 422);
+                }
+
+                // Si NO tiene contraseña (fue creado por admin), completamos su cuenta
+                $usuarioExistente->contrasena = Hash::make($request->contrasena);
+                $usuarioExistente->contrasena_set = true;
+                $usuarioExistente->nombre = $request->nombre;
+                if ($request->telefono) {
+                    $usuarioExistente->telefono = $request->telefono;
+                }
+                $usuarioExistente->activo = true;
+                $usuarioExistente->save();
+
+                $token = $usuarioExistente->createToken('auth_token')->plainTextToken;
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Cuenta completada exitosamente. ¡Bienvenido!',
+                    'data' => [
+                        'usuario' => $usuarioExistente,
+                        'token' => $token
+                    ]
+                ], 201);
+            }
+
+            // Usuario completamente nuevo → flujo normal
             $usuario = Usuario::create([
                 'nombre' => $request->nombre,
                 'email' => $request->email,
                 'contrasena' => Hash::make($request->contrasena),
+                'contrasena_set' => true,
                 'telefono' => $request->telefono,
                 'puntos_ayuda' => 0,
                 'activo' => true,
                 'rol' => 'cliente'
             ]);
 
-            // Crear configuración de notificaciones por defecto
-            // ConfiguracionNotificacionesUsuario::create([
-            //     'usuario_id' => $usuario->id,
-            //     'push_activo' => true,
-            //     'email_activo' => true,
-            //     'sms_activo' => false
-            // ]);
-
-            // Generar token Sanctum
             $token = $usuario->createToken('auth_token')->plainTextToken;
 
             return response()->json([

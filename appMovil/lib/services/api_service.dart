@@ -2,19 +2,18 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 
-import '../main.dart'; // Para apiUrl
+/// URL base de la API de Laravel (definida en main.dart)
+const String _kApiUrl = 'http://localhost:8081/api';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
-  
+
   late Dio _dio;
-  String? _currentUserToken;
-  String? _currentUserId;
 
   ApiService._internal() {
     _dio = Dio(BaseOptions(
-      baseUrl: apiUrl,
+      baseUrl: _kApiUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       headers: {
@@ -23,7 +22,7 @@ class ApiService {
       },
     ));
 
-    // Agregar Interceptor para enviar el token en cada petición automáticamente
+    // Interceptor que inyecta el token JWT en cada petición
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         final prefs = await SharedPreferences.getInstance();
@@ -35,37 +34,40 @@ class ApiService {
       },
       onError: (DioException e, handler) {
         debugPrint('API_ERROR: ${e.response?.statusCode} - ${e.message}');
-        // Aquí podrías cerrar sesión si es 401
         return handler.next(e);
-      }
+      },
     ));
-    
-    _initLocalSession();
   }
 
   Dio get client => _dio;
-  
-  String? get currentUserId => _currentUserId;
 
-  Future<void> _initLocalSession() async {
+  /// Siempre lee el userId fresco desde SharedPreferences
+  Future<String?> getCurrentUserId() async {
     final prefs = await SharedPreferences.getInstance();
-    _currentUserToken = prefs.getString('auth_token');
-    _currentUserId = prefs.getString('auth_userid');
+    return prefs.getString('auth_userid');
   }
+
+  /// Getter sincrónico para compatibilidad (lee desde cache en memoria)
+  String? get currentUserId => _cachedUserId;
+  String? _cachedUserId;
 
   Future<void> saveSession(String token, String userId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auth_token', token);
     await prefs.setString('auth_userid', userId);
-    _currentUserToken = token;
-    _currentUserId = userId;
+    _cachedUserId = userId;
   }
 
   Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
     await prefs.remove('auth_userid');
-    _currentUserToken = null;
-    _currentUserId = null;
+    _cachedUserId = null;
+  }
+
+  /// Carga el userId desde disco al iniciar la app
+  Future<void> loadSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    _cachedUserId = prefs.getString('auth_userid');
   }
 }

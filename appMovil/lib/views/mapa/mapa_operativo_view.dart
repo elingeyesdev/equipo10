@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import '../../models/ficha_model.dart';
-import '../../services/ficha_service.dart';
+import '../../models/reporte_model.dart';
+import '../../services/reporte_service.dart';
 
 class MapaOperativoView extends StatefulWidget {
-  final FichaModel ficha;
+  final ReporteModel ficha;
   final bool esCreador;
 
   const MapaOperativoView({

@@ -34,7 +34,8 @@ class Usuario extends Authenticatable
         'ubicacion_actual_lat',
         'ubicacion_actual_lng',
         'rol',
-        'contrasena'
+        'contrasena',
+        'contrasena_set'
     ];
     
     protected $hidden = [
@@ -43,6 +44,7 @@ class Usuario extends Authenticatable
 
     protected $casts = [
         'activo' => 'boolean',
+        'contrasena_set' => 'boolean',
         'ubicacion_actual_lat' => 'decimal:8',
         'ubicacion_actual_lng' => 'decimal:8',
         'puntos_ayuda' => 'integer',

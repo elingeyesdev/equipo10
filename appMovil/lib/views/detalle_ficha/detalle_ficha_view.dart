@@ -262,6 +262,10 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                   ),
                   const SizedBox(height: 24),
 
+                  // ── Información adicional del reporte ──
+                  _InfoSection(ficha: ficha),
+                  const SizedBox(height: 20),
+
                   if (ficha.latitud != null && ficha.longitud != null)
                     InkWell(
                       onTap: () {
@@ -577,6 +581,119 @@ class _EstadoBadge extends StatelessWidget {
               fontSize: 12,
               color: border,
               fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Sección de información detallada del reporte.
+class _InfoSection extends StatelessWidget {
+  final dynamic ficha; // ReporteModel
+
+  const _InfoSection({required this.ficha});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <_InfoRow>[];
+
+    if (ficha.nombreCategoria != null && (ficha.nombreCategoria as String).isNotEmpty) {
+      items.add(_InfoRow(icon: Icons.category_outlined, label: 'Categoría', value: ficha.nombreCategoria));
+    }
+    if (ficha.tipoReporte != null && (ficha.tipoReporte as String).isNotEmpty) {
+      items.add(_InfoRow(
+        icon: ficha.tipoReporte == 'perdido' ? Icons.search : Icons.check_circle_outline,
+        label: 'Tipo',
+        value: ficha.tipoReporte == 'perdido' ? 'Persona Perdida' : 'Persona Encontrada',
+      ));
+    }
+    if (ficha.prioridad != null && (ficha.prioridad as String).isNotEmpty) {
+      items.add(_InfoRow(icon: Icons.priority_high, label: 'Prioridad', value: (ficha.prioridad as String).toUpperCase()));
+    }
+    if (ficha.fechaPerdida != null && (ficha.fechaPerdida as String).isNotEmpty) {
+      final rawFecha = ficha.fechaPerdida as String;
+      final shortFecha = rawFecha.length > 10 ? rawFecha.substring(0, 10) : rawFecha;
+      items.add(_InfoRow(icon: Icons.calendar_today_outlined, label: 'Fecha del evento', value: shortFecha));
+    }
+    if (ficha.direccionReferencia != null && (ficha.direccionReferencia as String).isNotEmpty) {
+      items.add(_InfoRow(icon: Icons.location_on_outlined, label: 'Dirección de referencia', value: ficha.direccionReferencia));
+    }
+    if (ficha.telefonoContacto != null && (ficha.telefonoContacto as String).isNotEmpty) {
+      items.add(_InfoRow(icon: Icons.phone_outlined, label: 'Teléfono de contacto', value: ficha.telefonoContacto));
+    }
+    if (ficha.emailContacto != null && (ficha.emailContacto as String).isNotEmpty) {
+      items.add(_InfoRow(icon: Icons.email_outlined, label: 'Email de contacto', value: ficha.emailContacto));
+    }
+    if (ficha.nombreUsuario != null && (ficha.nombreUsuario as String).isNotEmpty) {
+      items.add(_InfoRow(icon: Icons.person_outline, label: 'Reportado por', value: ficha.nombreUsuario));
+    }
+    if (ficha.vistas != null) {
+      items.add(_InfoRow(icon: Icons.visibility_outlined, label: 'Vistas', value: '${ficha.vistas}'));
+    }
+
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 14, 16, 8),
+            child: Text(
+              'INFORMACIÓN DEL CASO',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF5F6368),
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          const Divider(height: 1, color: Color(0xFFE0E0E0)),
+          ...items.map((row) => row).toList(),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String? value;
+
+  const _InfoRow({required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: const Color(0xFF1B5E20)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF5F6368), fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value ?? '—',
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A), fontWeight: FontWeight.w500),
+                ),
+              ],
             ),
           ),
         ],

@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import '../models/ficha_model.dart';
+import '../models/reporte_model.dart';
 import '../models/perfil_model.dart';
-import '../services/ficha_service.dart';
+import '../services/reporte_service.dart';
 import '../services/vinculacion_service.dart';
 
 class PanelControlViewModel extends ChangeNotifier {
-  final FichaService _fichaService = FichaService();
+  final ReporteService _reporteService = ReporteService();
   final VinculacionService _vinculacionService = VinculacionService();
 
-  FichaModel? _ficha;
+  ReporteModel? _ficha;
   List<PerfilModel> _voluntarios = [];
   bool _isLoading = false;
   String? _errorMessage;
 
-  FichaModel? get ficha => _ficha;
+  ReporteModel? get ficha => _ficha;
   List<PerfilModel> get voluntarios => _voluntarios;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -24,15 +24,17 @@ class PanelControlViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _ficha = await _fichaService.obtenerFichaPorId(fichaId);
+      _ficha = await _reporteService.obtenerReportePorId(fichaId);
       if (_ficha != null) {
         _voluntarios = await _vinculacionService.obtenerVoluntarios(fichaId);
       }
     } catch (e) {
       _errorMessage = 'Error al cargar el panel de control: $e';
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (hasListeners) {
+          _isLoading = false;
+          notifyListeners();
+      }
     }
   }
 
@@ -42,16 +44,16 @@ class PanelControlViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      if (nuevoEstado == 'cerrado') {
-        await _fichaService.cerrarFicha(fichaId, justificacion: justificacion);
+      if (nuevoEstado == 'cerrado' || nuevoEstado == 'resuelto') {
+        await _reporteService.marcarResuelto(fichaId, justificacion: justificacion);
       } else if (nuevoEstado == 'pausado') {
-        await _fichaService.pausarFicha(fichaId, justificacion: justificacion);
+        await _reporteService.pausarReporte(fichaId, justificacion: justificacion);
       } else if (nuevoEstado == 'activo') {
-        await _fichaService.reabrirFicha(fichaId);
+        await _reporteService.reabrirReporte(fichaId);
       }
       
       // Recargar para estado actualizado
-      _ficha = await _fichaService.obtenerFichaPorId(fichaId);
+      _ficha = await _reporteService.obtenerReportePorId(fichaId);
       
       _isLoading = false;
       notifyListeners();

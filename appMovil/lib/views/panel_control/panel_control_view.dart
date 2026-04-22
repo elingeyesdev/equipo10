@@ -171,7 +171,7 @@ class _PanelControlViewState extends State<PanelControlView> {
             ],
             const SizedBox(height: 24),
             const Text(
-              'Acciones Rápida',
+              'Acciones Rápidas',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),

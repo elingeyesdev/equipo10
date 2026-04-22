@@ -33,6 +33,13 @@ class UsuarioWebController extends Controller
             'activo' => 'nullable|boolean'
         ]);
 
+        // El admin crea usuarios sin contraseña real.
+        // Se asigna una contraseña aleatoria inutilizable y se marca contrasena_set=false
+        // para que el usuario pueda completar su cuenta desde la app móvil.
+        $validatedData['contrasena'] = \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(32));
+        $validatedData['contrasena_set'] = false;
+        $validatedData['rol'] = 'cliente';
+
         Usuario::create($validatedData);
 
         return redirect()->route('usuarios.index')

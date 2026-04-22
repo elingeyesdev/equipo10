@@ -1,11 +1,11 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../models/ficha_model.dart';
-import '../services/ficha_service.dart';
+import '../models/reporte_model.dart';
+import '../services/reporte_service.dart';
 
 class EditarFichaViewModel extends ChangeNotifier {
-  final FichaService _fichaService = FichaService();
+  final ReporteService _fichaService = ReporteService();
   final ImagePicker _imagePicker = ImagePicker();
 
   XFile? _xFile;
@@ -22,7 +22,7 @@ class EditarFichaViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   /// Inicializa el VM con los datos actuales de la ficha.
-  void inicializar(FichaModel ficha) {
+  void inicializar(ReporteModel ficha) {
     _fotoUrlExistente = ficha.fotoUrl;
     _xFile = null;
     _imageBytes = null;

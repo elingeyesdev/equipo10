@@ -192,6 +192,126 @@ class ReporteController extends Controller
     }
 
     /**
+     * Actualizar reporte (Edición libre)
+     */
+    public function update(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'titulo' => 'sometimes|required|string|max:200',
+            'descripcion' => 'sometimes|required|string',
+            'imagenes' => 'nullable|array',
+            'imagenes.*' => 'required|url',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $reporte = Reporte::findOrFail($id);
+            
+            if ($request->has('titulo')) {
+                $reporte->titulo = $request->titulo;
+            }
+            if ($request->has('descripcion')) {
+                $reporte->descripcion = $request->descripcion;
+            }
+
+            // Reemplazar imágenes si se enviaron nuevas
+            if ($request->has('imagenes') && is_array($request->imagenes) && count($request->imagenes) > 0) {
+                ReporteImagen::where('reporte_id', $reporte->id)->delete();
+                foreach ($request->imagenes as $index => $url) {
+                    ReporteImagen::create([
+                        'reporte_id' => $reporte->id,
+                        'url' => $url,
+                        'orden' => $index + 1
+                    ]);
+                }
+                
+                // Fetch the new image locally
+                $primera = ReporteImagen::where('reporte_id', $reporte->id)->orderBy('orden')->first();
+                $reporte->primera_imagen = $primera ? $primera->url : null;
+            }
+
+            $reporte->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Reporte actualizado exitosamente',
+                'data' => clone $reporte // Simple proxy since load can fail if relationships aren't loaded
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar reporte',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Eliminar reporte
+     */
+    public function destroy($id)
+    {
+        try {
+            $reporte = Reporte::findOrFail($id);
+            $reporte->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Reporte eliminado exitosamente'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar reporte',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Subir imagen para un reporte
+     */
+    public function uploadImage(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            // Max 10MB
+            'imagen' => 'required|image|max:10240', 
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $file = $request->file('imagen');
+            $path = $file->store('reportes', 'public');
+            
+            // Retornamos URL completa y la ruta relativa
+            return response()->json([
+                'success' => true,
+                'url' => asset('storage/' . $path),
+                'path' => $path
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al subir la imagen',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Expandir reporte a cuadrantes adyacentes
      */
     public function expandirReporte($reporteId)
@@ -581,14 +701,18 @@ class ReporteController extends Controller
     /**
      * Cambiar estado del reporte a resuelto
      */
-    public function marcarResuelto($reporteId)
+    public function marcarResuelto(Request $request, $reporteId)
     {
         try {
             $reporte = Reporte::findOrFail($reporteId);
 
-            $reporte->update([
-                'estado' => 'resuelto'
-            ]);
+            $justificacion = $request->input('justificacion', null);
+
+            $reporte->estado = 'resuelto';
+            if (!empty($justificacion)) {
+                $reporte->justificacion = $justificacion;
+            }
+            $reporte->save();
 
             return response()->json([
                 'success' => true,
@@ -599,7 +723,66 @@ class ReporteController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al marcar reporte como resuelto',
+                'message' => 'Error al marcar reporte como resuelto: ' . $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Pausar reporte
+     */
+    public function pausar(Request $request, $reporteId)
+    {
+        try {
+            $reporte = Reporte::findOrFail($reporteId);
+
+            $justificacion = $request->input('justificacion', null);
+
+            $reporte->estado = 'pausado';
+            if (!empty($justificacion)) {
+                $reporte->justificacion = $justificacion;
+            }
+            $reporte->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Reporte pausado',
+                'data' => $reporte
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al pausar reporte: ' . $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reabrir reporte
+     */
+    public function reabrir($reporteId)
+    {
+        try {
+            $reporte = Reporte::findOrFail($reporteId);
+
+            $reporte->update([
+                'estado' => 'activo',
+                'justificacion' => null
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Reporte reabierto activamente',
+                'data' => $reporte
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al reabrir reporte',
                 'error' => $e->getMessage()
             ], 500);
         }

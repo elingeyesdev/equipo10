@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ReporteController;
 use App\Http\Controllers\Api\RespuestaController;
 use App\Http\Controllers\Api\NotificacionController;
 use App\Http\Controllers\Api\CategoriaController;
+use App\Http\Controllers\Api\VoluntarioController;
 
 /*
 |--------------------------------------------------------------------------
@@ -110,6 +111,9 @@ Route::prefix('reportes')->group(function () {
     // Obtener todos los reportes públicos activos (Feed principal)
     Route::get('/', [ReporteController::class, 'index']);
     
+    // Subir imagen para reporte
+    Route::post('upload-image', [ReporteController::class, 'uploadImage']);
+    
     // Obtener reportes del usuario
     Route::get('usuario/{usuarioId}', [ReporteController::class, 'reportesDelUsuario']);
     
@@ -127,6 +131,14 @@ Route::prefix('reportes')->group(function () {
     
     // Marcar reporte como resuelto
     Route::put('{reporteId}/resuelto', [ReporteController::class, 'marcarResuelto']);
+    
+    // Pausar y reabrir reporte
+    Route::put('{reporteId}/pausar', [ReporteController::class, 'pausar']);
+    Route::put('{reporteId}/reabrir', [ReporteController::class, 'reabrir']);
+    
+    // Editar y eliminar reporte (operaciones CRUD plenas)
+    Route::put('{id}', [ReporteController::class, 'update']);
+    Route::delete('{id}', [ReporteController::class, 'destroy']);
     
     // Obtener reporte específico (SIEMPRE AL FINAL)
     Route::get('{id}', [ReporteController::class, 'show']);
@@ -195,3 +207,15 @@ Route::get('/ping', function () {
         'timestamp' => now()
     ]);
 });
+
+// ============================================
+// VOLUNTARIOS / VINCULACIONES
+// ============================================
+Route::prefix('reportes/{reporteId}/voluntarios')->group(function () {
+    Route::post('/', [VoluntarioController::class, 'unirse']);
+    Route::get('/', [VoluntarioController::class, 'listarPorReporte']);
+    Route::get('usuario/{usuarioId}', [VoluntarioController::class, 'verificarVinculo']);
+    Route::put('abandonar/{usuarioId}', [VoluntarioController::class, 'abandonar']);
+});
+
+// Fin del archivo
