@@ -214,8 +214,13 @@ Route::get('/ping', function () {
 Route::prefix('reportes/{reporteId}/voluntarios')->group(function () {
     Route::post('/', [VoluntarioController::class, 'unirse']);
     Route::get('/', [VoluntarioController::class, 'listarPorReporte']);
+    Route::get('recorridos', [VoluntarioController::class, 'obtenerRecorridos']);
     Route::get('usuario/{usuarioId}', [VoluntarioController::class, 'verificarVinculo']);
     Route::put('abandonar/{usuarioId}', [VoluntarioController::class, 'abandonar']);
+    // Tracking
+    Route::put('iniciar/{usuarioId}', [VoluntarioController::class, 'iniciarBusqueda']);
+    Route::put('pausar/{usuarioId}', [VoluntarioController::class, 'pausarBusqueda']);
+    Route::put('terminar/{usuarioId}', [VoluntarioController::class, 'terminarBusqueda']);
 });
 
 // Fin del archivo

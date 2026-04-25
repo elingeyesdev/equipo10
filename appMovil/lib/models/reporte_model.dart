@@ -20,11 +20,29 @@ class ReporteModel {
   final String? prioridad;
   final int? vistas;
   final String? fechaPerdida;
+  final Map<String, dynamic>? caracteristicas;
+  final double? recompensa;
+
+  // Bounds del cuadrante asignado (para geofencing)
+  final double? cuadranteLatMin;
+  final double? cuadranteLatMax;
+  final double? cuadranteLngMin;
+  final double? cuadranteLngMax;
 
   // Getters de compatibilidad para evitar quebrar la UI previamente enlazada a Supabase
   String? get fotoUrl => primeraImagen;
   String get creadoPor => usuarioId;
   dynamic get cuadrantes => null;
+
+  /// Retorna true si [lat, lng] están dentro del cuadrante del reporte.
+  bool estaDentroDelCuadrante(double lat, double lng) {
+    if (cuadranteLatMin == null || cuadranteLatMax == null ||
+        cuadranteLngMin == null || cuadranteLngMax == null) return false;
+    return lat >= cuadranteLatMin! &&
+        lat <= cuadranteLatMax! &&
+        lng >= cuadranteLngMin! &&
+        lng <= cuadranteLngMax!;
+  }
 
   ReporteModel({
     required this.id,
@@ -47,7 +65,14 @@ class ReporteModel {
     this.prioridad,
     this.vistas,
     this.fechaPerdida,
+    this.caracteristicas,
+    this.recompensa,
+    this.cuadranteLatMin,
+    this.cuadranteLatMax,
+    this.cuadranteLngMin,
+    this.cuadranteLngMax,
   });
+
 
   factory ReporteModel.fromMap(Map<String, dynamic> map) {
     // Extraer primera imagen de la lista de imágenes si existe
@@ -69,6 +94,18 @@ class ReporteModel {
     final u = map['usuario'];
     if (u is Map) {
       uNombre = u['nombre']?.toString();
+    }
+    
+    // Parsear características (backend devuelve lista de objetos [{clave: '...', valor: '...'}])
+    Map<String, dynamic>? chars;
+    if (map['caracteristicas'] is List) {
+      chars = {};
+      for (final item in map['caracteristicas']) {
+        if (item is Map && item['clave'] != null) {
+          chars[item['clave']] = item['valor'];
+        }
+      }
+      if (chars.isEmpty) chars = null;
     }
 
     return ReporteModel(
@@ -92,6 +129,13 @@ class ReporteModel {
       prioridad: map['prioridad']?.toString(),
       vistas: map['vistas'] is int ? map['vistas'] : int.tryParse(map['vistas']?.toString() ?? ''),
       fechaPerdida: map['fecha_perdida']?.toString(),
+      caracteristicas: chars,
+      recompensa: _parseDouble(map['recompensa']),
+      // Extraer bounds del cuadrante anidado (disponible en el endpoint show)
+      cuadranteLatMin: _parseDouble(map['cuadrante']?['lat_min']),
+      cuadranteLatMax: _parseDouble(map['cuadrante']?['lat_max']),
+      cuadranteLngMin: _parseDouble(map['cuadrante']?['lng_min']),
+      cuadranteLngMax: _parseDouble(map['cuadrante']?['lng_max']),
     );
   }
 
@@ -124,6 +168,8 @@ class ReporteModel {
     String? prioridad,
     int? vistas,
     String? fechaPerdida,
+    Map<String, dynamic>? caracteristicas,
+    double? recompensa,
   }) {
     return ReporteModel(
       id: id ?? this.id,
@@ -146,6 +192,8 @@ class ReporteModel {
       prioridad: prioridad ?? this.prioridad,
       vistas: vistas ?? this.vistas,
       fechaPerdida: fechaPerdida ?? this.fechaPerdida,
+      caracteristicas: caracteristicas ?? this.caracteristicas,
+      recompensa: recompensa ?? this.recompensa,
     );
   }
 

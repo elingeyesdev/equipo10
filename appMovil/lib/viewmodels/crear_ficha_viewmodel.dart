@@ -23,6 +23,9 @@ class CrearFichaViewModel extends ChangeNotifier {
   List<CategoriaModel> categorias = [];
   String? categoriaSeleccionadaId;
 
+  /// Mapa clave→valor con los campos dinámicos de la categoría seleccionada.
+  final Map<String, dynamic> caracteristicas = {};
+
   Uint8List? get imageBytes => _imageBytes;
   bool get tieneImagen => _xFile != null;
   bool get isLoading => _isLoading;
@@ -51,7 +54,17 @@ class CrearFichaViewModel extends ChangeNotifier {
 
   void seleccionarCategoria(String id) {
     categoriaSeleccionadaId = id;
+    caracteristicas.clear(); // Limpiar campos al cambiar categoría
     notifyListeners();
+  }
+
+  void setCaracteristica(String clave, dynamic valor) {
+    if (valor == null || (valor is String && valor.trim().isEmpty)) {
+      caracteristicas.remove(clave);
+    } else {
+      caracteristicas[clave] = valor;
+    }
+    // No llamamos notifyListeners() aquí para evitar rebuilds innecesarios
   }
 
   void setUbicacion(double lat, double lng, List<dynamic> cuadrantesGenerados) {
@@ -140,6 +153,9 @@ class CrearFichaViewModel extends ChangeNotifier {
         recompensa: recompensa,
         direccionReferencia: direccionReferencia,
         fechaPerdida: fechaPerdida,
+        caracteristicasExtra: caracteristicas.isNotEmpty
+            ? Map<String, dynamic>.from(caracteristicas)
+            : null,
       );
 
       // Reset form on success
@@ -148,7 +164,9 @@ class CrearFichaViewModel extends ChangeNotifier {
       _latitudLPP = null;
       _longitudLPP = null;
       _cuadrantes = null;
+      caracteristicas.clear();
       if (categorias.isNotEmpty) categoriaSeleccionadaId = categorias.first.id;
+
       
       return true;
     } catch (e) {

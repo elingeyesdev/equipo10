@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../models/reporte_model.dart';
+import '../../models/campos_categoria.dart';
+import '../../models/campo_categoria_model.dart';
 import '../../viewmodels/detalle_ficha_viewmodel.dart';
 import '../../viewmodels/editar_ficha_viewmodel.dart';
+import '../../viewmodels/tracking_viewmodel.dart';
 import '../editar_ficha/editar_ficha_view.dart';
 import '../mapa/mapa_operativo_view.dart';
 import '../panel_control/panel_control_view.dart';
+import '../tracking/tracking_view.dart';
 
 class DetalleFichaView extends StatefulWidget {
   final String fichaId;
@@ -375,35 +380,62 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
       return _BannerBloqueado(estado: estadoText);
     }
 
+    final ficha = vm.ficha;
+
     if (vm.yaVinculado) {
-      return Container(
-        width: double.infinity,
-        height: 50,
-        decoration: BoxDecoration(
-          color: const Color(0xFFE8F5E9),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF4CAF50)),
-        ),
-        child: const Center(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.check_circle, color: Color(0xFF1B5E20)),
-              SizedBox(width: 8),
-              Text(
-                'Ya estás participando en esta búsqueda',
-                style: TextStyle(
-                  color: Color(0xFF1B5E20),
-                  fontWeight: FontWeight.w600,
-                ),
+      return Column(
+        children: [
+          // Banner: ya participando
+          Container(
+            width: double.infinity,
+            height: 50,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5E9),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF4CAF50)),
+            ),
+            child: const Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle, color: Color(0xFF1B5E20)),
+                  SizedBox(width: 8),
+                  Text(
+                    'Ya estás participando en esta búsqueda',
+                    style: TextStyle(
+                      color: Color(0xFF1B5E20),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+          const SizedBox(height: 12),
+          // Botón de iniciar búsqueda (tracking)
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton.icon(
+              onPressed: ficha == null ? null : () => _onIniciarBusqueda(ficha),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1B5E20),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: const Icon(Icons.directions_walk),
+              label: const Text(
+                'Iniciar mi Búsqueda',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ),
+        ],
       );
     }
 
-    // Botón unirse (búsqueda activa)
+    // Botón unirse (búsqueda activa, usuario no vinculado)
     return SizedBox(
       width: double.infinity,
       height: 50,
@@ -430,7 +462,58 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
       ),
     );
   }
+
+  Future<void> _onIniciarBusqueda(dynamic ficha) async {
+    // Verificar que el reporte tenga cuadrante con bounds
+    if (ficha.cuadranteLatMin == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Este reporte no tiene un cuadrante asignado aún.'),
+        backgroundColor: Colors.orange,
+      ));
+      return;
+    }
+
+    // Verificar geofencing con el ViewModel de tracking
+    final trackingVm = TrackingViewModel();
+    final pos = await trackingVm.verificarGeofencing(
+      latMin: ficha.cuadranteLatMin!,
+      latMax: ficha.cuadranteLatMax!,
+      lngMin: ficha.cuadranteLngMin!,
+      lngMax: ficha.cuadranteLngMax!,
+    );
+
+    if (!mounted) return;
+
+    if (pos == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(trackingVm.errorMessage ?? 'No estás en el cuadrante.'),
+        backgroundColor: Colors.red.shade700,
+      ));
+      return;
+    }
+
+    // Navegar a la pantalla de tracking
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => TrackingViewModel(),
+          child: TrackingView(
+            ficha: ficha as ReporteModel,
+            usuarioId: widget.currentUserId,
+          ),
+        ),
+      ),
+    );
+    // Recargar detalle al volver
+    if (mounted) {
+      context
+          .read<DetalleFichaViewModel>()
+          .cargarFicha(widget.fichaId, widget.currentUserId);
+    }
+  }
 }
+
 
 /// Banner que indica que la búsqueda está cerrada o pausada.
 class _BannerBloqueado extends StatelessWidget {
@@ -631,6 +714,31 @@ class _InfoSection extends StatelessWidget {
     }
     if (ficha.vistas != null) {
       items.add(_InfoRow(icon: Icons.visibility_outlined, label: 'Vistas', value: '${ficha.vistas}'));
+    }
+
+    // Campos dinámicos de la categoría
+    if (ficha.caracteristicas != null && (ficha.caracteristicas as Map).isNotEmpty) {
+      final chars = ficha.caracteristicas as Map<String, dynamic>;
+      final camposRef = ficha.nombreCategoria != null 
+          ? CamposCategoria.paraNombre(ficha.nombreCategoria!)
+          : <CampoCategoria>[];
+
+      chars.forEach((clave, valor) {
+        // Buscar el campo en la referencia para obtener etiqueta e icono
+        final campoRef = camposRef.where((c) => c.clave == clave).firstOrNull;
+        
+        final etiqueta = campoRef?.etiqueta ?? clave.replaceAll('_', ' ').toUpperCase();
+        final icono = campoRef?.icono ?? Icons.info_outline;
+        
+        String valorStr;
+        if (valor is bool) {
+          valorStr = valor ? 'Sí' : 'No';
+        } else {
+          valorStr = valor.toString();
+        }
+
+        items.add(_InfoRow(icon: icono, label: etiqueta, value: valorStr));
+      });
     }
 
     if (items.isEmpty) return const SizedBox.shrink();

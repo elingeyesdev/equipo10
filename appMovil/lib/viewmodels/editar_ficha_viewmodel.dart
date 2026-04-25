@@ -14,6 +14,8 @@ class EditarFichaViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
+  final Map<String, dynamic> caracteristicas = {};
+
   Uint8List? get imageBytes => _imageBytes;
   String? get fotoUrlExistente => _fotoUrlExistente;
   bool get tieneImagenNueva => _xFile != null;
@@ -26,7 +28,19 @@ class EditarFichaViewModel extends ChangeNotifier {
     _fotoUrlExistente = ficha.fotoUrl;
     _xFile = null;
     _imageBytes = null;
+    caracteristicas.clear();
+    if (ficha.caracteristicas != null) {
+      caracteristicas.addAll(ficha.caracteristicas!);
+    }
     notifyListeners();
+  }
+
+  void setCaracteristica(String clave, dynamic valor) {
+    if (valor == null || (valor is String && valor.trim().isEmpty)) {
+      caracteristicas.remove(clave);
+    } else {
+      caracteristicas[clave] = valor;
+    }
   }
 
   void _setLoading(bool value) {
@@ -63,6 +77,10 @@ class EditarFichaViewModel extends ChangeNotifier {
     required String fichaId,
     required String titulo,
     required String descripcion,
+    String? telefonoContacto,
+    double? recompensa,
+    String? direccionReferencia,
+    String? fechaPerdida,
   }) async {
     if (titulo.trim().isEmpty || descripcion.trim().isEmpty) {
       _errorMessage = 'El título y la descripción son obligatorios.';
@@ -85,6 +103,13 @@ class EditarFichaViewModel extends ChangeNotifier {
         titulo: titulo.trim(),
         descripcion: descripcion.trim(),
         fotoUrl: fotoUrl,
+        telefonoContacto: telefonoContacto,
+        recompensa: recompensa,
+        direccionReferencia: direccionReferencia,
+        fechaPerdida: fechaPerdida,
+        caracteristicasExtra: caracteristicas.isNotEmpty
+            ? Map<String, dynamic>.from(caracteristicas)
+            : null,
       );
 
       return true;

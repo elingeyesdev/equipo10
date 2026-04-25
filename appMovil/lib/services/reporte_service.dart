@@ -113,11 +113,12 @@ class ReporteService {
     String? direccionReferencia,
     String? telefonoContacto,
     double? recompensa,
+    Map<String, dynamic>? caracteristicasExtra,
   }) async {
     final Map<String, dynamic> data = {
       'usuario_id': usuarioId,
       'categoria_id': categoriaId,
-      'tipo_reporte': 'perdido', // Móvil solo crea 'perdidos'
+      'tipo_reporte': 'perdido',
       'titulo': titulo,
       'descripcion': descripcion,
       'ubicacion_exacta_lat': latitud,
@@ -130,13 +131,36 @@ class ReporteService {
     if (direccionReferencia != null) data['direccion_referencia'] = direccionReferencia;
     if (telefonoContacto != null) data['telefono_contacto'] = telefonoContacto;
     if (recompensa != null) data['recompensa'] = recompensa;
-
-    final response = await _api.client.post('/reportes', data: data);
-    
-    if (response.statusCode == 201 && response.data['success'] == true) {
-      return ReporteModel.fromMap(response.data['data']);
+    if (caracteristicasExtra != null && caracteristicasExtra.isNotEmpty) {
+      data['caracteristicas'] = caracteristicasExtra;
     }
-    throw Exception('Error al crear el reporte: ${response.data['message'] ?? 'Desconocido'}');
+
+    try {
+      final response = await _api.client.post('/reportes', data: data);
+      if (response.statusCode == 201 && response.data['success'] == true) {
+        return ReporteModel.fromMap(response.data['data']);
+      }
+      throw Exception(response.data['message'] ?? 'Error al crear el reporte');
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+      final body = e.response?.data;
+
+      if (statusCode == 422) {
+        // Extraer primer error de validación del servidor
+        final errors = body?['errors'];
+        if (errors is Map && errors.isNotEmpty) {
+          final firstMsg = (errors.values.first as List?)?.first?.toString();
+          throw Exception(firstMsg ?? 'Datos inválidos. Revisa los campos del formulario.');
+        }
+        throw Exception('Datos inválidos. Revisa los campos del formulario.');
+      }
+
+      if (statusCode == 500) {
+        throw Exception('Error del servidor al crear el reporte. Intenta de nuevo.');
+      }
+
+      throw Exception(body?['message'] ?? 'Error de conexión. Intenta de nuevo.');
+    }
   }
 
   /// Edita un reporte
@@ -145,6 +169,11 @@ class ReporteService {
     required String titulo,
     required String descripcion,
     String? fotoUrl,
+    String? telefonoContacto,
+    double? recompensa,
+    String? direccionReferencia,
+    String? fechaPerdida,
+    Map<String, dynamic>? caracteristicasExtra,
   }) async {
     final Map<String, dynamic> data = {
       'titulo': titulo,
@@ -156,6 +185,12 @@ class ReporteService {
     } else {
       data['imagenes'] = [];
     }
+
+    if (telefonoContacto != null) data['telefono_contacto'] = telefonoContacto;
+    if (recompensa != null) data['recompensa'] = recompensa;
+    if (direccionReferencia != null) data['direccion_referencia'] = direccionReferencia;
+    if (fechaPerdida != null) data['fecha_perdida'] = fechaPerdida;
+    if (caracteristicasExtra != null) data['caracteristicas'] = caracteristicasExtra;
 
     final response = await _api.client.put('/reportes/$id', data: data);
     if (response.statusCode != 200) {

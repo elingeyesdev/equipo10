@@ -90,12 +90,9 @@ class ReporteController extends Controller
                 ->where('lng_max', '>=', $request->ubicacion_exacta_lng)
                 ->first();
 
-            if (!$cuadrante) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No se encontró un cuadrante para esta ubicación'
-                ], 404);
-            }
+            // Si no hay cuadrante para esa ubicación, el reporte igual se crea
+            // sin cuadrante asignado (el admin puede asignarlo luego desde la web)
+            $cuadranteId = $cuadrante?->id;
 
             // Obtener configuración de expansión
             $tiempoExpansion = ConfiguracionSistema::where('clave', 'tiempo_expansion_horas')->first();
@@ -108,7 +105,7 @@ class ReporteController extends Controller
             $reporte = Reporte::create([
                 'usuario_id' => $request->usuario_id,
                 'categoria_id' => $request->categoria_id,
-                'cuadrante_id' => $cuadrante->id,
+                'cuadrante_id' => $cuadranteId,
                 'tipo_reporte' => $request->tipo_reporte,
                 'titulo' => $request->titulo,
                 'descripcion' => $request->descripcion,
@@ -162,16 +159,19 @@ class ReporteController extends Controller
                 }
             }
 
-            // Registrar expansión inicial (nivel 1 = cuadrante original)
-            ExpansionReporte::create([
-                'reporte_id' => $reporte->id,
-                'cuadrante_expandido_id' => $cuadrante->id,
-                'nivel' => 1,
-                'fecha_expansion' => now()
-            ]);
+            // Registrar expansión inicial solo si hay cuadrante
+            if ($cuadranteId) {
+                ExpansionReporte::create([
+                    'reporte_id' => $reporte->id,
+                    'cuadrante_expandido_id' => $cuadranteId,
+                    'nivel' => 1,
+                    'fecha_expansion' => now()
+                ]);
 
-            // Notificar a todos los miembros del grupo del cuadrante
-            $this->notificarMiembrosGrupo($cuadrante->id, $reporte);
+                // Notificar a todos los miembros del grupo del cuadrante
+                $this->notificarMiembrosGrupo($cuadranteId, $reporte);
+            }
+
 
             DB::commit();
 
@@ -201,6 +201,11 @@ class ReporteController extends Controller
             'descripcion' => 'sometimes|required|string',
             'imagenes' => 'nullable|array',
             'imagenes.*' => 'required|url',
+            'telefono_contacto' => 'nullable|string|max:20',
+            'recompensa' => 'nullable|numeric|min:0',
+            'direccion_referencia' => 'nullable|string|max:255',
+            'fecha_perdida' => 'nullable|date',
+            'caracteristicas' => 'nullable|array',
         ]);
 
         if ($validator->fails()) {
@@ -211,6 +216,7 @@ class ReporteController extends Controller
         }
 
         try {
+            DB::beginTransaction();
             $reporte = Reporte::findOrFail($id);
             
             if ($request->has('titulo')) {
@@ -218,6 +224,18 @@ class ReporteController extends Controller
             }
             if ($request->has('descripcion')) {
                 $reporte->descripcion = $request->descripcion;
+            }
+            if ($request->has('telefono_contacto')) {
+                $reporte->telefono_contacto = $request->telefono_contacto;
+            }
+            if ($request->has('recompensa')) {
+                $reporte->recompensa = $request->recompensa;
+            }
+            if ($request->has('direccion_referencia')) {
+                $reporte->direccion_referencia = $request->direccion_referencia;
+            }
+            if ($request->has('fecha_perdida')) {
+                $reporte->fecha_perdida = $request->fecha_perdida;
             }
 
             // Reemplazar imágenes si se enviaron nuevas
@@ -238,13 +256,48 @@ class ReporteController extends Controller
 
             $reporte->save();
 
+            // Recrear características
+            if ($request->has('caracteristicas') && is_array($request->caracteristicas)) {
+                ReporteCaracteristica::where('reporte_id', $reporte->id)->delete();
+                foreach ($request->caracteristicas as $clave => $valor) {
+                    ReporteCaracteristica::create([
+                        'reporte_id' => $reporte->id,
+                        'clave' => $clave,
+                        'valor' => $valor
+                    ]);
+                }
+            }
+
+            // Notificar a los voluntarios inscritos sobre la actualización
+            $voluntarios = \App\Models\ReporteVoluntario::where('reporte_id', $reporte->id)
+                ->whereIn('estado', ['buscando', 'esperando'])
+                ->get();
+            
+            foreach ($voluntarios as $voluntario) {
+                // No notificar al creador del reporte si por casualidad es voluntario
+                if ($voluntario->usuario_id === $reporte->usuario_id) continue;
+                
+                \App\Models\Notificacion::create([
+                    'usuario_id' => $voluntario->usuario_id,
+                    'tipo' => 'actualizacion_reporte',
+                    'titulo' => 'Reporte Actualizado',
+                    'mensaje' => "El creador ha modificado los detalles del reporte: {$reporte->titulo}",
+                    'leida' => false,
+                    'enviada_push' => false,
+                    'datos_json' => json_encode(['reporte_id' => $reporte->id])
+                ]);
+            }
+
+            DB::commit();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Reporte actualizado exitosamente',
-                'data' => clone $reporte // Simple proxy since load can fail if relationships aren't loaded
+                'data' => $reporte->load(['categoria', 'cuadrante', 'caracteristicas', 'imagenes'])
             ], 200);
 
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Error al actualizar reporte',

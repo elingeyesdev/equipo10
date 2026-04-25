@@ -144,4 +144,145 @@ class VoluntarioController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Iniciar sesión de búsqueda (tracking activo)
+     */
+    public function iniciarBusqueda(Request $request, $reporteId, $usuarioId)
+    {
+        try {
+            $voluntario = ReporteVoluntario::where('reporte_id', $reporteId)
+                ->where('usuario_id', $usuarioId)
+                ->firstOrFail();
+
+            if ($voluntario->estado_busqueda === 'activo') {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'La búsqueda ya está en curso',
+                    'data' => $voluntario
+                ], 200);
+            }
+
+            $voluntario->estado_busqueda = 'activo';
+            $voluntario->inicio_busqueda = now();
+            $voluntario->fin_busqueda = null;
+            $voluntario->recorrido_puntos = null;
+            $voluntario->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Búsqueda iniciada. ¡Buena suerte!',
+                'data' => $voluntario
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al iniciar búsqueda: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Pausar sesión de búsqueda
+     */
+    public function pausarBusqueda($reporteId, $usuarioId)
+    {
+        try {
+            $voluntario = ReporteVoluntario::where('reporte_id', $reporteId)
+                ->where('usuario_id', $usuarioId)
+                ->firstOrFail();
+
+            $voluntario->estado_busqueda = 'en_pausa';
+            $voluntario->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Búsqueda pausada',
+                'data' => $voluntario
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al pausar búsqueda: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Terminar sesión de búsqueda y guardar recorrido completo
+     */
+    public function terminarBusqueda(Request $request, $reporteId, $usuarioId)
+    {
+        $validator = Validator::make($request->all(), [
+            'puntos' => 'required|array|min:1',
+            'puntos.*.lat' => 'required|numeric|between:-90,90',
+            'puntos.*.lng' => 'required|numeric|between:-180,180',
+            'puntos.*.ts' => 'nullable|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $voluntario = ReporteVoluntario::where('reporte_id', $reporteId)
+                ->where('usuario_id', $usuarioId)
+                ->firstOrFail();
+
+            $voluntario->estado_busqueda = 'terminado';
+            $voluntario->fin_busqueda = now();
+            $voluntario->recorrido_puntos = $request->puntos;
+            $voluntario->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Búsqueda terminada. Recorrido guardado.',
+                'data' => $voluntario
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al terminar búsqueda: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener todos los recorridos completados de un reporte para mostrar en el mapa
+     */
+    public function obtenerRecorridos($reporteId)
+    {
+        try {
+            $recorridos = ReporteVoluntario::where('reporte_id', $reporteId)
+                ->whereIn('estado_busqueda', ['terminado', 'activo', 'en_pausa'])
+                ->whereNotNull('recorrido_puntos')
+                ->with('usuario:id,nombre,avatar_url')
+                ->get()
+                ->map(fn($v) => [
+                    'voluntario_id' => $v->id,
+                    'usuario' => $v->usuario,
+                    'estado_busqueda' => $v->estado_busqueda,
+                    'inicio_busqueda' => $v->inicio_busqueda,
+                    'fin_busqueda' => $v->fin_busqueda,
+                    'puntos' => $v->recorrido_puntos,
+                ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $recorridos
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener recorridos: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

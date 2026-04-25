@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 /// URL base de la API de Laravel (definida en main.dart)
 const String _kApiUrl = 'http://localhost:8081/api';
+// const String _kApiUrl = 'http://10.26.1.13:8081/api'; // para emulador android
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();

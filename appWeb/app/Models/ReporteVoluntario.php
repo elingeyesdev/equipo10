@@ -20,13 +20,20 @@ class ReporteVoluntario extends Model
         'estado',
         'ultima_coordenada_lat',
         'ultima_coordenada_lng',
-        'ultima_actualizacion_gps'
+        'ultima_actualizacion_gps',
+        'estado_busqueda',
+        'inicio_busqueda',
+        'fin_busqueda',
+        'recorrido_puntos',
     ];
 
     protected $casts = [
         'ultima_coordenada_lat' => 'decimal:8',
         'ultima_coordenada_lng' => 'decimal:8',
         'ultima_actualizacion_gps' => 'datetime',
+        'inicio_busqueda' => 'datetime',
+        'fin_busqueda' => 'datetime',
+        'recorrido_puntos' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
