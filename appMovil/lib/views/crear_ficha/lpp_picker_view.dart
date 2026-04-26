@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/crear_ficha_viewmodel.dart';
 import '../../services/nominatim_service.dart';
+import '../../widgets/map_tile_layer.dart';
 
 class LPPPickerView extends StatefulWidget {
   const LPPPickerView({super.key});
@@ -161,10 +162,7 @@ class _LPPPickerViewState extends State<LPPPickerView> {
               onTap: _onMapTap,
             ),
             children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.equipo10.echoes',
-              ),
+              const MapTileLayer(),
               if (_drawnQuadrants.isNotEmpty)
                 PolygonLayer(
                   polygons: List.generate(_drawnQuadrants.length, (i) {

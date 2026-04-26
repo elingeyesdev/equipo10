@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import '../../viewmodels/panel_control_viewmodel.dart';
 import '../../models/ficha_model.dart';
 import '../../models/perfil_model.dart';
+import '../../widgets/map_tile_layer.dart';
 
 class PanelControlView extends StatefulWidget {
   final String fichaId;
@@ -399,10 +400,7 @@ class _PanelControlViewState extends State<PanelControlView> {
         initialZoom: 15.0,
       ),
       children: [
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.echoes.app',
-        ),
+        const MapTileLayer(),
         // Polígono del cuadrante
         if (ficha.cuadranteLatMin != null)
           PolygonLayer(

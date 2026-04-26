@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../../models/reporte_model.dart';
 import '../../viewmodels/tracking_viewmodel.dart';
+import '../../widgets/map_tile_layer.dart';
 
 class TrackingView extends StatefulWidget {
   final ReporteModel ficha;
@@ -114,10 +115,7 @@ class _TrackingViewState extends State<TrackingView> {
               initialZoom: 16.0,
             ),
             children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.equipo10.echoes',
-              ),
+              const MapTileLayer(),
               // Cuadrante del reporte (si tiene bounds)
               if (widget.ficha.cuadranteLatMin != null)
                 PolygonLayer(polygons: [

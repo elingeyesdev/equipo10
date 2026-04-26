@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../models/reporte_model.dart';
 import '../../services/api_service.dart';
+import '../../widgets/map_tile_layer.dart';
 
 // Paleta de colores para los recorridos de distintos voluntarios
 const List<Color> _coloresVoluntarios = [
@@ -148,10 +149,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               initialZoom: 15.0,
             ),
             children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.equipo10.echoes',
-              ),
+              const MapTileLayer(),
               // Cuadrante(s) del operativo
               if (_cuadrantesFormateados.isNotEmpty)
                 PolygonLayer(
