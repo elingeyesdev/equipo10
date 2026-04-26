@@ -146,3 +146,11 @@ Route::get('/', function () {
             ->name('editor');
     });
     
+    // Fallback para servir imágenes en Windows sin necesidad de symlinks
+    Route::get('/storage/{path}', function ($path) {
+        $filePath = storage_path('app/public/' . $path);
+        if (!file_exists($filePath)) {
+            abort(404);
+        }
+        return response()->file($filePath);
+    })->where('path', '.*');

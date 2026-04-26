@@ -77,10 +77,27 @@ class ReporteModel {
   factory ReporteModel.fromMap(Map<String, dynamic> map) {
     // Extraer primera imagen de la lista de imágenes si existe
     String? primeraImg = map['primera_imagen']?.toString();
-    if (primeraImg == null) {
+    if (primeraImg != null && (primeraImg.endsWith('/storage') || primeraImg.endsWith('/storage/'))) {
+      primeraImg = null;
+    }
+    if (primeraImg == null || primeraImg.trim().isEmpty) {
       final imgs = map['imagenes'];
       if (imgs is List && imgs.isNotEmpty) {
         primeraImg = imgs[0]['url']?.toString();
+      }
+    }
+    if (primeraImg != null && (primeraImg.endsWith('/storage') || primeraImg.endsWith('/storage/'))) {
+      primeraImg = null;
+    }
+    
+    // Fix para URLs relativas de imágenes (para que se carguen desde el backend)
+    if (primeraImg != null && !primeraImg.startsWith('http')) {
+      if (primeraImg.startsWith('/')) {
+        primeraImg = 'http://localhost:8081' + primeraImg;
+      } else if (!primeraImg.startsWith('storage/')) {
+        primeraImg = 'http://localhost:8081/storage/' + primeraImg;
+      } else {
+        primeraImg = 'http://localhost:8081/' + primeraImg;
       }
     }
     // Extraer nombre de categoría del objeto anidado

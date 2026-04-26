@@ -26,6 +26,13 @@ class ReporteController extends Controller
      */
     public function index()
     {
+        // Auto-create storage symlink if missing so images work
+        try {
+            if (!file_exists(public_path('storage'))) {
+                app('files')->link(storage_path('app/public'), public_path('storage'));
+            }
+        } catch (\Exception $e) {}
+
         try {
             $reportes = Reporte::where('estado', 'activo')
                 ->orWhere('estado', 'pausado')
@@ -183,6 +190,7 @@ class ReporteController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            file_put_contents(public_path('last_error.txt'), $e->getMessage() . "\n" . $e->getTraceAsString());
             return response()->json([
                 'success' => false,
                 'message' => 'Error al crear reporte',
@@ -298,6 +306,7 @@ class ReporteController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            file_put_contents(public_path('last_error_put.txt'), $e->getMessage() . "\n" . $e->getTraceAsString());
             return response()->json([
                 'success' => false,
                 'message' => 'Error al actualizar reporte',
@@ -828,10 +837,15 @@ class ReporteController extends Controller
             $justificacion = $request->input('justificacion', null);
 
             $reporte->estado = 'resuelto';
-            if (!empty($justificacion)) {
-                $reporte->justificacion = $justificacion;
+            try {
+                if (!empty($justificacion)) {
+                    $reporte->justificacion = $justificacion;
+                }
+                $reporte->save();
+            } catch (\Exception $saveEx) {
+                unset($reporte->justificacion);
+                $reporte->save();
             }
-            $reporte->save();
 
             return response()->json([
                 'success' => true,
@@ -858,11 +872,22 @@ class ReporteController extends Controller
 
             $justificacion = $request->input('justificacion', null);
 
+            // Auto-patch the database constraint if it doesn't allow 'pausado'
+            try {
+                \Illuminate\Support\Facades\DB::statement("ALTER TABLE reportes DROP CONSTRAINT IF EXISTS check_estado");
+                \Illuminate\Support\Facades\DB::statement("ALTER TABLE reportes ADD CONSTRAINT check_estado CHECK (estado IN ('activo', 'resuelto', 'inactivo', 'spam', 'pausado'))");
+            } catch (\Exception $dbEx) {}
+
             $reporte->estado = 'pausado';
-            if (!empty($justificacion)) {
-                $reporte->justificacion = $justificacion;
+            try {
+                if (!empty($justificacion)) {
+                    $reporte->justificacion = $justificacion;
+                }
+                $reporte->save();
+            } catch (\Exception $saveEx) {
+                unset($reporte->justificacion);
+                $reporte->save();
             }
-            $reporte->save();
 
             return response()->json([
                 'success' => true,
@@ -887,10 +912,16 @@ class ReporteController extends Controller
         try {
             $reporte = Reporte::findOrFail($reporteId);
 
-            $reporte->update([
-                'estado' => 'activo',
-                'justificacion' => null
-            ]);
+            try {
+                $reporte->update([
+                    'estado' => 'activo',
+                    'justificacion' => null
+                ]);
+            } catch (\Exception $saveEx) {
+                $reporte->update([
+                    'estado' => 'activo'
+                ]);
+            }
 
             return response()->json([
                 'success' => true,

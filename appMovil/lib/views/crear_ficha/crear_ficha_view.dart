@@ -155,11 +155,11 @@ class _CrearFichaViewState extends State<CrearFichaView> {
     final vm = context.watch<CrearFichaViewModel>();
 
     // Obtener categoría seleccionada y sus campos dinámicos
-    final catActual = vm.categorias.firstWhere(
+    final catActual = vm.categorias.isEmpty ? null : vm.categorias.firstWhere(
       (c) => c.id == vm.categoriaSeleccionadaId,
-      orElse: () => vm.categorias.isNotEmpty ? vm.categorias.first : vm.categorias.first,
+      orElse: () => vm.categorias.first,
     );
-    final camposDinamicos = vm.categorias.isEmpty
+    final camposDinamicos = catActual == null
         ? <CampoCategoria>[]
         : CamposCategoria.paraNombre(catActual.nombre);
 
@@ -295,7 +295,7 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                       // ─── Sección: Campos específicos de la categoría ───
                       if (camposDinamicos.isNotEmpty) ...[
                         _SectionHeader(
-                          label: 'Detalles de ${catActual.nombre}',
+                          label: 'Detalles de ${catActual?.nombre ?? 'Categoría'}',
                           icon: Icons.list_alt_outlined,
                         ),
                         const SizedBox(height: 4),

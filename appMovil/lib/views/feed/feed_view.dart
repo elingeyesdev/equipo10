@@ -39,43 +39,61 @@ class _FeedViewState extends State<FeedView> {
     final feedVm = context.watch<FeedViewModel>();
     final currentUserId = context.read<AuthViewModel>().currentUserId ?? '';
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Echoes — Operativos Activos'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Cerrar sesión',
-            onPressed: _onLogout,
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Echoes — Operativos'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: 'Cerrar sesión',
+              onPressed: _onLogout,
+            ),
+          ],
+          bottom: const TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.public), text: 'Todos'),
+              Tab(icon: Icon(Icons.folder_shared), text: 'Mis Operativos'),
+            ],
           ),
-        ],
-      ),
-      drawer: const MainDrawer(),
-      body: RefreshIndicator(
-        onRefresh: () => context.read<FeedViewModel>().cargarFichas(),
-        color: const Color(0xFF1B5E20),
-        child: _buildBody(feedVm, currentUserId),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final feedVmLocal = context.read<FeedViewModel>();
-          final nav = Navigator.of(context);
-          final result = await nav.push(
-            MaterialPageRoute(builder: (_) => const CrearFichaView()),
-          );
-          if (result == true) {
-            feedVmLocal.cargarFichas();
-          }
-        },
-        backgroundColor: const Color(0xFF1B5E20),
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Reportar'),
+        ),
+        drawer: const MainDrawer(),
+        body: TabBarView(
+          children: [
+            RefreshIndicator(
+              onRefresh: () => context.read<FeedViewModel>().cargarFichas(),
+              color: const Color(0xFF1B5E20),
+              child: _buildBody(feedVm, currentUserId, showOnlyMine: false),
+            ),
+            RefreshIndicator(
+              onRefresh: () => context.read<FeedViewModel>().cargarFichas(),
+              color: const Color(0xFF1B5E20),
+              child: _buildBody(feedVm, currentUserId, showOnlyMine: true),
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () async {
+            final feedVmLocal = context.read<FeedViewModel>();
+            final nav = Navigator.of(context);
+            final result = await nav.push(
+              MaterialPageRoute(builder: (_) => const CrearFichaView()),
+            );
+            if (result == true) {
+              feedVmLocal.cargarFichas();
+            }
+          },
+          backgroundColor: const Color(0xFF1B5E20),
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.add),
+          label: const Text('Reportar'),
+        ),
       ),
     );
   }
 
-  Widget _buildBody(FeedViewModel vm, String currentUserId) {
+  Widget _buildBody(FeedViewModel vm, String currentUserId, {bool showOnlyMine = false}) {
     if (vm.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -102,19 +120,23 @@ class _FeedViewState extends State<FeedView> {
       );
     }
 
-    if (vm.fichas.isEmpty) {
-      return const Center(
+    final fichasMostradas = showOnlyMine 
+        ? vm.fichas.where((f) => f.creadoPor == currentUserId).toList()
+        : vm.fichas;
+
+    if (fichasMostradas.isEmpty) {
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 64, color: Color(0xFF4CAF50)),
-            SizedBox(height: 12),
+            const Icon(Icons.search_off, size: 64, color: Color(0xFF4CAF50)),
+            const SizedBox(height: 12),
             Text(
-              'No hay operativos activos',
-              style: TextStyle(fontSize: 18, color: Color(0xFF5F6368)),
+              showOnlyMine ? 'No tienes operativos activos' : 'No hay operativos activos',
+              style: const TextStyle(fontSize: 18, color: Color(0xFF5F6368)),
             ),
-            SizedBox(height: 6),
-            Text(
+            const SizedBox(height: 6),
+            const Text(
               'Reporta un desaparecido tocando el botón +',
               style: TextStyle(color: Color(0xFF9E9E9E)),
             ),
@@ -125,9 +147,9 @@ class _FeedViewState extends State<FeedView> {
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      itemCount: vm.fichas.length,
+      itemCount: fichasMostradas.length,
       itemBuilder: (_, index) =>
-          _FichaCard(ficha: vm.fichas[index], currentUserId: currentUserId),
+          _FichaCard(ficha: fichasMostradas[index], currentUserId: currentUserId),
     );
   }
 }

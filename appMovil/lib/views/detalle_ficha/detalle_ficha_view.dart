@@ -192,6 +192,30 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                   Row(
                     children: [
                       _EstadoBadge(estado: ficha.estado),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3E5F5),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFF8E24AA)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.group, size: 14, color: Color(0xFF8E24AA)),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${vm.voluntariosCount} Voluntarios',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF8E24AA),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       const Spacer(),
                       if (esCreador)
                         Container(
@@ -370,7 +394,200 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
             ),
           ),
           const SizedBox(height: 12),
-          if (esBloqueado) _BannerBloqueado(estado: estadoText),
+          if (!esBloqueado)
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      final TextEditingController ctrl = TextEditingController();
+                      final justificacion = await showDialog<String>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Pausar Búsqueda'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('Indica la razón para pausar esta búsqueda.'),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: ctrl,
+                                maxLines: 3,
+                                decoration: InputDecoration(
+                                  hintText: 'Ej: Clima adverso, falta de luz, etc.',
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
+                            ],
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(null),
+                              child: const Text('Cancelar'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                if (ctrl.text.trim().isEmpty) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    const SnackBar(content: Text('La justificación es obligatoria.')),
+                                  );
+                                } else {
+                                  Navigator.of(ctx).pop(ctrl.text.trim());
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF9800)),
+                              child: const Text('Pausar'),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (justificacion != null && mounted) {
+                        final detaVm = context.read<DetalleFichaViewModel>();
+                        final success = await detaVm.pausarBusqueda(widget.fichaId, justificacion);
+                        if (success && mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('La búsqueda ha sido pausada.'),
+                              backgroundColor: Color(0xFF1B5E20),
+                            ),
+                          );
+                          detaVm.cargarFicha(widget.fichaId, widget.currentUserId);
+                        } else if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(detaVm.errorMessage ?? 'Error al pausar.'),
+                              backgroundColor: Colors.red.shade700,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.pause),
+                    label: const Text('Pausar'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF9800),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      final confirmar = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Finalizar Búsqueda'),
+                          content: const Text('¿Estás seguro de que deseas dar por finalizada esta búsqueda?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(false),
+                              child: const Text('Cancelar'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.of(ctx).pop(true),
+                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
+                              child: const Text('Finalizar'),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirmar == true && mounted) {
+                        final detaVm = context.read<DetalleFichaViewModel>();
+                        final success = await detaVm.cerrarBusqueda(widget.fichaId);
+                        if (success && mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('La búsqueda ha sido finalizada.'),
+                              backgroundColor: Color(0xFF1B5E20),
+                            ),
+                          );
+                          detaVm.cargarFicha(widget.fichaId, widget.currentUserId);
+                        } else if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(detaVm.errorMessage ?? 'Error al finalizar.'),
+                              backgroundColor: Colors.red.shade700,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text('Finalizar'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF388E3C),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          if (esBloqueado) ...[
+            if (estadoText.toLowerCase() == 'pausado')
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      final confirmar = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Reanudar Búsqueda'),
+                          content: const Text('¿Deseas volver a poner el operativo en estado Activo? Los voluntarios podrán unirse nuevamente.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(false),
+                              child: const Text('Cancelar'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.of(ctx).pop(true),
+                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
+                              child: const Text('Reanudar'),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirmar == true && mounted) {
+                        final detaVm = context.read<DetalleFichaViewModel>();
+                        final success = await detaVm.reabrirBusqueda(widget.fichaId);
+                        if (success && mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('La búsqueda ha sido reanudada exitosamente.'),
+                              backgroundColor: Color(0xFF1B5E20),
+                            ),
+                          );
+                          detaVm.cargarFicha(widget.fichaId, widget.currentUserId);
+                        } else if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(detaVm.errorMessage ?? 'Error al reanudar.'),
+                              backgroundColor: Colors.red.shade700,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.play_arrow),
+                    label: const Text('Reanudar Búsqueda'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4CAF50),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ),
+            _BannerBloqueado(estado: estadoText),
+          ],
         ],
       );
     }

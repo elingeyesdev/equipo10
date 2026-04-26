@@ -56,13 +56,18 @@ class ReporteService {
       'justificacion': (justificacion != null && justificacion.isNotEmpty) ? justificacion : null,
     };
     
-    final response = await _api.client.put(
-      '/reportes/$reporteId/pausar',
-      data: data,
-      options: Options(headers: {'Content-Type': 'application/json'}),
-    );
-    if (response.statusCode != 200) {
-      throw Exception('Fallo al pausar el reporte.');
+    try {
+      final response = await _api.client.put(
+        '/reportes/$reporteId/pausar',
+        data: data,
+        options: Options(headers: {'Content-Type': 'application/json'}),
+      );
+      if (response.statusCode != 200) {
+        throw Exception('Fallo al pausar el reporte.');
+      }
+    } on DioException catch (e) {
+      final msg = e.response?.data?['error'] ?? e.response?.data?['message'] ?? e.message;
+      throw Exception(msg);
     }
   }
 
@@ -156,7 +161,7 @@ class ReporteService {
       }
 
       if (statusCode == 500) {
-        throw Exception('Error del servidor al crear el reporte. Intenta de nuevo.');
+        throw Exception('API ERROR: ${body?['error'] ?? body?['message'] ?? 'Error desconocido del servidor'}');
       }
 
       throw Exception(body?['message'] ?? 'Error de conexión. Intenta de nuevo.');

@@ -10,12 +10,14 @@ class DetalleFichaViewModel extends ChangeNotifier {
   ReporteModel? _ficha;
   bool _isLoading = false;
   bool _yaVinculado = false;
+  int _voluntariosCount = 0;
   String? _errorMessage;
   String? _successMessage;
 
   ReporteModel? get ficha => _ficha;
   bool get isLoading => _isLoading;
   bool get yaVinculado => _yaVinculado;
+  int get voluntariosCount => _voluntariosCount;
   String? get errorMessage => _errorMessage;
   String? get successMessage => _successMessage;
 
@@ -34,6 +36,8 @@ class DetalleFichaViewModel extends ChangeNotifier {
         fichaId: fichaId,
         usuarioId: usuarioId,
       );
+      final voluntarios = await _vinculacionService.obtenerVoluntarios(fichaId);
+      _voluntariosCount = voluntarios.length;
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -85,12 +89,42 @@ class DetalleFichaViewModel extends ChangeNotifier {
     }
   }
 
+  /// Pausa la búsqueda (solo el creador).
+  Future<bool> pausarBusqueda(String fichaId, String justificacion) async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      await _reporteService.pausarReporte(fichaId, justificacion: justificacion);
+      if (_ficha != null) {
+        _ficha = _ficha!.copyWith(estado: 'pausado');
+      }
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   /// Reabre la búsqueda (solo el creador). 
-  /// Si el API no tiene endpoint explícito para reabrir, este método podría no estar soportado.
   Future<bool> reabrirBusqueda(String fichaId) async {
-    _errorMessage = 'Función no disponible en el nuevo sistema web. Comunícate con un administrador.';
-    notifyListeners();
-    return false;
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      await _reporteService.reabrirReporte(fichaId);
+      if (_ficha != null) {
+        _ficha = _ficha!.copyWith(estado: 'activo');
+      }
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return false;
+    } finally {
+      _setLoading(false);
+    }
   }
 }
 
