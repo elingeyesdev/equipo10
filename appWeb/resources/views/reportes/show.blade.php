@@ -154,6 +154,23 @@
             <p class="mb-0 opacity-75">ID de Reporte: #{{ $reporte->id }}</p>
         </div>
         <div class="d-flex gap-2">
+            @if(auth()->check() && auth()->id() == $reporte->usuario_id)
+                <form action="{{ route('reportes.update', $reporte->id) }}" method="POST" class="d-inline">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" name="titulo" value="{{ $reporte->titulo }}">
+                    <input type="hidden" name="descripcion" value="{{ $reporte->descripcion }}">
+                    <input type="hidden" name="estado" value="resuelto">
+                    <button type="submit" class="btn btn-warning fw-semibold shadow-sm border-0 text-dark" onclick="return confirm('¿Está seguro de cerrar esta búsqueda?');">
+                        <i class="bi bi-x-circle me-1"></i> Cerrar Búsqueda
+                    </button>
+                </form>
+            @else
+                <button type="button" class="btn btn-secondary fw-semibold shadow-sm border-0" disabled title="Solo el creador puede cerrar la búsqueda">
+                    <i class="bi bi-x-circle me-1"></i> Cerrar Búsqueda
+                </button>
+            @endif
+
             <a href="{{ route('reportes.edit', $reporte->id) }}" class="btn btn-light bg-white text-primary fw-semibold shadow-sm border-0">
                 <i class="bi bi-pencil me-2"></i> Editar
             </a>

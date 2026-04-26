@@ -46,6 +46,7 @@ class DashboardController extends Controller
         
         
         $ultimosReportes = Reporte::with(['usuario', 'categoria', 'cuadrante'])
+            ->where('usuario_id', auth()->id())
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();

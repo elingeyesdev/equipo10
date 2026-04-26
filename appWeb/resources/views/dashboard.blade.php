@@ -727,7 +727,7 @@
                     <div>
                         <h5 class="mb-1 fw-bold">
                             <i class="bi bi-clock-history text-primary me-2"></i>
-                            Actividad Reciente
+                            Actividad Reciente (Tus Operativos)
                         </h5>
                         <p class="text-muted small mb-0">Últimos reportes del sistema</p>
                     </div>
