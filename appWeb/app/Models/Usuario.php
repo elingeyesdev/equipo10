@@ -35,7 +35,8 @@ class Usuario extends Authenticatable
         'ubicacion_actual_lng',
         'rol',
         'contrasena',
-        'contrasena_set'
+        'contrasena_set',
+        'habilidades'
     ];
     
     protected $hidden = [
@@ -51,6 +52,7 @@ class Usuario extends Authenticatable
         'fecha_registro' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'habilidades' => 'array',
     ];
 
     protected $attributes = [

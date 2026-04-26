@@ -12,6 +12,8 @@ import 'viewmodels/detalle_ficha_viewmodel.dart';
 import 'viewmodels/editar_ficha_viewmodel.dart';
 import 'viewmodels/mis_operativos_viewmodel.dart';
 import 'viewmodels/panel_control_viewmodel.dart';
+import 'viewmodels/perfil_viewmodel.dart';
+import 'services/auth_service.dart';
 import 'views/auth/login_view.dart';
 import 'views/feed/feed_view.dart';
 
@@ -49,6 +51,7 @@ class EchoesApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => EditarFichaViewModel()),
         ChangeNotifierProvider(create: (_) => MisOperativosViewModel()),
         ChangeNotifierProvider(create: (_) => PanelControlViewModel()),
+        ChangeNotifierProvider(create: (_) => PerfilViewModel(AuthService())),
       ],
       child: MaterialApp(
         title: 'Echoes',

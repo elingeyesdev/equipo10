@@ -18,7 +18,7 @@ class ApiService {
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       headers: {
-        'Accept': 'application/json',
+        'Accept': 'applicatwion/json',
         'Content-Type': 'application/json',
       },
     ));

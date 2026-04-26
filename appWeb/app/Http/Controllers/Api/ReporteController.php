@@ -613,6 +613,72 @@ class ReporteController extends Controller
     }
 
     /**
+     * Enviar mensaje masivo a todos los voluntarios activos de un reporte
+     */
+    public function broadcastMensaje(Request $request, $reporteId)
+    {
+        $validator = Validator::make($request->all(), [
+            'mensaje' => 'required|string|max:1000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $reporte = Reporte::findOrFail($reporteId);
+
+            // Obtener voluntarios activos
+            $voluntarios = \App\Models\ReporteVoluntario::where('reporte_id', $reporte->id)
+                ->whereIn('estado', ['buscando', 'esperando'])
+                ->get();
+            
+            $notificacionesCreadas = 0;
+
+            foreach ($voluntarios as $voluntario) {
+                // Evitar notificar al autor si también es voluntario
+                if ($voluntario->usuario_id === $reporte->usuario_id) continue;
+                
+                \App\Models\Notificacion::create([
+                    'usuario_id' => $voluntario->usuario_id,
+                    'tipo' => 'alerta_operativo',
+                    'titulo' => 'Alerta del Coordinador',
+                    'mensaje' => $request->mensaje,
+                    'leida' => false,
+                    'enviada_push' => false,
+                    'datos_json' => json_encode([
+                        'reporte_id' => $reporte->id,
+                        'titulo_reporte' => $reporte->titulo
+                    ])
+                ]);
+                
+                $notificacionesCreadas++;
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Alerta enviada exitosamente al equipo',
+                'voluntarios_notificados' => $notificacionesCreadas
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al enviar alerta',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Verificar y expandir reportes automáticamente
      */
     public function verificarExpansionesAutomaticas()

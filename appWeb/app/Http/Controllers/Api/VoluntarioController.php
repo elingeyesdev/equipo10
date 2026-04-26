@@ -216,7 +216,7 @@ class VoluntarioController extends Controller
     public function terminarBusqueda(Request $request, $reporteId, $usuarioId)
     {
         $validator = Validator::make($request->all(), [
-            'puntos' => 'required|array|min:1',
+            'puntos' => 'sometimes|array',
             'puntos.*.lat' => 'required|numeric|between:-90,90',
             'puntos.*.lng' => 'required|numeric|between:-180,180',
             'puntos.*.ts' => 'nullable|integer',
@@ -234,9 +234,16 @@ class VoluntarioController extends Controller
                 ->where('usuario_id', $usuarioId)
                 ->firstOrFail();
 
+            $puntosActuales = is_string($voluntario->recorrido_puntos) 
+                ? json_decode($voluntario->recorrido_puntos, true) 
+                : ($voluntario->recorrido_puntos ?? []);
+                
+            $nuevosPuntos = $request->input('puntos', []);
+            $puntosFinales = array_merge($puntosActuales, $nuevosPuntos);
+
             $voluntario->estado_busqueda = 'terminado';
             $voluntario->fin_busqueda = now();
-            $voluntario->recorrido_puntos = $request->puntos;
+            $voluntario->recorrido_puntos = empty($puntosFinales) ? null : $puntosFinales;
             $voluntario->save();
 
             return response()->json([
@@ -282,6 +289,63 @@ class VoluntarioController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener recorridos: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Sincronizar recorrido de búsqueda por ráfagas (Batches)
+     */
+    public function sincronizarRecorrido(Request $request, $reporteId, $usuarioId)
+    {
+        $validator = Validator::make($request->all(), [
+            'puntos' => 'required|array|min:1',
+            'puntos.*.lat' => 'required|numeric|between:-90,90',
+            'puntos.*.lng' => 'required|numeric|between:-180,180',
+            'puntos.*.ts' => 'nullable|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $voluntario = ReporteVoluntario::where('reporte_id', $reporteId)
+                ->where('usuario_id', $usuarioId)
+                ->whereIn('estado_busqueda', ['activo', 'en_pausa'])
+                ->firstOrFail();
+
+            $puntosActuales = is_string($voluntario->recorrido_puntos) 
+                ? json_decode($voluntario->recorrido_puntos, true) 
+                : ($voluntario->recorrido_puntos ?? []);
+
+            $nuevosPuntos = $request->input('puntos', []);
+            $puntosCombinados = array_merge($puntosActuales, $nuevosPuntos);
+
+            $voluntario->recorrido_puntos = $puntosCombinados;
+            
+            if (!empty($nuevosPuntos)) {
+                $ultimoPunto = end($nuevosPuntos);
+                $voluntario->ultima_coordenada_lat = $ultimoPunto['lat'];
+                $voluntario->ultima_coordenada_lng = $ultimoPunto['lng'];
+                $voluntario->ultima_actualizacion_gps = now();
+            }
+
+            $voluntario->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Recorrido sincronizado correctamente',
+                'puntos_totales' => count($puntosCombinados)
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al sincronizar recorrido: ' . $e->getMessage(),
             ], 500);
         }
     }

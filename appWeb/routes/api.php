@@ -128,6 +128,9 @@ Route::prefix('reportes')->group(function () {
     
     // 🧪 TESTING: Expandir reporte inmediatamente (ignora tiempo de espera)
     Route::post('{reporteId}/expandir-inmediato', [ReporteController::class, 'expandirInmediato']);
+
+    // Broadcast a voluntarios
+    Route::post('{reporteId}/broadcast', [ReporteController::class, 'broadcastMensaje']);
     
     // Marcar reporte como resuelto
     Route::put('{reporteId}/resuelto', [ReporteController::class, 'marcarResuelto']);
@@ -221,6 +224,7 @@ Route::prefix('reportes/{reporteId}/voluntarios')->group(function () {
     Route::put('iniciar/{usuarioId}', [VoluntarioController::class, 'iniciarBusqueda']);
     Route::put('pausar/{usuarioId}', [VoluntarioController::class, 'pausarBusqueda']);
     Route::put('terminar/{usuarioId}', [VoluntarioController::class, 'terminarBusqueda']);
+    Route::put('sincronizar/{usuarioId}', [VoluntarioController::class, 'sincronizarRecorrido']);
 });
 
 // Fin del archivo

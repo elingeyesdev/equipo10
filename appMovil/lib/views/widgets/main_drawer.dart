@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../feed/feed_view.dart';
+import '../perfil/perfil_view.dart';
 import '../mis_operativos/mis_operativos_view.dart';
 
 class MainDrawer extends StatelessWidget {
@@ -7,10 +8,6 @@ class MainDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Current route name check can be tricky without named routes, 
-    // so we just pushReplacement or pop according to needs.
-    // For simplicity, we just use PushReplacement.
-
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
@@ -29,6 +26,16 @@ class MainDrawer extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.person),
+            title: const Text('Mi Perfil'),
+            onTap: () {
+              Navigator.pop(context); // Close drawer
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const PerfilView()),
+              );
+            },
           ),
           ListTile(
             leading: const Icon(Icons.feed),

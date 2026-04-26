@@ -27,7 +27,10 @@ class TrackingService {
   bool _isTracking = false;
   bool _isPaused = false;
   final List<PuntoRecorrido> _puntos = [];
+  final List<PuntoRecorrido> _puntosPendientes = [];
   StreamSubscription<Position>? _positionSub;
+  Timer? _burstTimer;
+  bool _isSyncing = false;
 
   // Configuración del stream de GPS
   static const LocationSettings _locationSettings = LocationSettings(
@@ -81,6 +84,7 @@ class TrackingService {
     }
 
     _puntos.clear();
+    _puntosPendientes.clear();
     _isTracking = true;
     _isPaused = false;
 
@@ -88,12 +92,19 @@ class TrackingService {
     _positionSub = Geolocator.getPositionStream(locationSettings: _locationSettings)
         .listen((pos) {
       if (!_isPaused) {
-        _puntos.add(PuntoRecorrido(
+        final nuevoPunto = PuntoRecorrido(
           lat: pos.latitude,
           lng: pos.longitude,
           ts: pos.timestamp.millisecondsSinceEpoch,
-        ));
+        );
+        _puntos.add(nuevoPunto);
+        _puntosPendientes.add(nuevoPunto);
       }
+    });
+
+    // Iniciar Timer para Ráfagas (cada 15 segundos)
+    _burstTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      _sincronizarRafaga(reporteId, usuarioId);
     });
 
     return true;
@@ -125,18 +136,22 @@ class TrackingService {
 
     _isTracking = false;
     _isPaused = false;
+    
+    _burstTimer?.cancel();
+    _burstTimer = null;
+    
     await _positionSub?.cancel();
     _positionSub = null;
 
-    if (_puntos.isEmpty) return false;
-
     try {
-      final payload = {'puntos': _puntos.map((p) => p.toMap()).toList()};
+      // Subir los pendientes en la llamada final a "terminar"
+      final payload = {'puntos': _puntosPendientes.map((p) => p.toMap()).toList()};
       await _api.client.put(
         '/reportes/$reporteId/voluntarios/terminar/$usuarioId',
         data: payload,
       );
       _puntos.clear();
+      _puntosPendientes.clear();
       return true;
     } catch (_) {
       // Guardar localmente para retry posterior (simplificado por ahora)
@@ -144,12 +159,45 @@ class TrackingService {
     }
   }
 
+  /// Envía los puntos pendientes al servidor en una ráfaga.
+  Future<void> _sincronizarRafaga(String reporteId, String usuarioId) async {
+    if (_isSyncing || _puntosPendientes.isEmpty) return;
+
+    _isSyncing = true;
+    
+    // Hacemos una copia de los pendientes para enviarlos, de modo que 
+    // si llegan nuevos puntos durante la petición, no se pierdan al borrar.
+    final puntosAEnviar = List<PuntoRecorrido>.from(_puntosPendientes);
+
+    try {
+      final payload = {'puntos': puntosAEnviar.map((p) => p.toMap()).toList()};
+      final response = await _api.client.put(
+        '/reportes/$reporteId/voluntarios/sincronizar/$usuarioId',
+        data: payload,
+      );
+
+      if (response.statusCode == 200) {
+        // Borramos solo los puntos que acabamos de enviar con éxito
+        _puntosPendientes.removeWhere((p) => puntosAEnviar.contains(p));
+      }
+    } catch (_) {
+      // Si falla, los puntos siguen en _puntosPendientes y se reintentarán
+      // en el próximo ciclo del timer.
+    } finally {
+      _isSyncing = false;
+    }
+  }
+
   /// Limpia el estado sin subir nada (uso interno).
   void reset() {
+    _burstTimer?.cancel();
+    _burstTimer = null;
     _positionSub?.cancel();
     _positionSub = null;
     _isTracking = false;
     _isPaused = false;
+    _isSyncing = false;
     _puntos.clear();
+    _puntosPendientes.clear();
   }
 }

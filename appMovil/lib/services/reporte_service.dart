@@ -205,4 +205,32 @@ class ReporteService {
       throw Exception('Fallo al eliminar el reporte.');
     }
   }
+
+  /// Obtiene los recorridos de los voluntarios para un reporte
+  Future<List<dynamic>> obtenerRecorridos(String reporteId) async {
+    final response = await _api.client.get('/reportes/$reporteId/voluntarios/recorridos');
+    if (response.statusCode == 200) {
+      final body = response.data;
+      if (body['success'] == true) {
+        return body['data'] as List<dynamic>;
+      }
+    }
+    throw Exception('No se pudieron obtener los recorridos.');
+  }
+
+  /// Envía un mensaje masivo (broadcast) a los voluntarios activos
+  Future<bool> enviarAlertaMasiva(String reporteId, String mensaje) async {
+    try {
+      final response = await _api.client.post('/reportes/$reporteId/broadcast', data: {
+        'mensaje': mensaje,
+      });
+      if (response.statusCode == 200) {
+        final body = response.data;
+        return body['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
 }

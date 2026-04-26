@@ -108,4 +108,17 @@ class AuthService {
       return null;
     }
   }
+
+  /// Actualiza los datos del perfil (incluyendo habilidades)
+  Future<bool> actualizarPerfil(String id, Map<String, dynamic> data) async {
+    try {
+      final response = await _api.client.put('/auth/perfil/$id', data: data);
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
 }

@@ -203,9 +203,34 @@ class AuthController extends Controller
         try {
             $usuario = Usuario::with('configuracionNotificaciones')->findOrFail($usuarioId);
 
+            // Calcular estadísticas
+            $operativosParticipados = \App\Models\ReporteVoluntario::where('usuario_id', $usuarioId)->count();
+            $reportesCreados = \App\Models\Reporte::where('usuario_id', $usuarioId)->count();
+            
+            // Casos resueltos: donde el reporte fue creado por este usuario y está resuelto
+            // o el usuario participó en un reporte que ahora está resuelto.
+            $casosExitosos = \App\Models\Reporte::where('estado', 'resuelto')
+                ->where(function($q) use ($usuarioId) {
+                    $q->where('usuario_id', $usuarioId)
+                      ->orWhereIn('id', function($subquery) use ($usuarioId) {
+                          $subquery->select('reporte_id')
+                                   ->from('reporte_voluntarios')
+                                   ->where('usuario_id', $usuarioId);
+                      });
+                })->count();
+
+            // Formar respuesta con el usuario y las estadísticas añadidas artificialmente
+            $datosRespuesta = $usuario->toArray();
+            $datosRespuesta['estadisticas'] = [
+                'operativos_participados' => $operativosParticipados,
+                'reportes_creados' => $reportesCreados,
+                'casos_exitosos' => $casosExitosos,
+                'puntos_ayuda' => $usuario->puntos_ayuda
+            ];
+
             return response()->json([
                 'success' => true,
-                'data' => $usuario
+                'data' => $datosRespuesta
             ], 200);
 
         } catch (\Exception $e) {
@@ -225,7 +250,9 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'nombre' => 'sometimes|string|max:100',
             'telefono' => 'sometimes|string|max:20',
-            'avatar_url' => 'sometimes|string'
+            'avatar_url' => 'sometimes|string',
+            'habilidades' => 'sometimes|array',
+            'habilidades.*' => 'string'
         ]);
 
         if ($validator->fails()) {
@@ -237,7 +264,7 @@ class AuthController extends Controller
 
         try {
             $usuario = Usuario::findOrFail($usuarioId);
-            $usuario->update($request->only(['nombre', 'telefono', 'avatar_url']));
+            $usuario->update($request->only(['nombre', 'telefono', 'avatar_url', 'habilidades']));
 
             return response()->json([
                 'success' => true,
