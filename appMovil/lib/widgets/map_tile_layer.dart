@@ -3,31 +3,60 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Un widget reutilizable que proporciona la capa base del mapa.
-/// Intenta usar Mapbox si existe un token en el .env,
-/// de lo contrario utiliza OpenStreetMap de forma gratuita.
+/// [useSatellite] = true → Mapbox Satellite-Streets (requiere token en .env)
+/// [useSatellite] = false → OpenStreetMap (gratuito, sin token)
 class MapTileLayer extends StatelessWidget {
-  const MapTileLayer({super.key});
+  final bool useSatellite;
+  const MapTileLayer({super.key, this.useSatellite = true});
 
   @override
   Widget build(BuildContext context) {
-    // Lee el token desde el .env
     final mapboxToken = dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '';
 
-    // Si hay un token de Mapbox configurado, usamos su estilo satelital con calles
-    if (mapboxToken.isNotEmpty) {
+    // Vista satelital (Mapbox) si hay token y se solicita
+    if (useSatellite && mapboxToken.isNotEmpty) {
       return TileLayer(
-        urlTemplate: 'https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',
-        additionalOptions: {
-          'accessToken': mapboxToken,
-        },
+        urlTemplate:
+            'https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',
+        additionalOptions: {'accessToken': mapboxToken},
         userAgentPackageName: 'com.equipo10.echoes',
       );
     }
 
-    // Fallback a OpenStreetMap
+    // Vista callejera (OpenStreetMap) — gratuita y sin token
     return TileLayer(
       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       userAgentPackageName: 'com.equipo10.echoes',
+    );
+  }
+}
+
+/// Botón flotante reutilizable para alternar entre vista satelital y callejera.
+class MapLayerToggleButton extends StatelessWidget {
+  final bool useSatellite;
+  final VoidCallback onToggle;
+  final String heroTag;
+
+  const MapLayerToggleButton({
+    super.key,
+    required this.useSatellite,
+    required this.onToggle,
+    required this.heroTag,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FloatingActionButton.extended(
+      heroTag: heroTag,
+      backgroundColor: Colors.white,
+      foregroundColor: const Color(0xFF1B5E20),
+      elevation: 4,
+      label: Text(
+        useSatellite ? 'Callejero' : 'Satélite',
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+      ),
+      icon: Icon(useSatellite ? Icons.map_outlined : Icons.satellite_alt, size: 18),
+      onPressed: onToggle,
     );
   }
 }

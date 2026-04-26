@@ -37,6 +37,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   LatLng? _lpp;
   List<_VoluntarioRecorrido> _recorridos = [];
   bool _cargandoRecorridos = true;
+  bool _useSatellite = true;
 
   @override
   void initState() {
@@ -149,7 +150,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               initialZoom: 15.0,
             ),
             children: [
-              const MapTileLayer(),
+              MapTileLayer(useSatellite: _useSatellite),
               // Cuadrante(s) del operativo
               if (_cuadrantesFormateados.isNotEmpty)
                 PolygonLayer(
@@ -199,6 +200,17 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               right: 12,
               child: _LeyendaRecorridos(recorridos: _recorridos),
             ),
+
+          // Toggle de capas (satelital / callejero)
+          Positioned(
+            bottom: 96,
+            right: 80,
+            child: MapLayerToggleButton(
+              heroTag: 'btn_toggle_operativo',
+              useSatellite: _useSatellite,
+              onToggle: () => setState(() => _useSatellite = !_useSatellite),
+            ),
+          ),
 
           // Botón de centrado dinámico en LPP
           Positioned(

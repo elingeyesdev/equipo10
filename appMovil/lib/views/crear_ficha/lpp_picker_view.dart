@@ -19,6 +19,7 @@ class _LPPPickerViewState extends State<LPPPickerView> {
   List<List<LatLng>> _drawnQuadrants = [];
   final MapController _mapController = MapController();
   final LatLng _defaultCenter = const LatLng(-17.7833, -63.1821);
+  bool _useSatellite = true;
 
   // Buscador
   final TextEditingController _searchController = TextEditingController();
@@ -162,7 +163,7 @@ class _LPPPickerViewState extends State<LPPPickerView> {
               onTap: _onMapTap,
             ),
             children: [
-              const MapTileLayer(),
+              MapTileLayer(useSatellite: _useSatellite),
               if (_drawnQuadrants.isNotEmpty)
                 PolygonLayer(
                   polygons: List.generate(_drawnQuadrants.length, (i) {
@@ -197,6 +198,17 @@ class _LPPPickerViewState extends State<LPPPickerView> {
                   ],
                 ),
             ],
+          ),
+
+          // Toggle de capas (satelital / callejero)
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: MapLayerToggleButton(
+              heroTag: 'btn_toggle_lpp',
+              useSatellite: _useSatellite,
+              onToggle: () => setState(() => _useSatellite = !_useSatellite),
+            ),
           ),
 
           // ── BUSCADOR + SUGERENCIAS ─────────────────────

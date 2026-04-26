@@ -18,6 +18,7 @@ class PanelControlView extends StatefulWidget {
 
 class _PanelControlViewState extends State<PanelControlView> {
   final MapController _mapController = MapController();
+  bool _useSatellite = true;
 
   @override
   void initState() {
@@ -405,7 +406,7 @@ class _PanelControlViewState extends State<PanelControlView> {
             initialZoom: 15.0,
           ),
           children: [
-            const MapTileLayer(),
+            MapTileLayer(useSatellite: _useSatellite),
             // Polígono del cuadrante
             if (ficha.cuadranteLatMin != null)
               PolygonLayer(
@@ -434,6 +435,16 @@ class _PanelControlViewState extends State<PanelControlView> {
               }),
             ),
           ],
+        ),
+        // Toggle de capas (satelital / callejero)
+        Positioned(
+          bottom: 56,
+          right: 60,
+          child: MapLayerToggleButton(
+            heroTag: 'btn_toggle_panel',
+            useSatellite: _useSatellite,
+            onToggle: () => setState(() => _useSatellite = !_useSatellite),
+          ),
         ),
         // Botón de centrado dinámico en LPP
         Positioned(

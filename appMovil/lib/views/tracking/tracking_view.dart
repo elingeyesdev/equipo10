@@ -22,6 +22,7 @@ class TrackingView extends StatefulWidget {
 
 class _TrackingViewState extends State<TrackingView> {
   final MapController _mapController = MapController();
+  bool _useSatellite = true;
 
   @override
   void initState() {
@@ -115,7 +116,7 @@ class _TrackingViewState extends State<TrackingView> {
               initialZoom: 16.0,
             ),
             children: [
-              const MapTileLayer(),
+              MapTileLayer(useSatellite: _useSatellite),
               // Cuadrante del reporte (si tiene bounds)
               if (widget.ficha.cuadranteLatMin != null)
                 PolygonLayer(polygons: [
@@ -168,6 +169,17 @@ class _TrackingViewState extends State<TrackingView> {
                 ),
               ]),
             ],
+          ),
+
+          // Toggle de capas (satelital / callejero)
+          Positioned(
+            bottom: 210,
+            right: 80,
+            child: MapLayerToggleButton(
+              heroTag: 'btn_toggle_tracking',
+              useSatellite: _useSatellite,
+              onToggle: () => setState(() => _useSatellite = !_useSatellite),
+            ),
           ),
 
           // Botón de centrado dinámico en LPP
