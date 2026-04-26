@@ -767,9 +767,13 @@
                                 <div class="text-end">
                                     @if($reporte->estado == 'activo')
                                         <span class="badge bg-primary-subtle text-primary border border-primary rounded-pill px-3">Activo</span>
+                                    @elseif($reporte->estado == 'pausado')
+                                        <span class="badge bg-warning-subtle text-warning border border-warning rounded-pill px-3">
+                                            <i class="bi bi-pause-circle-fill me-1"></i>Pausado
+                                        </span>
                                     @elseif($reporte->estado == 'resuelto')
                                         <span class="badge bg-success-subtle text-success border border-success rounded-pill px-3">
-                                            <i class="bi bi-check-circle-fill me-1"></i>Resuelto
+                                            <i class="bi bi-check-circle-fill me-1"></i>Finalizado
                                         </span>
                                     @else
                                         <span class="badge bg-secondary-subtle text-secondary border border-secondary rounded-pill px-3">{{ ucfirst($reporte->estado) }}</span>

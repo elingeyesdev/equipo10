@@ -101,7 +101,7 @@
                                         <span class="badge bg-warning-subtle text-warning border border-warning">Pausado</span>
                                         @break
                                     @case('resuelto')
-                                        <span class="badge bg-success-subtle text-success border border-success">Resuelto</span>
+                                        <span class="badge bg-success-subtle text-success border border-success">Finalizado</span>
                                         @break
                                     @case('inactivo')
                                         <span class="badge bg-secondary-subtle text-secondary border border-secondary">Inactivo</span>

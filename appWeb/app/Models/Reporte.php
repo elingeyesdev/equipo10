@@ -97,6 +97,11 @@ class Reporte extends Model
         return $this->hasMany(Respuesta::class, 'reporte_id');
     }
 
+    public function voluntarios()
+    {
+        return $this->hasMany(ReporteVoluntario::class, 'reporte_id');
+    }
+
     public function expansiones()
     {
         return $this->hasMany(ExpansionReporte::class, 'reporte_id');
@@ -257,8 +262,9 @@ class Reporte extends Model
     {
         $badges = [
             'activo' => '<span class="badge bg-warning text-dark">Activo</span>',
-            'resuelto' => '<span class="badge bg-success">Resuelto</span>',
+            'resuelto' => '<span class="badge bg-success">Finalizado</span>',
             'inactivo' => '<span class="badge bg-secondary">Inactivo</span>',
+            'pausado' => '<span class="badge bg-warning text-dark">Pausado</span>',
             'spam' => '<span class="badge bg-danger">Spam</span>',
         ];
 

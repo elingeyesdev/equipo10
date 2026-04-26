@@ -240,8 +240,11 @@
                                         @case('activo')
                                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-3 text-uppercase fw-bold">Activo</span>
                                             @break
+                                        @case('pausado')
+                                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2 rounded-3 text-uppercase fw-bold">Pausado</span>
+                                            @break
                                         @case('resuelto')
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-3 text-uppercase fw-bold">Resuelto</span>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-3 text-uppercase fw-bold">Finalizado</span>
                                             @break
                                         @default
                                             <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-2 rounded-3 text-uppercase fw-bold">{{ ucfirst($reporte->estado) }}</span>
@@ -263,6 +266,13 @@
                                             <span class="badge bg-light text-dark border px-3 py-2 rounded-3 text-uppercase fw-bold">Baja</span>
                                     @endswitch
                                 </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-card p-3">
+                                <label class="info-label"><i class="bi bi-people-fill me-1 text-primary"></i> Voluntarios Unidos</label>
+                                <div class="info-value mt-1">{{ $reporte->voluntarios()->count() }}</div>
+                                <small class="text-muted">Resumen estadístico básico</small>
                             </div>
                         </div>
                     </div>
