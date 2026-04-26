@@ -170,6 +170,22 @@ class _TrackingViewState extends State<TrackingView> {
             ],
           ),
 
+          // Botón de centrado dinámico en LPP
+          Positioned(
+            bottom: 170,
+            right: 20,
+            child: FloatingActionButton(
+              heroTag: 'btn_centrar_tracking',
+              mini: true,
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF1B5E20),
+              onPressed: () {
+                _mapController.move(center, 16.0);
+              },
+              child: const Icon(Icons.my_location),
+            ),
+          ),
+
           // Panel de estado en la parte inferior
           Positioned(
             bottom: 0,

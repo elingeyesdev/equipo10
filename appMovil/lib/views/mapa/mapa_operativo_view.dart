@@ -200,6 +200,22 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               child: _LeyendaRecorridos(recorridos: _recorridos),
             ),
 
+          // Botón de centrado dinámico en LPP
+          Positioned(
+            bottom: 90,
+            right: 20,
+            child: FloatingActionButton(
+              heroTag: 'btn_centrar_operativo',
+              mini: true,
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF1B5E20),
+              onPressed: () {
+                _mapController.move(_lpp!, 15.0);
+              },
+              child: const Icon(Icons.my_location),
+            ),
+          ),
+
           // Panel inferior
           Positioned(
             bottom: 20,

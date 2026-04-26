@@ -17,6 +17,8 @@ class PanelControlView extends StatefulWidget {
 }
 
 class _PanelControlViewState extends State<PanelControlView> {
+  final MapController _mapController = MapController();
+
   @override
   void initState() {
     super.initState();
@@ -394,39 +396,59 @@ class _PanelControlViewState extends State<PanelControlView> {
       Colors.blue, Colors.red, Colors.green, Colors.orange, Colors.purple, Colors.teal
     ];
 
-    return FlutterMap(
-      options: MapOptions(
-        initialCenter: center,
-        initialZoom: 15.0,
-      ),
+    return Stack(
       children: [
-        const MapTileLayer(),
-        // Polígono del cuadrante
-        if (ficha.cuadranteLatMin != null)
-          PolygonLayer(
-            polygons: [
-              Polygon(
-                points: [
-                  LatLng(ficha.cuadranteLatMax!, ficha.cuadranteLngMin!),
-                  LatLng(ficha.cuadranteLatMax!, ficha.cuadranteLngMax!),
-                  LatLng(ficha.cuadranteLatMin!, ficha.cuadranteLngMax!),
-                  LatLng(ficha.cuadranteLatMin!, ficha.cuadranteLngMin!),
-                ],
-                color: Colors.blue.withOpacity(0.1),
-                borderColor: Colors.blue,
-                borderStrokeWidth: 2,
-              ),
-            ],
+        FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+            initialCenter: center,
+            initialZoom: 15.0,
           ),
-        // Recorridos de voluntarios
-        PolylineLayer(
-          polylines: List.generate(vm.recorridosMap.length, (index) {
-            return Polyline(
-              points: vm.recorridosMap[index],
-              color: pathColors[index % pathColors.length].withOpacity(0.7),
-              strokeWidth: 4.0,
-            );
-          }),
+          children: [
+            const MapTileLayer(),
+            // Polígono del cuadrante
+            if (ficha.cuadranteLatMin != null)
+              PolygonLayer(
+                polygons: [
+                  Polygon(
+                    points: [
+                      LatLng(ficha.cuadranteLatMax!, ficha.cuadranteLngMin!),
+                      LatLng(ficha.cuadranteLatMax!, ficha.cuadranteLngMax!),
+                      LatLng(ficha.cuadranteLatMin!, ficha.cuadranteLngMax!),
+                      LatLng(ficha.cuadranteLatMin!, ficha.cuadranteLngMin!),
+                    ],
+                    color: Colors.blue.withOpacity(0.1),
+                    borderColor: Colors.blue,
+                    borderStrokeWidth: 2,
+                  ),
+                ],
+              ),
+            // Recorridos de voluntarios
+            PolylineLayer(
+              polylines: List.generate(vm.recorridosMap.length, (index) {
+                return Polyline(
+                  points: vm.recorridosMap[index],
+                  color: pathColors[index % pathColors.length].withOpacity(0.7),
+                  strokeWidth: 4.0,
+                );
+              }),
+            ),
+          ],
+        ),
+        // Botón de centrado dinámico en LPP
+        Positioned(
+          bottom: 16,
+          right: 16,
+          child: FloatingActionButton(
+            heroTag: 'btn_centrar_panel',
+            mini: true,
+            backgroundColor: Colors.white,
+            foregroundColor: const Color(0xFF1B5E20),
+            onPressed: () {
+              _mapController.move(center, 15.0);
+            },
+            child: const Icon(Icons.my_location),
+          ),
         ),
       ],
     );
