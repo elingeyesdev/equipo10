@@ -250,21 +250,29 @@
             drawnItems.addLayer(layer);
             currentLayer = layer;
             
-            // Extraer GeoJSON
-            currentGeoJSON = JSON.stringify(layer.toGeoJSON());
+            // Extraer GeoJSON estándar
+            let geoData = layer.toGeoJSON();
+            // Inyectar metadatos en el GeoJSON para persistencia profesional
+            geoData.properties = {
+                codigo: document.getElementById('codigo').value,
+                nombre: document.getElementById('nombre').value,
+                centro: layer.getBounds().getCenter()
+            };
+            currentGeoJSON = JSON.stringify(geoData);
             
             // Tarea E7.2: Capturar arreglo de coordenadas (vértices) al cerrar polígono
-            let verticesHTML = '<div class="mt-2 text-start" style="font-family: monospace; font-size: 0.75rem; max-height: 80px; overflow-y: auto;"><strong>Vértices capturados:</strong><br>';
+            let verticesHTML = '<div class="mt-2 text-start" style="font-family: monospace; font-size: 0.75rem; max-height: 80px; overflow-y: auto; background: #f1f5f9; padding: 5px; border-radius: 5px;"><strong>Vértices GeoJSON:</strong><br>';
             if(layer.getLatLngs && layer.getLatLngs().length > 0) {
-                let latlngs = layer.getLatLngs()[0]; // Obtener el primer anillo del polígono
+                let latlngs = layer.getLatLngs()[0]; 
                 latlngs.forEach((coord, i) => {
-                    verticesHTML += `[${coord.lat.toFixed(6)}, ${coord.lng.toFixed(6)}]<br>`;
+                    verticesHTML += `[${coord.lng.toFixed(6)}, ${coord.lat.toFixed(6)}]${i < latlngs.length - 1 ? ',' : ''}<br>`;
                 });
             }
             verticesHTML += '</div>';
 
-            document.getElementById('geometry-status').className = 'alert alert-success py-2';
-            document.getElementById('geometry-status').innerHTML = '<i class="bi bi-check-circle"></i> ¡Área trazada correctamente!' + verticesHTML;
+            const statusEl = document.getElementById('geometry-status');
+            statusEl.className = 'alert alert-success py-2 shadow-sm';
+            statusEl.innerHTML = '<div><i class="bi bi-check-circle-fill"></i> Geometría capturada en formato GeoJSON</div>' + verticesHTML;
             document.getElementById('btn-save-action').disabled = false;
         });
 

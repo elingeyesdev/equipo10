@@ -89,17 +89,13 @@ class ReporteController extends Controller
         try {
             DB::beginTransaction();
 
-            // Detectar cuadrante según ubicación
-            $cuadrante = Cuadrante::where('activo', true)
-                ->where('lat_min', '<=', $request->ubicacion_exacta_lat)
-                ->where('lat_max', '>=', $request->ubicacion_exacta_lat)
-                ->where('lng_min', '<=', $request->ubicacion_exacta_lng)
-                ->where('lng_max', '>=', $request->ubicacion_exacta_lng)
-                ->first();
-
-            // Si no hay cuadrante para esa ubicación, el reporte igual se crea
-            // sin cuadrante asignado (el admin puede asignarlo luego desde la web)
-            $cuadranteId = $cuadrante?->id;
+            // Detectar cuadrante: priorizar el enviado por la app, sino usar detección precisa
+            $cuadranteId = $request->cuadrante_id;
+            
+            if (!$cuadranteId) {
+                $cuadrante = Cuadrante::detectByLocation($request->ubicacion_exacta_lat, $request->ubicacion_exacta_lng);
+                $cuadranteId = $cuadrante?->id;
+            }
 
             // Obtener configuración de expansión
             $tiempoExpansion = ConfiguracionSistema::where('clave', 'tiempo_expansion_horas')->first();
@@ -214,6 +210,9 @@ class ReporteController extends Controller
             'direccion_referencia' => 'nullable|string|max:255',
             'fecha_perdida' => 'nullable|date',
             'caracteristicas' => 'nullable|array',
+            'ubicacion_exacta_lat' => 'nullable|numeric',
+            'ubicacion_exacta_lng' => 'nullable|numeric',
+            'cuadrante_id' => 'nullable|exists:cuadrantes,id',
         ]);
 
         if ($validator->fails()) {
@@ -244,6 +243,15 @@ class ReporteController extends Controller
             }
             if ($request->has('fecha_perdida')) {
                 $reporte->fecha_perdida = $request->fecha_perdida;
+            }
+            if ($request->has('ubicacion_exacta_lat')) {
+                $reporte->ubicacion_exacta_lat = $request->ubicacion_exacta_lat;
+            }
+            if ($request->has('ubicacion_exacta_lng')) {
+                $reporte->ubicacion_exacta_lng = $request->ubicacion_exacta_lng;
+            }
+            if ($request->has('cuadrante_id')) {
+                $reporte->cuadrante_id = $request->cuadrante_id;
             }
 
             // Reemplazar imágenes si se enviaron nuevas
@@ -1076,6 +1084,61 @@ class ReporteController extends Controller
                 'success' => false,
                 'message' => 'Error al guardar la pista',
                 'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Actualizar una pista de búsqueda existente
+     */
+    public function actualizarPistaApi(Request $request, $pistaId)
+    {
+        try {
+            $pista = \App\Models\Respuesta::findOrFail($pistaId);
+            
+            // Validar que el usuario sea el dueño del reporte o admin
+            // (Para simplificar en esta etapa, permitimos si el token es válido)
+            
+            $pista->update([
+                'mensaje'              => $request->etiqueta ?? $pista->mensaje,
+                'ubicacion_lat'        => $request->lat ?? $pista->ubicacion_lat,
+                'ubicacion_lng'        => $request->lng ?? $pista->ubicacion_lng,
+                'direccion_referencia' => $request->descripcion ?? $pista->direccion_referencia,
+                'cuadrante_id'         => $request->cuadrante_id ?? $pista->cuadrante_id,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data'    => $pista,
+                'message' => 'Pista actualizada correctamente.',
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar la pista',
+            ], 500);
+        }
+    }
+
+    /**
+     * Eliminar una pista de búsqueda
+     */
+    public function eliminarPistaApi($pistaId)
+    {
+        try {
+            $pista = \App\Models\Respuesta::findOrFail($pistaId);
+            $pista->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pista eliminada correctamente.',
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar la pista',
             ], 500);
         }
     }

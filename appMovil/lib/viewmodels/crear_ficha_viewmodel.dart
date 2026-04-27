@@ -148,6 +148,9 @@ class CrearFichaViewModel extends ChangeNotifier {
         descripcion: descripcion.trim(),
         latitud: _latitudLPP!,
         longitud: _longitudLPP!,
+        cuadranteId: (_cuadrantes != null && _cuadrantes!.isNotEmpty) 
+            ? _cuadrantes!.first.toString() 
+            : null,
         fotoUrl: fotoUrl,
         telefonoContacto: telefonoContacto,
         recompensa: recompensa,

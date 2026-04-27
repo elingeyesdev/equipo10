@@ -160,6 +160,14 @@ class _LPPPickerViewState extends State<LPPPickerView> {
     Navigator.pop(context, true);
   }
 
+  void _limpiarUbicacion() {
+    setState(() {
+      _selectedLPP = null;
+      _cuadranteSeleccionado = null;
+      _actualizarCachePoligonos();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -168,12 +176,18 @@ class _LPPPickerViewState extends State<LPPPickerView> {
         foregroundColor: Colors.white,
         title: const Text('Indicar LPP', style: TextStyle(color: Colors.white)),
         actions: [
-          if (_selectedLPP != null)
+          if (_selectedLPP != null) ...[
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.white70),
+              onPressed: _limpiarUbicacion,
+              tooltip: 'Quitar marcador',
+            ),
             IconButton(
               icon: const Icon(Icons.check, color: Colors.white),
               onPressed: _confirmarUbicacion,
               tooltip: 'Confirmar Zona',
-            )
+            ),
+          ]
         ],
       ),
       body: Stack(

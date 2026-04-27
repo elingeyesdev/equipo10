@@ -41,6 +41,13 @@ class ApiService {
   }
 
   Dio get client => _dio;
+  String get baseUrl => _kApiUrl;
+
+  /// Retorna solo el host (ej: http://192.168.1.10:8081) sin el /api
+  String get apiHost {
+    final uri = Uri.parse(_kApiUrl);
+    return '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
+  }
 
   /// Siempre lee el userId fresco desde SharedPreferences
   Future<String?> getCurrentUserId() async {

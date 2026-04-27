@@ -1,3 +1,5 @@
+import '../services/api_service.dart';
+
 class ReporteModel {
   final String id;
   final String usuarioId;
@@ -92,13 +94,19 @@ class ReporteModel {
     
     // Fix para URLs relativas de imágenes (para que se carguen desde el backend)
     if (primeraImg != null && !primeraImg.startsWith('http')) {
+      final host = ApiService().apiHost;
       if (primeraImg.startsWith('/')) {
-        primeraImg = 'http://localhost:8081' + primeraImg;
+        primeraImg = host + primeraImg;
       } else if (!primeraImg.startsWith('storage/')) {
-        primeraImg = 'http://localhost:8081/storage/' + primeraImg;
+        primeraImg = '$host/storage/' + primeraImg;
       } else {
-        primeraImg = 'http://localhost:8081/' + primeraImg;
+        primeraImg = '$host/' + primeraImg;
       }
+    } else if (primeraImg != null && (primeraImg.contains('localhost') || primeraImg.contains('127.0.0.1'))) {
+      // Si el backend devolvió localhost/127.0.0.1 pero la app está usando otra IP
+      final host = ApiService().apiHost;
+      // Reemplazamos el origen completo (protocolo + host + puerto si existe)
+      primeraImg = primeraImg.replaceFirst(RegExp(r'http://(localhost|127\.0\.0\.1)(:\d+)?'), host);
     }
     // Extraer nombre de categoría del objeto anidado
     String? catNombre;

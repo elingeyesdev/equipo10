@@ -110,9 +110,9 @@ Route::prefix('reportes')->group(function () {
 
     // Obtener pistas de búsqueda de un reporte
     Route::get('{reporteId}/pistas', [ReporteController::class, 'listarPistas']);
-    
-    // Guardar nueva pista de búsqueda (solo creador o admin, validado en controller)
     Route::post('{reporteId}/pistas', [ReporteController::class, 'guardarPistaApi']);
+    Route::put('pistas/{pistaId}', [ReporteController::class, 'actualizarPistaApi']);
+    Route::delete('pistas/{pistaId}', [ReporteController::class, 'eliminarPistaApi']);
     
     // Verificar expansiones automáticas (ejecutar periódicamente)
     Route::post('verificar-expansiones', [ReporteController::class, 'verificarExpansionesAutomaticas']);

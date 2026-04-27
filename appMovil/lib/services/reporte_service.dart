@@ -113,6 +113,7 @@ class ReporteService {
     required String descripcion,
     required double latitud,
     required double longitud,
+    String? cuadranteId,
     String? fotoUrl,
     String? fechaPerdida,
     String? direccionReferencia,
@@ -123,6 +124,7 @@ class ReporteService {
     final Map<String, dynamic> data = {
       'usuario_id': usuarioId,
       'categoria_id': categoriaId,
+      'cuadrante_id': cuadranteId,
       'tipo_reporte': 'perdido',
       'titulo': titulo,
       'descripcion': descripcion,

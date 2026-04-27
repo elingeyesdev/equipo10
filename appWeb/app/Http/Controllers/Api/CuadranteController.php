@@ -164,34 +164,7 @@ class CuadranteController extends Controller
             $lat = $request->lat;
             $lng = $request->lng;
 
-            // 1. Filtrado rápido por Bounding Box (para rendimiento)
-            $candidatos = Cuadrante::where('activo', true)
-                ->where('lat_min', '<=', $lat)
-                ->where('lat_max', '>=', $lat)
-                ->where('lng_min', '<=', $lng)
-                ->where('lng_max', '>=', $lng)
-                ->get();
-
-            $cuadranteEncontrado = null;
-
-            // 2. Verificación Geométrica Precisa (Ray Casting Algorithm)
-            foreach ($candidatos as $c) {
-                if (!$c->geometria) continue;
-                
-                $geo = json_decode($c->geometria, true);
-                $polygon = null;
-
-                if (isset($geo['geometry']['coordinates'][0])) {
-                    $polygon = $geo['geometry']['coordinates'][0];
-                } elseif (isset($geo['coordinates'][0])) {
-                    $polygon = $geo['coordinates'][0];
-                }
-
-                if ($polygon && $this->isPointInPolygon($lat, $lng, $polygon)) {
-                    $cuadranteEncontrado = $c;
-                    break;
-                }
-            }
+            $cuadranteEncontrado = Cuadrante::detectByLocation($lat, $lng);
 
             if (!$cuadranteEncontrado) {
                 return response()->json([
@@ -380,24 +353,6 @@ class CuadranteController extends Controller
                 'error' => $e->getMessage()
             ], 404);
         }
-    }
-    /**
-     * Algoritmo de Ray Casting para determinar si un punto está dentro de un polígono
-     */
-    private function isPointInPolygon($lat, $lng, $polygon) {
-        $inside = false;
-        $n = count($polygon);
-        for ($i = 0, $j = $n - 1; $i < $n; $j = $i++) {
-            $xi = $polygon[$i][0]; $yi = $polygon[$i][1]; // lng, lat
-            $xj = $polygon[$j][0]; $yj = $polygon[$j][1];
-
-            if ($yj == $yi) continue; // Evitar división por cero en bordes horizontales
-
-            $intersect = (($yi > $lat) != ($yj > $lat))
-                && ($lng < ($xj - $xi) * ($lat - $yi) / ($yj - $yi) + $xi);
-            if ($intersect) $inside = !$inside;
-        }
-        return $inside;
     }
 }
 

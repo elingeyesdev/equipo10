@@ -160,4 +160,70 @@ class Cuadrante extends Model
     {
         return $this->reportes()->where('estado', 'resuelto')->count();
     }
+
+    /**
+     * Detectar cuadrante preciso para una ubicación (lat, lng)
+     */
+    public static function detectByLocation($lat, $lng)
+    {
+        // Usar una consulta más robusta que maneje min/max invertidos
+        $candidatos = self::where('activo', true)
+            ->where(function($q) use ($lat) {
+                $q->where(function($sq) use ($lat) {
+                    $sq->where('lat_min', '<=', $lat)->where('lat_max', '>=', $lat);
+                })->orWhere(function($sq) use ($lat) {
+                    $sq->where('lat_min', '>=', $lat)->where('lat_max', '<=', $lat);
+                });
+            })
+            ->where(function($q) use ($lng) {
+                $q->where(function($sq) use ($lng) {
+                    $sq->where('lng_min', '<=', $lng)->where('lng_max', '>=', $lng);
+                })->orWhere(function($sq) use ($lng) {
+                    $sq->where('lng_min', '>=', $lng)->where('lng_max', '<=', $lng);
+                });
+            })
+            ->get();
+
+        // 2. Verificación Geométrica Precisa
+        foreach ($candidatos as $c) {
+            if (!$c->geometria) continue;
+            
+            $geo = json_decode($c->geometria, true);
+            if (!$geo) continue;
+
+            $polygon = null;
+            if (isset($geo['geometry']['coordinates'][0])) {
+                $polygon = $geo['geometry']['coordinates'][0];
+            } elseif (isset($geo['coordinates'][0])) {
+                $polygon = $geo['coordinates'][0];
+            }
+
+            if ($polygon && self::isPointInPolygon($lat, $lng, $polygon)) {
+                return $c;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Algoritmo de Ray Casting
+     */
+    private static function isPointInPolygon($lat, $lng, $polygon)
+    {
+        $inside = false;
+        $n = count($polygon);
+        if ($n < 3) return false;
+
+        for ($i = 0, $j = $n - 1; $i < $n; $j = $i++) {
+            $xi = (float)$polygon[$i][0]; $yi = (float)$polygon[$i][1];
+            $xj = (float)$polygon[$j][0]; $yj = (float)$polygon[$j][1];
+
+            if ((($yi > $lat) != ($yj > $lat)) &&
+                ($lng < ($xj - $xi) * ($lat - $yi) / ($yj - $yi) + $xi)) {
+                $inside = !$inside;
+            }
+        }
+        return $inside;
+    }
 }

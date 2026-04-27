@@ -151,33 +151,35 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   }
 
   void _actualizarCachePoligonos() {
+    if (_cuadrantes.isEmpty) return;
+    
     setState(() {
       _cachedPolygons = _cuadrantes.map((c) {
         final points = _cuadrantePoints[c.id];
         if (points == null || points.isEmpty) return null;
 
-        bool esLPP = (widget.ficha.cuadranteId == c.id) || 
-                     (_lpp != null && _puntoEnPoligono(_lpp!, points));
-        
-        // Mejorado: Comprobar tanto por ID como por ubicación física
-        bool tienePista = _pistas.any((p) => 
-          p.cuadranteId == c.id || _puntoEnPoligono(p.punto, points)
-        );
+        // Determinar si debe ser rojo
+        bool esOficial = widget.ficha.cuadranteId != null && widget.ficha.cuadranteId == c.id;
+        bool contieneLPP = _lpp != null && _puntoEnPoligono(_lpp!, points);
+        bool tienePista = _pistas.any((p) => p.cuadranteId == c.id);
         bool esTemporal = _cuadranteTemporal?.id == c.id;
 
-        if (esLPP || tienePista || esTemporal) {
+        // Prioridad: Si tiene pistas, es el oficial, o es donde cae el LPP (si no hay oficial)
+        bool resaltar = esOficial || tienePista || esTemporal || (widget.ficha.cuadranteId == null && contieneLPP);
+
+        if (resaltar) {
           return Polygon(
             points: points,
             color: Colors.red.withOpacity(0.25),
             borderColor: Colors.red.shade900,
-            borderStrokeWidth: 3.5,
+            borderStrokeWidth: (esOficial || esTemporal) ? 4.0 : 2.5,
           );
         } else {
           return Polygon(
             points: points,
             color: Colors.blue.withOpacity(0.08),
-            borderColor: Colors.blue.withOpacity(0.4),
-            borderStrokeWidth: 1.0,
+            borderColor: Colors.blue.withOpacity(0.5),
+            borderStrokeWidth: 1.2,
           );
         }
       }).whereType<Polygon>().toList();
@@ -303,11 +305,13 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
         setState(() {
           _pistas.removeWhere((p) => p.id == id);
           _pistaTooltip = null;
-          _actualizarCachePoligonos(); 
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pista eliminada correctamente')),
-        );
+        await _cargarPistas(); // Recargar para asegurar sincronización con el backend
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Pista eliminada correctamente')),
+          );
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -353,7 +357,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
           _descripcionPistaCtrl.clear();
         });
         
-        await _cargarPistas(); // Recargar todo para refrescar cuadrantes y IDs
+        await _cargarPistas();
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
