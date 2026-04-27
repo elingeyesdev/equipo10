@@ -1,0 +1,128 @@
+import 'package:flutter/material.dart';
+
+/// Marcador personalizado para el Punto LPP (Último Punto de Paradero).
+/// Muestra la foto de la persona desaparecida dentro de un pin circular,
+/// con su nombre debajo. Si no hay foto, muestra un icono de persona.
+class LppMarker extends StatelessWidget {
+  /// URL de la foto de la persona (puede ser null).
+  final String? fotoUrl;
+
+  /// Nombre o título del reporte (persona desaparecida).
+  final String nombre;
+
+  const LppMarker({
+    super.key,
+    this.fotoUrl,
+    required this.nombre,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Pin con foto
+        Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFD32F2F), width: 3),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black38,
+                blurRadius: 6,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          child: ClipOval(
+            child: fotoUrl != null && fotoUrl!.isNotEmpty
+                ? Image.network(
+                    fotoUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _defaultIcon(),
+                    loadingBuilder: (_, child, progress) =>
+                        progress == null ? child : _loadingSpinner(),
+                  )
+                : _defaultIcon(),
+          ),
+        ),
+
+        // Triángulo del pin
+        CustomPaint(
+          size: const Size(14, 8),
+          painter: _PinTrianglePainter(),
+        ),
+
+        // Nombre de la persona
+        Container(
+          constraints: const BoxConstraints(maxWidth: 100),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xFFD32F2F),
+            borderRadius: BorderRadius.circular(6),
+            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+          ),
+          child: Text(
+            nombre,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _defaultIcon() {
+    return Container(
+      color: const Color(0xFFFFEBEE),
+      child: const Icon(
+        Icons.person,
+        color: Color(0xFFD32F2F),
+        size: 32,
+      ),
+    );
+  }
+
+  Widget _loadingSpinner() {
+    return const Center(
+      child: SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: Color(0xFFD32F2F),
+        ),
+      ),
+    );
+  }
+}
+
+/// Pinta el triángulo inferior del pin.
+class _PinTrianglePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFD32F2F)
+      ..style = PaintingStyle.fill;
+
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}

@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import '../../models/reporte_model.dart';
 import '../../services/api_service.dart';
 import '../../widgets/map_tile_layer.dart';
+import '../../widgets/lpp_marker.dart';
 
 // Paleta de colores para los recorridos de distintos voluntarios
 const List<Color> _coloresVoluntarios = [
@@ -178,15 +179,17 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                           ))
                       .toList(),
                 ),
-              // Marcador LPP
+              // Marcador LPP personalizado con foto y nombre
               MarkerLayer(
                 markers: [
                   Marker(
                     point: _lpp!,
-                    width: 40,
-                    height: 40,
-                    child: const Icon(Icons.person_pin_circle,
-                        color: Colors.red, size: 40),
+                    width: 110,
+                    height: 90,
+                    child: LppMarker(
+                      fotoUrl: widget.ficha.fotoUrl,
+                      nombre: widget.ficha.titulo,
+                    ),
                   ),
                 ],
               ),

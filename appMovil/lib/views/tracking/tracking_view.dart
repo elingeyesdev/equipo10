@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../models/reporte_model.dart';
 import '../../viewmodels/tracking_viewmodel.dart';
 import '../../widgets/map_tile_layer.dart';
+import '../../widgets/lpp_marker.dart';
 
 class TrackingView extends StatefulWidget {
   final ReporteModel ficha;
@@ -159,13 +160,16 @@ class _TrackingViewState extends State<TrackingView> {
                     ),
                   ),
                 ]),
-              // Marcador LPP del reporte
+              // Marcador LPP personalizado con foto y nombre
               MarkerLayer(markers: [
                 Marker(
                   point: center,
-                  width: 40,
-                  height: 40,
-                  child: const Icon(Icons.person_pin_circle, color: Colors.red, size: 40),
+                  width: 110,
+                  height: 90,
+                  child: LppMarker(
+                    fotoUrl: widget.ficha.fotoUrl,
+                    nombre: widget.ficha.titulo,
+                  ),
                 ),
               ]),
             ],
