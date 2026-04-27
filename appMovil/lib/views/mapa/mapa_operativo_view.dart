@@ -43,15 +43,19 @@ class MapaOperativoView extends StatefulWidget {
 }
 
 class _PistaInfo {
+  final String? id; // ID de la BD para editar/borrar
   final LatLng punto;
   final String etiqueta;
   final String fecha;
+  final String hora; // Añadimos la hora
   final String? descripcion;
   final String? cuadranteId;
   _PistaInfo({
+    this.id,
     required this.punto, 
     required this.etiqueta, 
     required this.fecha, 
+    required this.hora,
     this.descripcion,
     this.cuadranteId,
   });
@@ -81,6 +85,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   bool _guardandoPista = false;
   List<_PistaInfo> _pistas = [];
   _PistaInfo? _pistaTooltip; // pista que está mostrando tooltip
+  _PistaInfo? _pistaEnEdicion; // Pista que se está moviendo/editando
+  bool _editandoPista = false; // Indica si estamos en modo edición
 
   @override
   void initState() {
@@ -152,7 +158,11 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
 
         bool esLPP = (widget.ficha.cuadranteId == c.id) || 
                      (_lpp != null && _puntoEnPoligono(_lpp!, points));
-        bool tienePista = _pistas.any((p) => p.cuadranteId == c.id);
+        
+        // Mejorado: Comprobar tanto por ID como por ubicación física
+        bool tienePista = _pistas.any((p) => 
+          p.cuadranteId == c.id || _puntoEnPoligono(p.punto, points)
+        );
         bool esTemporal = _cuadranteTemporal?.id == c.id;
 
         if (esLPP || tienePista || esTemporal) {
@@ -228,10 +238,17 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             double lat = double.tryParse(p['ubicacion_lat']?.toString() ?? '0') ?? 0;
             double lng = double.tryParse(p['ubicacion_lng']?.toString() ?? '0') ?? 0;
             
+            // Extraer fecha y hora de created_at (ej: 2026-04-27 14:30:00)
+            String fullDate = p['created_at']?.toString() ?? '';
+            String dateOnly = fullDate.length >= 10 ? fullDate.substring(0, 10) : '';
+            String timeOnly = fullDate.length >= 19 ? fullDate.substring(11, 16) : '';
+
             return _PistaInfo(
+              id: p['id']?.toString(),
               punto: LatLng(lat, lng),
               etiqueta: p['mensaje']?.toString() ?? 'Pista',
-              fecha: p['created_at']?.toString().substring(0, 10) ?? '',
+              fecha: dateOnly,
+              hora: timeOnly,
               descripcion: p['direccion_referencia']?.toString(),
               cuadranteId: p['cuadrante_id']?.toString(),
             );
@@ -245,6 +262,60 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     }
   }
 
+  void _iniciarEdicionPista(_PistaInfo pista) {
+    setState(() {
+      _pistaEnEdicion = pista;
+      _editandoPista = true;
+      _modoPista = true; // Reusamos el modo pista para la UI
+      _pinTemporal = pista.punto;
+      _etiquetaSeleccionada = pista.etiqueta;
+      _descripcionPistaCtrl.text = pista.descripcion ?? '';
+      _pistaTooltip = null; // Cerramos el tooltip
+    });
+    _detectarCuadranteTemporal(pista.punto.latitude, pista.punto.longitude);
+  }
+
+  void _confirmarEliminarPista(_PistaInfo pista) {
+    if (pista.id == null) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Eliminar pista?'),
+        content: const Text('Esta acción quitará el punto de información del mapa definitivamente.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _eliminarPista(pista.id!);
+            },
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _eliminarPista(String id) async {
+    try {
+      final response = await _api.client.delete('/reportes/pistas/$id');
+      if (response.data['success'] == true) {
+        setState(() {
+          _pistas.removeWhere((p) => p.id == id);
+          _pistaTooltip = null;
+          _actualizarCachePoligonos(); 
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pista eliminada correctamente')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al eliminar la pista')),
+      );
+    }
+  }
+
   Future<void> _guardarPista() async {
     if (_pinTemporal == null) return;
     setState(() => _guardandoPista = true);
@@ -252,39 +323,44 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
       final userId = await _api.getCurrentUserId();
       final desc = _descripcionPistaCtrl.text.trim();
 
-      final response = await _api.client.post(
-        '/reportes/${widget.ficha.id}/pistas',
-        data: {
-          'usuario_id': userId,
-          'lat': _pinTemporal!.latitude,
-          'lng': _pinTemporal!.longitude,
-          'etiqueta': _etiquetaSeleccionada,
-          'descripcion': desc.isNotEmpty ? desc : null,
-          'cuadrante_id': _cuadranteTemporal?.id,
-        },
-      );
-      if (response.statusCode == 201 && response.data['success'] == true) {
-        final nuevaPista = _PistaInfo(
-          punto: _pinTemporal!,
-          etiqueta: _etiquetaSeleccionada,
-          fecha: DateTime.now().toIso8601String().substring(0, 10),
-          descripcion: desc.isNotEmpty ? desc : null,
-          cuadranteId: _cuadranteTemporal?.id,
-        );
+      final data = {
+        'usuario_id': userId,
+        'lat': _pinTemporal!.latitude,
+        'lng': _pinTemporal!.longitude,
+        'ubicacion_exacta_lat': _pinTemporal!.latitude, // Para el reporte LPP
+        'ubicacion_exacta_lng': _pinTemporal!.longitude, // Para el reporte LPP
+        'etiqueta': _etiquetaSeleccionada,
+        'descripcion': desc.isNotEmpty ? desc : null,
+        'cuadrante_id': _cuadranteTemporal?.id,
+      };
+
+      final response = _editandoPista 
+        ? (_pistaEnEdicion!.id == 'LPP' 
+            ? await _api.client.put('/reportes/reportes/${widget.ficha.id}', data: data)
+            : await _api.client.put('/reportes/pistas/${_pistaEnEdicion!.id}', data: data))
+        : await _api.client.post('/reportes/${widget.ficha.id}/pistas', data: data);
+
+      if ((response.statusCode == 200 || response.statusCode == 201) && response.data['success'] == true) {
         setState(() {
-          _pistas.add(nuevaPista);
+          if (_editandoPista && _pistaEnEdicion!.id == 'LPP') {
+            _lpp = _pinTemporal;
+          }
           _pinTemporal = null;
           _cuadranteTemporal = null;
           _modoPista = false;
+          _editandoPista = false;
+          _pistaEnEdicion = null;
           _descripcionPistaCtrl.clear();
-          _actualizarCachePoligonos();
         });
+        
+        await _cargarPistas(); // Recargar todo para refrescar cuadrantes y IDs
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Row(children: [
               const Icon(Icons.check_circle, color: Colors.white),
               const SizedBox(width: 10),
-              Expanded(child: Text('"$_etiquetaSeleccionada" guardada en el mapa.')),
+              Expanded(child: Text(_editandoPista ? 'Cambios guardados' : 'Nueva pista guardada')),
             ]),
             backgroundColor: const Color(0xFF1B5E20),
             behavior: SnackBarBehavior.floating,
@@ -299,8 +375,6 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
         String msg = 'No se pudo guardar la pista. Verifica tu conexión.';
         if (e is DioException && e.response?.data != null) {
           msg = e.response!.data['message'] ?? e.response!.data['error'] ?? msg;
-        } else if (e.toString().contains('Exception:')) {
-          msg = e.toString().replaceAll('Exception: ', '');
         }
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(msg),
@@ -387,8 +461,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const Text('Tipo de pista o información',
-                      style: TextStyle(
+                  Text(_editandoPista ? 'Editar información' : 'Tipo de pista o información',
+                      style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                           color: Color(0xFF1B5E20))),
@@ -502,16 +576,32 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     // Unificamos todos los marcadores en una sola lista para evitar que se tapen
     final List<Marker> todosLosMarkers = [];
 
-    // 1. Punto inicial (Pepe)
+    // 1. Punto inicial (Pepe - LPP)
+    final _PistaInfo lppInfo = _PistaInfo(
+      id: 'LPP', // ID especial para identificar el punto original
+      punto: _lpp!,
+      etiqueta: 'Visto por última vez',
+      fecha: widget.ficha.fechaPerdida ?? '',
+      hora: '', // Opcional
+      descripcion: 'Punto de inicio de la búsqueda (LPP)',
+      cuadranteId: null,
+    );
+
     todosLosMarkers.add(
       Marker(
         point: _lpp!,
-        width: 110,
-        height: 90,
+        width: 100,
+        height: 100,
         alignment: Alignment.center,
-        child: LppMarker(
-          fotoUrl: widget.ficha.fotoUrl,
-          nombre: widget.ficha.titulo,
+        child: GestureDetector(
+          onTap: () => setState(() => _pistaTooltip = _pistaTooltip == lppInfo ? null : lppInfo),
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: LppMarker(
+              fotoUrl: widget.ficha.fotoUrl,
+              color: const Color(0xFFD32F2F), // Rojo para el original
+            ),
+          ),
         ),
       ),
     );
@@ -702,57 +792,91 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               ),
             ),
 
-          // ── Tooltip de detalle de Pista (Rediseñado abajo) ──────────────────
+          // ── Tooltip de detalle de Pista (Rediseñado arriba a la izquierda) ──
           if (_pistaTooltip != null)
             Positioned(
-              bottom: 20,
-              left: 20,
-              right: 20,
+              top: 70, // Debajo de la barra superior
+              left: 12,
+              width: 280, // Ancho fijo para que sea un panel lateral pequeño
               child: Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.95),
-                  borderRadius: BorderRadius.circular(16),
+                  color: Colors.white.withOpacity(0.98),
+                  borderRadius: BorderRadius.circular(20),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 15, offset: const Offset(0, 5))
+                    BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 12, offset: const Offset(2, 4))
                   ],
-                  border: Border.all(color: _getColorParaEtiqueta(_pistaTooltip!.etiqueta).withOpacity(0.5), width: 1.5),
+                  border: Border.all(color: _getColorParaEtiqueta(_pistaTooltip!.etiqueta).withOpacity(0.3), width: 1),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.info_outline, color: _getColorParaEtiqueta(_pistaTooltip!.etiqueta), size: 20),
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: _getColorParaEtiqueta(_pistaTooltip!.etiqueta).withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.info_outline, color: _getColorParaEtiqueta(_pistaTooltip!.etiqueta), size: 18),
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             _pistaTooltip!.etiqueta,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                              fontSize: 13,
                               color: _getColorParaEtiqueta(_pistaTooltip!.etiqueta),
                             ),
                           ),
                         ),
-                        GestureDetector(
-                          onTap: () => setState(() => _pistaTooltip = null),
-                          child: const Icon(Icons.close, color: Colors.grey, size: 18),
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 16, color: Colors.grey),
+                          onPressed: () => setState(() => _pistaTooltip = null),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                         ),
                       ],
                     ),
-                    const Divider(height: 16),
+                    const Divider(height: 20),
                     Text(
-                      _pistaTooltip!.descripcion ?? 'Sin detalles adicionales registrados.',
-                      style: const TextStyle(fontSize: 13, color: Colors.black87),
+                      _pistaTooltip!.descripcion ?? 'Sin detalles adicionales.',
+                      style: const TextStyle(fontSize: 12, color: Colors.black87, height: 1.4),
                     ),
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        'Fecha: ${_pistaTooltip!.fecha}',
-                        style: const TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
-                      ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '📅 ${_pistaTooltip!.fecha}  🕒 ${_pistaTooltip!.hora}',
+                          style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500),
+                        ),
+                        if (widget.esCreador)
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_location_alt, size: 18, color: Color(0xFF2196F3)),
+                                onPressed: () => _iniciarEdicionPista(_pistaTooltip!),
+                                tooltip: 'Mover/Editar',
+                                constraints: const BoxConstraints(),
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                              ),
+                              if (_pistaTooltip!.id != 'LPP')
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                                  onPressed: () => _confirmarEliminarPista(_pistaTooltip!),
+                                  tooltip: 'Eliminar',
+                                  constraints: const BoxConstraints(),
+                                  padding: EdgeInsets.zero,
+                                ),
+                            ],
+                          )
+                        else
+                          const Icon(Icons.arrow_forward_ios, size: 10, color: Colors.grey),
+                      ],
                     ),
                   ],
                 ),
