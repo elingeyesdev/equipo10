@@ -87,6 +87,8 @@ Route::get('/', function () {
     
     Route::middleware(['role_or_permission:administrador|editor|crear reportes|editar reportes'])->group(function () {
     Route::resource('reportes', ReporteWebController::class);
+    // Guardar pista de búsqueda en un reporte (solo admin o creador, validado en controller)
+    Route::post('/reportes/{reporte}/pistas', [ReporteWebController::class, 'guardarPista'])->name('reportes.pistas.store');
     });
 
     
@@ -107,8 +109,12 @@ Route::get('/', function () {
     
     Route::prefix('cuadrantes')->name('cuadrantes.')->middleware(['role:administrador|editor'])->group(function () {
         Route::get('/', [\App\Http\Controllers\Web\CuadranteWebController::class, 'index'])->name('index');
-        
         Route::post('/', [\App\Http\Controllers\Web\CuadranteWebController::class, 'store'])->name('store');
+        
+        // Rutas del Editor Secreto (Temporales para configuracion inicial)
+        Route::get('/editor-secreto', [\App\Http\Controllers\Web\CuadranteWebController::class, 'editor'])->name('editor');
+        Route::post('/save-geometry', [\App\Http\Controllers\Web\CuadranteWebController::class, 'saveGeometry'])->name('save_geometry');
+        Route::delete('/{cuadrante}', [\App\Http\Controllers\Web\CuadranteWebController::class, 'destroy'])->name('destroy');
     });
 
 

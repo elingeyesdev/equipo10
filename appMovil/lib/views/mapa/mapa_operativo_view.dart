@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:dio/dio.dart';
 import '../../models/reporte_model.dart';
 import '../../services/api_service.dart';
 import '../../widgets/map_tile_layer.dart';
 import '../../widgets/lpp_marker.dart';
+import '../../models/cuadrante_model.dart';
+import '../../services/cuadrante_service.dart';
 
 // Paleta de colores para los recorridos de distintos voluntarios
 const List<Color> _coloresVoluntarios = [
@@ -14,6 +17,15 @@ const List<Color> _coloresVoluntarios = [
   Color(0xFFE91E63), // rosa
   Color(0xFF00BCD4), // cyan
   Color(0xFF795548), // marrón
+];
+
+// Etiquetas disponibles para las pistas
+const List<Map<String, String>> _etiquetasPista = [
+  {'emoji': '📍', 'label': 'Visto por última vez'},
+  {'emoji': '🔍', 'label': 'Nueva pista'},
+  {'emoji': '✅', 'label': 'Avistamiento confirmado'},
+  {'emoji': '📡', 'label': 'Última señal'},
+  {'emoji': '⚠️', 'label': 'Zona de interés'},
 ];
 
 class MapaOperativoView extends StatefulWidget {
@@ -30,47 +42,145 @@ class MapaOperativoView extends StatefulWidget {
   State<MapaOperativoView> createState() => _MapaOperativoViewState();
 }
 
+class _PistaInfo {
+  final LatLng punto;
+  final String etiqueta;
+  final String fecha;
+  final String? descripcion;
+  final String? cuadranteId;
+  _PistaInfo({
+    required this.punto, 
+    required this.etiqueta, 
+    required this.fecha, 
+    this.descripcion,
+    this.cuadranteId,
+  });
+}
+
 class _MapaOperativoViewState extends State<MapaOperativoView> {
   final MapController _mapController = MapController();
   final ApiService _api = ApiService();
+  final CuadranteService _cuadranteService = CuadranteService();
 
-  List<List<LatLng>> _cuadrantesFormateados = [];
   LatLng? _lpp;
   List<_VoluntarioRecorrido> _recorridos = [];
   bool _cargandoRecorridos = true;
   bool _useSatellite = true;
 
+  // Cuadrantes de la BD
+  List<CuadranteModel> _cuadrantes = [];
+  Map<String, List<LatLng>> _cuadrantePoints = {}; // Caché de puntos
+  List<Polygon>? _cachedPolygons;
+
+  // ── Estado de pistas ──────────────────────────────────────────────────────
+  bool _modoPista = false;
+  LatLng? _pinTemporal;
+  CuadranteModel? _cuadranteTemporal; // Cuadrante donde cae el pin
+  String _etiquetaSeleccionada = 'Visto por última vez';
+  final TextEditingController _descripcionPistaCtrl = TextEditingController();
+  bool _guardandoPista = false;
+  List<_PistaInfo> _pistas = [];
+  _PistaInfo? _pistaTooltip; // pista que está mostrando tooltip
+
   @override
   void initState() {
     super.initState();
     _parseData();
+    _cargarCuadrantes();
     _cargarRecorridos();
+    _cargarPistas();
+  }
+
+  @override
+  void dispose() {
+    _descripcionPistaCtrl.dispose();
+    super.dispose();
   }
 
   void _parseData() {
     if (widget.ficha.latitud != null && widget.ficha.longitud != null) {
       _lpp = LatLng(widget.ficha.latitud!, widget.ficha.longitud!);
     }
+  }
 
-    if (widget.ficha.cuadrantes != null) {
-      for (var currQuadrant in widget.ficha.cuadrantes!) {
-        List<LatLng> polygon = [];
-        for (var point in (currQuadrant as List)) {
-          polygon.add(LatLng(
-              (point['lat'] as num).toDouble(), (point['lng'] as num).toDouble()));
+  Future<void> _cargarCuadrantes() async {
+    final resultados = await _cuadranteService.getCuadrantes();
+    if (mounted) {
+      setState(() {
+        _cuadrantes = resultados;
+        _cuadrantePoints.clear();
+        for (var c in _cuadrantes) {
+          if (c.geometria != null) {
+            try {
+              var geometryData = c.geometria;
+              final geometry = geometryData!['type'] == 'Feature'
+                  ? geometryData['geometry']
+                  : geometryData;
+              if (geometry['type'] == 'Polygon') {
+                final coords = geometry['coordinates'][0] as List;
+                _cuadrantePoints[c.id] = coords.map((coord) {
+                  return LatLng(double.parse(coord[1].toString()), double.parse(coord[0].toString()));
+                }).toList();
+              }
+            } catch (_) {}
+          }
         }
-        _cuadrantesFormateados.add(polygon);
+        _actualizarCachePoligonos();
+      });
+    }
+  }
+
+  // ── Algoritmo Ray-Casting para detectar punto en polígono ───────────────
+  bool _puntoEnPoligono(LatLng punto, List<LatLng> poligono) {
+    if (poligono.isEmpty) return false;
+    bool inside = false;
+    int n = poligono.length;
+    for (int i = 0, j = n - 1; i < n; j = i++) {
+      if (((poligono[i].latitude > punto.latitude) != (poligono[j].latitude > punto.latitude)) &&
+          (punto.longitude < (poligono[j].longitude - poligono[i].longitude) * (punto.latitude - poligono[i].latitude) / (poligono[j].latitude - poligono[i].latitude) + poligono[i].longitude)) {
+        inside = !inside;
       }
     }
+    return inside;
+  }
 
-    // Si no hay cuadrantes desde la ficha pero sí tenemos bounds del API, los usamos
-    if (_cuadrantesFormateados.isEmpty && widget.ficha.cuadranteLatMin != null) {
-      _cuadrantesFormateados.add([
-        LatLng(widget.ficha.cuadranteLatMin!, widget.ficha.cuadranteLngMin!),
-        LatLng(widget.ficha.cuadranteLatMax!, widget.ficha.cuadranteLngMin!),
-        LatLng(widget.ficha.cuadranteLatMax!, widget.ficha.cuadranteLngMax!),
-        LatLng(widget.ficha.cuadranteLatMin!, widget.ficha.cuadranteLngMax!),
-      ]);
+  void _actualizarCachePoligonos() {
+    setState(() {
+      _cachedPolygons = _cuadrantes.map((c) {
+        final points = _cuadrantePoints[c.id];
+        if (points == null || points.isEmpty) return null;
+
+        bool esLPP = (widget.ficha.cuadranteId == c.id) || 
+                     (_lpp != null && _puntoEnPoligono(_lpp!, points));
+        bool tienePista = _pistas.any((p) => p.cuadranteId == c.id);
+        bool esTemporal = _cuadranteTemporal?.id == c.id;
+
+        if (esLPP || tienePista || esTemporal) {
+          return Polygon(
+            points: points,
+            color: Colors.red.withOpacity(0.25),
+            borderColor: Colors.red.shade900,
+            borderStrokeWidth: 3.5,
+          );
+        } else {
+          return Polygon(
+            points: points,
+            color: Colors.blue.withOpacity(0.08),
+            borderColor: Colors.blue.withOpacity(0.4),
+            borderStrokeWidth: 1.0,
+          );
+        }
+      }).whereType<Polygon>().toList();
+    });
+  }
+
+  Future<void> _detectarCuadranteTemporal(double lat, double lng) async {
+    final res = await _cuadranteService.detectarCuadrante(lat, lng);
+    if (mounted) {
+      setState(() {
+        _cuadranteTemporal = res;
+        _actualizarCachePoligonos();
+      });
     }
   }
 
@@ -102,11 +212,283 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
         });
       }
     } catch (_) {
-      // Sin conexión: no hay recorridos que mostrar
     } finally {
       setState(() => _cargandoRecorridos = false);
     }
   }
+
+  Future<void> _cargarPistas() async {
+    try {
+      final response = await _api.client.get('/reportes/${widget.ficha.id}/pistas');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final List<dynamic> raw = response.data['data'] ?? [];
+        setState(() {
+          _pistas = raw.map((p) {
+            // Conversión segura de coordenadas (maneja String o num)
+            double lat = double.tryParse(p['ubicacion_lat']?.toString() ?? '0') ?? 0;
+            double lng = double.tryParse(p['ubicacion_lng']?.toString() ?? '0') ?? 0;
+            
+            return _PistaInfo(
+              punto: LatLng(lat, lng),
+              etiqueta: p['mensaje']?.toString() ?? 'Pista',
+              fecha: p['created_at']?.toString().substring(0, 10) ?? '',
+              descripcion: p['direccion_referencia']?.toString(),
+              cuadranteId: p['cuadrante_id']?.toString(),
+            );
+          }).where((p) => p.punto.latitude != 0).toList(); // Filtrar puntos inválidos
+          
+          _actualizarCachePoligonos();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error cargando pistas: $e');
+    }
+  }
+
+  Future<void> _guardarPista() async {
+    if (_pinTemporal == null) return;
+    setState(() => _guardandoPista = true);
+    try {
+      final userId = await _api.getCurrentUserId();
+      final desc = _descripcionPistaCtrl.text.trim();
+
+      final response = await _api.client.post(
+        '/reportes/${widget.ficha.id}/pistas',
+        data: {
+          'usuario_id': userId,
+          'lat': _pinTemporal!.latitude,
+          'lng': _pinTemporal!.longitude,
+          'etiqueta': _etiquetaSeleccionada,
+          'descripcion': desc.isNotEmpty ? desc : null,
+          'cuadrante_id': _cuadranteTemporal?.id,
+        },
+      );
+      if (response.statusCode == 201 && response.data['success'] == true) {
+        final nuevaPista = _PistaInfo(
+          punto: _pinTemporal!,
+          etiqueta: _etiquetaSeleccionada,
+          fecha: DateTime.now().toIso8601String().substring(0, 10),
+          descripcion: desc.isNotEmpty ? desc : null,
+          cuadranteId: _cuadranteTemporal?.id,
+        );
+        setState(() {
+          _pistas.add(nuevaPista);
+          _pinTemporal = null;
+          _cuadranteTemporal = null;
+          _modoPista = false;
+          _descripcionPistaCtrl.clear();
+          _actualizarCachePoligonos();
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Row(children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 10),
+              Expanded(child: Text('"$_etiquetaSeleccionada" guardada en el mapa.')),
+            ]),
+            backgroundColor: const Color(0xFF1B5E20),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ));
+        }
+      } else {
+        throw Exception(response.data['message'] ?? response.data['error'] ?? 'Error al guardar');
+      }
+    } catch (e) {
+      if (mounted) {
+        String msg = 'No se pudo guardar la pista. Verifica tu conexión.';
+        if (e is DioException && e.response?.data != null) {
+          msg = e.response!.data['message'] ?? e.response!.data['error'] ?? msg;
+        } else if (e.toString().contains('Exception:')) {
+          msg = e.toString().replaceAll('Exception: ', '');
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(msg),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } finally {
+      setState(() => _guardandoPista = false);
+    }
+  }
+
+  Color _getColorParaEtiqueta(String etiqueta) {
+    switch (etiqueta) {
+      case 'Visto por última vez': return Colors.purple;
+      case 'Nueva pista': return Colors.blueGrey;
+      case 'Avistamiento confirmado': return Colors.green;
+      case 'Última señal': return Colors.blue;
+      case 'Zona de interés': return Colors.orange;
+      default: return const Color(0xFFF59E0B);
+    }
+  }
+
+  void _mostrarSelectorEtiqueta() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        String etiquetaLocal = _etiquetaSeleccionada;
+        return StatefulBuilder(
+          builder: (ctx, setModalState) => Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            padding: const EdgeInsets.all(20),
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40, height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      ClipOval(
+                        child: widget.ficha.fotoUrl != null
+                            ? Image.network(
+                                widget.ficha.fotoUrl!,
+                                width: 44, height: 44,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => _avatarPlaceholder(),
+                              )
+                            : _avatarPlaceholder(),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(widget.ficha.titulo,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 14),
+                                maxLines: 1, overflow: TextOverflow.ellipsis),
+                            Text(
+                              _cuadranteTemporal != null
+                                  ? 'Cuadrante: ${_cuadranteTemporal!.codigo}'
+                                  : 'Lat: ${_pinTemporal!.latitude.toStringAsFixed(5)}, Lng: ${_pinTemporal!.longitude.toStringAsFixed(5)}',
+                              style: const TextStyle(
+                                  fontSize: 11, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Tipo de pista o información',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: Color(0xFF1B5E20))),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8, runSpacing: 8,
+                    children: _etiquetasPista.map((e) {
+                      final label = e['label']!;
+                      final selected = etiquetaLocal == label;
+                      return FilterChip(
+                        label: Text('${e['emoji']} $label',
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: selected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal)),
+                        selected: selected,
+                        onSelected: (_) => setModalState(() => etiquetaLocal = label),
+                        selectedColor: const Color(0xFFB8F5C2),
+                        checkmarkColor: const Color(0xFF1B5E20),
+                        backgroundColor: Colors.grey[100],
+                        side: BorderSide(
+                            color: selected
+                                ? const Color(0xFF1B5E20)
+                                : Colors.grey[300]!),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _descripcionPistaCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Descripción o detalles (opcional)',
+                      labelStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                      filled: true,
+                      fillColor: Colors.grey[50],
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey[300]!)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey[300]!)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF1B5E20))),
+                    ),
+                    style: const TextStyle(fontSize: 13),
+                    maxLines: 2,
+                    textInputAction: TextInputAction.done,
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            // Permanece en modoPista para poder mover el pin si quiere
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.grey),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: const Text('Cancelar'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            setState(() => _etiquetaSeleccionada = etiquetaLocal);
+                            Navigator.pop(ctx);
+                            _guardarPista();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1B5E20),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: _guardandoPista
+                              ? const SizedBox(
+                                  width: 20, height: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white))
+                              : const Text('Guardar'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _avatarPlaceholder() => Container(
+        width: 44, height: 44,
+        color: Colors.grey[200],
+        child: const Icon(Icons.person, color: Colors.grey),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -117,29 +499,90 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
       );
     }
 
+    // Unificamos todos los marcadores en una sola lista para evitar que se tapen
+    final List<Marker> todosLosMarkers = [];
+
+    // 1. Punto inicial (Pepe)
+    todosLosMarkers.add(
+      Marker(
+        point: _lpp!,
+        width: 110,
+        height: 90,
+        alignment: Alignment.center,
+        child: LppMarker(
+          fotoUrl: widget.ficha.fotoUrl,
+          nombre: widget.ficha.titulo,
+        ),
+      ),
+    );
+
+    // 2. Pistas de información
+    for (var pista in _pistas) {
+      todosLosMarkers.add(
+        Marker(
+          key: ValueKey('pista_${pista.punto.latitude}_${pista.punto.longitude}'),
+          point: pista.punto,
+          width: 80,
+          height: 70,
+          alignment: Alignment.center,
+          child: GestureDetector(
+            onTap: () => setState(() => _pistaTooltip = _pistaTooltip == pista ? null : pista),
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: LppMarker(
+                fotoUrl: widget.ficha.fotoUrl,
+                nombre: pista.etiqueta,
+                color: _getColorParaEtiqueta(pista.etiqueta),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 3. Pin temporal de edición
+    if (_pinTemporal != null) {
+      todosLosMarkers.add(
+        Marker(
+          point: _pinTemporal!,
+          width: 50,
+          height: 50,
+          alignment: Alignment.center,
+          child: const Icon(
+            Icons.location_on,
+            color: Colors.red,
+            size: 50,
+            shadows: [Shadow(blurRadius: 10, color: Colors.black54)],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mapa Sectorizado'),
+        title: const Text('Mapa Operativo'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Actualizar recorridos',
             onPressed: () {
-              setState(() => _cargandoRecorridos = true);
+              _cargarCuadrantes();
+              _cargarPistas();
               _cargarRecorridos();
             },
           ),
           if (widget.esCreador)
             IconButton(
-              icon: const Icon(Icons.edit_location_alt_outlined),
-              tooltip: 'Editar Cuadrantes (Próximamente)',
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text(
-                      'La edición libre de cuadrantes estará disponible en una próxima actualización.'),
-                ));
-              },
-            )
+              icon: Icon(_modoPista ? Icons.close : Icons.add_location_alt, 
+                        color: _modoPista ? Colors.red : null),
+              onPressed: () => setState(() {
+                _modoPista = !_modoPista;
+                if (!_modoPista) { 
+                  _pinTemporal = null; 
+                  _cuadranteTemporal = null; 
+                  _actualizarCachePoligonos(); 
+                }
+              }),
+            ),
         ],
       ),
       body: Stack(
@@ -148,65 +591,65 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             mapController: _mapController,
             options: MapOptions(
               initialCenter: _lpp!,
-              initialZoom: 15.0,
+              initialZoom: 15.5,
+              onTap: (tapPosition, latLng) {
+                if (!_modoPista || !widget.esCreador) return;
+                setState(() => _pinTemporal = latLng);
+                _detectarCuadranteTemporal(latLng.latitude, latLng.longitude);
+              },
             ),
             children: [
               MapTileLayer(useSatellite: _useSatellite),
-              // Cuadrante(s) del operativo
-              if (_cuadrantesFormateados.isNotEmpty)
-                PolygonLayer(
-                  polygons: _cuadrantesFormateados
-                      .map((q) => Polygon(
-                            points: q,
-                            color: Colors.redAccent.withOpacity(0.15),
-                            borderColor: Colors.red.shade900,
-                            borderStrokeWidth: 2,
-                          ))
-                      .toList(),
-                ),
-              // Recorridos de cada voluntario
+              if (_cachedPolygons != null) PolygonLayer(polygons: _cachedPolygons!),
               if (_recorridos.isNotEmpty)
                 PolylineLayer(
-                  polylines: _recorridos
-                      .where((r) => r.puntos.length >= 2)
-                      .map((r) => Polyline(
-                            points: r.puntos,
-                            color: r.color.withOpacity(r.terminado ? 0.85 : 0.5),
-                            strokeWidth: r.terminado ? 4 : 3,
-                            pattern: r.terminado
-                                ? const StrokePattern.solid()
-                                : const StrokePattern.dotted(),
-                          ))
-                      .toList(),
+                  polylines: _recorridos.map((r) => Polyline(
+                    points: r.puntos,
+                    color: r.color.withOpacity(r.terminado ? 0.8 : 0.4),
+                    strokeWidth: r.terminado ? 4 : 3,
+                  )).toList(),
                 ),
-              // Marcador LPP personalizado con foto y nombre
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    point: _lpp!,
-                    width: 110,
-                    height: 90,
-                    child: LppMarker(
-                      fotoUrl: widget.ficha.fotoUrl,
-                      nombre: widget.ficha.titulo,
-                    ),
-                  ),
-                ],
-              ),
+              MarkerLayer(markers: todosLosMarkers),
             ],
           ),
 
-          // Leyenda de voluntarios
-          if (_recorridos.isNotEmpty)
+
+          if (_modoPista && _pinTemporal == null)
             Positioned(
               top: 12,
+              left: 12,
+              right: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 2))],
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.touch_app, color: Colors.white, size: 20),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Toca el mapa para agregar una pista',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          if (_recorridos.isNotEmpty)
+            Positioned(
+              top: _modoPista ? 70 : 12,
               right: 12,
               child: _LeyendaRecorridos(recorridos: _recorridos),
             ),
 
-          // Toggle de capas (satelital / callejero)
           Positioned(
-            bottom: 96,
+            bottom: (_modoPista && _pinTemporal != null) ? 140 : 96,
             right: 80,
             child: MapLayerToggleButton(
               heroTag: 'btn_toggle_operativo',
@@ -215,59 +658,165 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             ),
           ),
 
-          // Botón de centrado dinámico en LPP
           Positioned(
-            bottom: 90,
+            bottom: (_modoPista && _pinTemporal != null) ? 134 : 90,
             right: 20,
             child: FloatingActionButton(
               heroTag: 'btn_centrar_operativo',
               mini: true,
               backgroundColor: Colors.white,
               foregroundColor: const Color(0xFF1B5E20),
-              onPressed: () {
-                _mapController.move(_lpp!, 15.0);
-              },
+              onPressed: () => _mapController.move(_lpp!, 15.0),
               child: const Icon(Icons.my_location),
             ),
           ),
 
-          // Panel inferior
-          Positioned(
-            bottom: 20,
-            left: 20,
-            right: 20,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.92),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black26)],
+          if (!_modoPista)
+            Positioned(
+              bottom: 20,
+              left: 20,
+              right: 20,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.92),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black26)],
+                ),
+                child: _cargandoRecorridos
+                    ? const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                          SizedBox(width: 10),
+                          Text('Cargando recorridos...'),
+                        ],
+                      )
+                    : Text(
+                        _recorridos.isEmpty
+                            ? 'Aún no hay recorridos registrados en este operativo.'
+                            : '${_recorridos.length} recorrido(s) de voluntarios registrado(s).',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1B5E20)),
+                      ),
               ),
-              child: _cargandoRecorridos
-                  ? const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+            ),
+
+          // ── Tooltip de detalle de Pista (Rediseñado abajo) ──────────────────
+          if (_pistaTooltip != null)
+            Positioned(
+              bottom: 20,
+              left: 20,
+              right: 20,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.95),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 15, offset: const Offset(0, 5))
+                  ],
+                  border: Border.all(color: _getColorParaEtiqueta(_pistaTooltip!.etiqueta).withOpacity(0.5), width: 1.5),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
                       children: [
-                        SizedBox(
-                            width: 16,
-                            height: 16,
-                            child:
-                                CircularProgressIndicator(strokeWidth: 2)),
-                        SizedBox(width: 10),
-                        Text('Cargando recorridos...'),
+                        Icon(Icons.info_outline, color: _getColorParaEtiqueta(_pistaTooltip!.etiqueta), size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _pistaTooltip!.etiqueta,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: _getColorParaEtiqueta(_pistaTooltip!.etiqueta),
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => setState(() => _pistaTooltip = null),
+                          child: const Icon(Icons.close, color: Colors.grey, size: 18),
+                        ),
                       ],
-                    )
-                  : Text(
-                      _recorridos.isEmpty
-                          ? 'Aún no hay recorridos registrados en este operativo.'
-                          : '${_recorridos.length} recorrido(s) de voluntarios registrado(s).',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1B5E20),
+                    ),
+                    const Divider(height: 16),
+                    Text(
+                      _pistaTooltip!.descripcion ?? 'Sin detalles adicionales registrados.',
+                      style: const TextStyle(fontSize: 13, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        'Fecha: ${_pistaTooltip!.fecha}',
+                        style: const TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
                       ),
                     ),
+                  ],
+                ),
+              ),
             ),
-          ),
+
+          // ── Botón de confirmar cuando hay un pin temporal ────────────────
+          if (_modoPista && _pinTemporal != null)
+            Positioned(
+              bottom: 20,
+              left: 20,
+              right: 20,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1B5E20).withOpacity(0.95),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [BoxShadow(blurRadius: 8, color: Colors.black38, offset: Offset(0, 4))],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _cuadranteTemporal != null
+                                ? 'En cuadrante: ${_cuadranteTemporal!.codigo}'
+                                : 'Ubicación seleccionada',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          const Text(
+                            'Puedes seguir moviendo el pin',
+                            style: TextStyle(color: Colors.white70, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      width: 130,
+                      height: 40,
+                      child: ElevatedButton(
+                        onPressed: _mostrarSelectorEtiqueta,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF1B5E20),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.check, size: 18),
+                            SizedBox(width: 6),
+                            Text('Confirmar', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -307,10 +856,7 @@ class _LeyendaRecorridos extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           const Text('Voluntarios',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                  color: Color(0xFF1A1A1A))),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1A1A1A))),
           const SizedBox(height: 6),
           ...recorridos.map((r) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 2),
@@ -318,14 +864,10 @@ class _LeyendaRecorridos extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                        width: 14,
-                        height: 4,
-                        decoration: BoxDecoration(
-                            color: r.color,
-                            borderRadius: BorderRadius.circular(2))),
+                        width: 14, height: 4,
+                        decoration: BoxDecoration(color: r.color, borderRadius: BorderRadius.circular(2))),
                     const SizedBox(width: 6),
-                    Text(r.nombre,
-                        style: const TextStyle(fontSize: 11, color: Color(0xFF1A1A1A))),
+                    Text(r.nombre, style: const TextStyle(fontSize: 11, color: Color(0xFF1A1A1A))),
                     const SizedBox(width: 4),
                     if (r.terminado)
                       const Icon(Icons.check_circle, size: 11, color: Color(0xFF4CAF50))

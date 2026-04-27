@@ -481,13 +481,20 @@
     <div class="col-12">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white border-0 py-3">
-                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h5 class="mb-0 fw-bold">
-                            <i class="bi bi-geo-alt text-primary me-2"></i>
-                            Mapa de Cuadrantes
-                        </h5>
-                        <p class="text-muted small mb-0 mt-1">Visualización de cuadrantes en Santa Cruz de la Sierra</p>
+                        <h4 class="fw-bold mb-0 text-primary">Gestión de Cuadrantes</h4>
+                        <p class="text-muted small">Visualiza y administra los sectores de búsqueda</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{{ route('cuadrantes.editor') }}" class="btn btn-primary d-flex align-items-center gap-2">
+                            <i class="bi bi-pencil-square"></i>
+                            <span>Abrir Editor de Dibujo</span>
+                        </a>
+                        <button class="btn btn-outline-primary d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#createCuadranteModal">
+                            <i class="bi bi-plus-lg"></i>
+                            <span>Nuevo Cuadrante (Rápido)</span>
+                        </button>
                     </div>
                 </div>
             </div>

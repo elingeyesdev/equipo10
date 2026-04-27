@@ -986,5 +986,97 @@ class ReporteController extends Controller
             ]);
         }
     }
-}
 
+    // =========================================================================
+    // PISTAS DE BÚSQUEDA
+    // =========================================================================
+
+    /**
+     * Listar todas las pistas (respuestas tipo 'pista') de un reporte
+     */
+    public function listarPistas($reporteId)
+    {
+        try {
+            $reporte = Reporte::findOrFail($reporteId);
+
+            $pistas = \App\Models\Respuesta::where('reporte_id', $reporte->id)
+                ->where('tipo_respuesta', 'informacion')
+                ->whereNotNull('ubicacion_lat')
+                ->whereNotNull('ubicacion_lng')
+                ->orderBy('created_at')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data'    => $pistas,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener pistas',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Guardar una nueva pista de búsqueda desde la app móvil.
+     * Solo el creador del reporte puede guardar pistas.
+     */
+    public function guardarPistaApi(Request $request, $reporteId)
+    {
+        try {
+            $reporte = Reporte::findOrFail($reporteId);
+
+            // ── Autorización: solo el creador ─────────────────────────────────
+            $usuarioId = $request->input('usuario_id');
+            if (!$usuarioId || $usuarioId !== $reporte->usuario_id) {
+                return response()->json([
+                    'success' => false,
+                    'error'   => 'Solo el creador del operativo puede agregar pistas.',
+                ], 403);
+            }
+
+            // ── Validación ────────────────────────────────────────────────────
+            $validator = Validator::make($request->all(), [
+                'lat'          => 'required|numeric|between:-90,90',
+                'lng'          => 'required|numeric|between:-180,180',
+                'etiqueta'     => 'required|string|max:100',
+                'cuadrante_id' => 'nullable|exists:cuadrantes,id',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors'  => $validator->errors(),
+                ], 422);
+            }
+
+            // ── Crear pista ───────────────────────────────────────────────────
+            $pista = \App\Models\Respuesta::create([
+                'reporte_id'           => $reporte->id,
+                'cuadrante_id'         => $request->cuadrante_id,
+                'usuario_id'           => $usuarioId,
+                'tipo_respuesta'       => 'informacion',
+                'mensaje'              => $request->etiqueta,
+                'ubicacion_lat'        => $request->lat,
+                'ubicacion_lng'        => $request->lng,
+                'direccion_referencia' => $request->descripcion,
+                'verificada'           => true,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data'    => $pista,
+                'message' => 'Pista registrada correctamente.',
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al guardar la pista',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+}

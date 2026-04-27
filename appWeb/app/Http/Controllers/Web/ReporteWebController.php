@@ -150,9 +150,21 @@ class ReporteWebController extends Controller
 
         // Ordenar por fecha cronológicamente
         $timeline = $timeline->sortBy('fecha');
-        
-        return view('reportes.show', compact('reporte', 'timeline'));
+
+        // Cargar pistas de búsqueda (respuestas tipo 'pista') con ubicación
+        $pistas = $reporte->respuestas()
+            ->where('tipo_respuesta', 'pista')
+            ->whereNotNull('ubicacion_lat')
+            ->whereNotNull('ubicacion_lng')
+            ->orderBy('created_at')
+            ->get();
+
+        // Lista de cuadrantes para el selector de reasignación
+        $cuadrantes = Cuadrante::orderBy('codigo')->get(['id', 'codigo', 'nombre', 'zona']);
+
+        return view('reportes.show', compact('reporte', 'timeline', 'pistas', 'cuadrantes'));
     }
+
 
     public function edit(string $id)
     {
@@ -189,5 +201,56 @@ class ReporteWebController extends Controller
 
         return redirect()->route('reportes.index')
             ->with('success', 'Reporte eliminado exitosamente');
+    }
+
+    /**
+     * Guarda un punto de pista/avistamiento en el mapa del reporte.
+     * Solo permitido para administradores/editores o el creador del reporte.
+     */
+    public function guardarPista(Request $request, string $reporte)
+    {
+        $rep = Reporte::findOrFail($reporte);
+
+        // ─── Autorización ───────────────────────────────────────────────────
+        $user = auth()->user();
+        $esAdmin   = $user->hasRole('administrador') || $user->hasRole('editor');
+        $esCreador = $user->id === $rep->usuario_id;
+
+        if (!$esAdmin && !$esCreador) {
+            return response()->json([
+                'error' => 'No tienes permiso para agregar pistas a este operativo.'
+            ], 403);
+        }
+
+        // ─── Validación ──────────────────────────────────────────────────────
+        $validated = $request->validate([
+            'lat'          => 'required|numeric|between:-90,90',
+            'lng'          => 'required|numeric|between:-180,180',
+            'etiqueta'     => 'required|string|max:100',
+            'cuadrante_id' => 'nullable|uuid|exists:cuadrantes,id',
+        ]);
+
+        // ─── Crear Respuesta tipo pista ──────────────────────────────────────
+        $pista = \App\Models\Respuesta::create([
+            'reporte_id'           => $rep->id,
+            'usuario_id'           => $user->id,
+            'tipo_respuesta'       => 'pista',
+            'mensaje'              => $validated['etiqueta'],
+            'ubicacion_lat'        => $validated['lat'],
+            'ubicacion_lng'        => $validated['lng'],
+            'direccion_referencia' => $validated['etiqueta'],
+            'verificada'           => true,
+        ]);
+
+        // ─── Actualizar cuadrante si se indicó uno nuevo ─────────────────────
+        if (!empty($validated['cuadrante_id'])) {
+            $rep->update(['cuadrante_id' => $validated['cuadrante_id']]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'pista'   => $pista,
+            'message' => 'Pista registrada correctamente.',
+        ], 201);
     }
 }

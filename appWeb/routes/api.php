@@ -63,6 +63,9 @@ Route::prefix('cuadrantes')->group(function () {
     
     // Obtener cuadrante específico (SIEMPRE AL FINAL)
     Route::get('{id}', [CuadranteController::class, 'show']);
+
+    // Actualizar cuadrante
+    Route::put('{id}', [CuadranteController::class, 'update']);
 });
 
 // ============================================
@@ -104,6 +107,12 @@ Route::prefix('grupos')->group(function () {
 // ============================================
 Route::prefix('reportes')->group(function () {
     // IMPORTANTE: Rutas específicas PRIMERO
+
+    // Obtener pistas de búsqueda de un reporte
+    Route::get('{reporteId}/pistas', [ReporteController::class, 'listarPistas']);
+    
+    // Guardar nueva pista de búsqueda (solo creador o admin, validado en controller)
+    Route::post('{reporteId}/pistas', [ReporteController::class, 'guardarPistaApi']);
     
     // Verificar expansiones automáticas (ejecutar periódicamente)
     Route::post('verificar-expansiones', [ReporteController::class, 'verificarExpansionesAutomaticas']);

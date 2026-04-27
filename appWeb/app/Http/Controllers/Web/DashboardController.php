@@ -45,8 +45,8 @@ class DashboardController extends Controller
         }
         
         
+        // Mostramos los últimos reportes globales para el administrador
         $ultimosReportes = Reporte::with(['usuario', 'categoria', 'cuadrante'])
-            ->where('usuario_id', auth()->id())
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();

@@ -416,4 +416,361 @@
         </div>
     </div>
 </div>
+
+{{-- ╔══════════════════════════════════════════════════════════════════════╗ --}}
+{{-- ║          SECCIÓN: MAPA DE PISTAS DE BÚSQUEDA                       ║ --}}
+{{-- ╚══════════════════════════════════════════════════════════════════════╝ --}}
+@if($reporte->ubicacion_exacta_lat && $reporte->ubicacion_exacta_lng)
+<div class="container-fluid px-0 mt-4">
+<div class="card border-0 shadow-sm rounded-4">
+    <div class="card-header bg-white border-bottom-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="fw-bold mb-0 text-primary">
+                <i class="bi bi-map-fill me-2"></i> Mapa de Búsqueda
+            </h5>
+            <p class="text-muted small mb-0">Puntos de avistamiento y pistas registradas</p>
+        </div>
+        {{-- Solo admin/editor o creador del reporte pueden agregar pistas --}}
+        @if(auth()->check() && (auth()->user()->hasRole('administrador') || auth()->user()->hasRole('editor') || auth()->id() == $reporte->usuario_id))
+        <button id="btn-modo-pista" class="btn btn-warning fw-semibold shadow-sm border-0" onclick="activarModoPista()">
+            <i class="bi bi-pin-map-fill me-2"></i> Agregar Pista
+        </button>
+        @endif
+    </div>
+    <div class="card-body p-0" style="position:relative;">
+
+        {{-- Panel lateral de agregar pista --}}
+        <div id="panel-pista" style="
+            display:none;
+            position:absolute;
+            top:15px; right:15px;
+            z-index:1000;
+            width:310px;
+            background:white;
+            border-radius:14px;
+            box-shadow:0 8px 30px rgba(0,0,0,0.18);
+            overflow:hidden;
+        ">
+            {{-- Cabecera del panel --}}
+            <div style="background:linear-gradient(135deg,#f59e0b,#d97706);padding:14px 18px;color:white;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold"><i class="bi bi-pin-map-fill me-2"></i>Nueva Pista</span>
+                    <button onclick="cancelarModoPista()" class="btn btn-sm btn-light py-0 px-2 border-0 text-dark" style="font-size:1.1rem;">&times;</button>
+                </div>
+                <small class="opacity-90">Haz clic en el mapa para marcar la ubicación</small>
+            </div>
+
+            {{-- Foto + nombre del desaparecido --}}
+            <div class="d-flex align-items-center gap-3 px-3 pt-3 pb-2 border-bottom">
+                @if($reporte->imagenes->count() > 0)
+                <img src="{{ $reporte->imagenes->first()->url }}"
+                     style="width:50px;height:50px;border-radius:50%;object-fit:cover;border:2px solid #f59e0b;" alt="">
+                @else
+                <div style="width:50px;height:50px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;border:2px solid #e2e8f0;">
+                    <i class="bi bi-person-fill text-muted fs-4"></i>
+                </div>
+                @endif
+                <div>
+                    <div class="fw-bold text-dark" style="font-size:0.9rem;">{{ $reporte->titulo }}</div>
+                    <small class="text-muted">Cuadrante actual: {{ $reporte->cuadrante->codigo ?? '—' }}</small>
+                </div>
+            </div>
+
+            <div class="p-3">
+                {{-- Coordenadas seleccionadas --}}
+                <div id="coords-status" class="alert py-2 px-3 mb-3 d-flex align-items-center gap-2"
+                     style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;font-size:0.82rem;color:#92400e;">
+                    <i class="bi bi-geo-alt-fill" style="color:#d97706;"></i>
+                    <span id="coords-text">Haz clic en el mapa para elegir ubicación</span>
+                </div>
+
+                {{-- Selector de etiqueta --}}
+                <div class="mb-3">
+                    <label class="fw-bold text-dark mb-1" style="font-size:0.85rem;">
+                        <i class="bi bi-tag-fill me-1 text-warning"></i>Tipo de pista
+                    </label>
+                    <select id="sel-etiqueta" class="form-select form-select-sm" style="border:2px solid #e2e8f0;border-radius:8px;">
+                        <option value="Visto por última vez">📍 Visto por última vez</option>
+                        <option value="Nueva pista">🔍 Nueva pista</option>
+                        <option value="Avistamiento confirmado">✅ Avistamiento confirmado</option>
+                        <option value="Última señal">📡 Última señal</option>
+                        <option value="Zona de interés">⚠️ Zona de interés</option>
+                    </select>
+                </div>
+
+                {{-- Selector de cuadrante (opcional) --}}
+                <div class="mb-3">
+                    <label class="fw-bold text-dark mb-1" style="font-size:0.85rem;">
+                        <i class="bi bi-grid-3x3-gap-fill me-1 text-primary"></i>Reasignar cuadrante
+                        <span class="text-muted fw-normal">(opcional)</span>
+                    </label>
+                    <select id="sel-cuadrante" class="form-select form-select-sm" style="border:2px solid #e2e8f0;border-radius:8px;">
+                        <option value="">— Mantener cuadrante actual —</option>
+                        @foreach($cuadrantes as $cq)
+                        <option value="{{ $cq->id }}">{{ $cq->codigo }} — {{ $cq->nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Botón guardar --}}
+                <button id="btn-guardar-pista" onclick="guardarPista()" disabled
+                    class="btn btn-warning w-100 fw-bold shadow-sm"
+                    style="border-radius:10px;border:none;">
+                    <i class="bi bi-cloud-arrow-up-fill me-2"></i>Guardar Pista
+                </button>
+                <div id="pista-msg" class="mt-2 text-center" style="font-size:0.82rem;"></div>
+            </div>
+        </div>
+
+        {{-- El Mapa --}}
+        <div id="mapa-pistas" style="height:480px;border-radius:0 0 16px 16px;"></div>
+    </div>
+</div>
+</div>
+@endif
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+// ─── Datos del reporte ────────────────────────────────────────────────────────
+const LPP_LAT   = {{ (float) $reporte->ubicacion_exacta_lat }};
+const LPP_LNG   = {{ (float) $reporte->ubicacion_exacta_lng }};
+const REPORTE_ID = "{{ $reporte->id }}";
+const FOTO_URL  = @if($reporte->imagenes->count() > 0) "{{ $reporte->imagenes->first()->url }}" @else null @endif;
+const TITULO    = @json($reporte->titulo);
+const PISTAS_BD = @json($pistas->map(fn($p) => [
+    'lat'      => (float) $p->ubicacion_lat,
+    'lng'      => (float) $p->ubicacion_lng,
+    'etiqueta' => $p->mensaje,
+    'fecha'    => $p->created_at->format('d/m/Y H:i'),
+]));
+
+// ─── Estado ───────────────────────────────────────────────────────────────────
+let mapPistas, modoPista = false, pinTemporal = null;
+let latSeleccionada = null, lngSeleccionada = null;
+
+// ─── Iconos ───────────────────────────────────────────────────────────────────
+const iconLPP = L.divIcon({
+    className: '',
+    html: `<div style="
+        width:22px;height:22px;border-radius:50%;
+        background:#dc2626;border:3px solid white;
+        box-shadow:0 0 0 3px rgba(220,38,38,0.4),0 2px 8px rgba(0,0,0,0.4);
+        animation:pulsoRojo 2s infinite;
+    "></div>`,
+    iconSize:[22,22], iconAnchor:[11,11]
+});
+
+const iconPista = L.divIcon({
+    className: '',
+    html: `<div style="
+        width:18px;height:18px;border-radius:50%;
+        background:#f59e0b;border:3px solid white;
+        box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 2px 8px rgba(0,0,0,0.3);
+    "></div>`,
+    iconSize:[18,18], iconAnchor:[9,9]
+});
+
+const iconTemporal = L.divIcon({
+    className: '',
+    html: `<div style="
+        width:22px;height:22px;border-radius:50%;
+        background:#7c3aed;border:3px solid white;
+        box-shadow:0 0 0 4px rgba(124,58,237,0.4),0 2px 8px rgba(0,0,0,0.4);
+        animation:pulsoMorado 1s infinite;
+    "></div>`,
+    iconSize:[22,22], iconAnchor:[11,11]
+});
+
+// ─── Init Mapa ────────────────────────────────────────────────────────────────
+@if($reporte->ubicacion_exacta_lat && $reporte->ubicacion_exacta_lng)
+document.addEventListener('DOMContentLoaded', function() {
+    // Inyectar estilos de animación
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes pulsoRojo {
+            0%   { box-shadow: 0 0 0 0   rgba(220,38,38,0.6), 0 2px 8px rgba(0,0,0,0.4); }
+            70%  { box-shadow: 0 0 0 12px rgba(220,38,38,0),   0 2px 8px rgba(0,0,0,0.4); }
+            100% { box-shadow: 0 0 0 0   rgba(220,38,38,0),   0 2px 8px rgba(0,0,0,0.4); }
+        }
+        @keyframes pulsoMorado {
+            0%   { box-shadow: 0 0 0 0   rgba(124,58,237,0.7), 0 2px 8px rgba(0,0,0,0.4); }
+            70%  { box-shadow: 0 0 0 14px rgba(124,58,237,0),  0 2px 8px rgba(0,0,0,0.4); }
+            100% { box-shadow: 0 0 0 0   rgba(124,58,237,0),  0 2px 8px rgba(0,0,0,0.4); }
+        }
+        #mapa-pistas.modo-pista { cursor: crosshair !important; }
+        #mapa-pistas.modo-pista .leaflet-tile-container { filter: brightness(0.92); }
+    `;
+    document.head.appendChild(style);
+
+    mapPistas = L.map('mapa-pistas').setView([LPP_LAT, LPP_LNG], 15);
+
+    // Capa satelital por defecto
+    const satelital = L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        { attribution: '© Esri' }
+    );
+    const callejero = L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        { attribution: '© OpenStreetMap' }
+    );
+    satelital.addTo(mapPistas);
+    L.control.layers({'🛰️ Satelital': satelital, '🗺️ Callejero': callejero}).addTo(mapPistas);
+
+    // ── Marcador LPP (punto original, siempre visible) ──────────────────────
+    const tooltipLPP = buildTooltip('📍 Punto de inicio (LPP)', null, '');
+    L.marker([LPP_LAT, LPP_LNG], {icon: iconLPP, zIndexOffset: 1000})
+     .bindTooltip(tooltipLPP, {permanent: false, direction:'top', offset:[0,-12], className:'leaflet-tooltip-pista'})
+     .bindPopup(`<strong>📍 Última ubicación conocida</strong><br><em>${TITULO}</em>`)
+     .addTo(mapPistas);
+
+    // ── Marcadores de pistas existentes (BD) ────────────────────────────────
+    PISTAS_BD.forEach(p => agregarMarcadorPista(p.lat, p.lng, p.etiqueta, p.fecha));
+
+    // ── Clic en el mapa para agregar pista ──────────────────────────────────
+    mapPistas.on('click', function(e) {
+        if (!modoPista) return;
+        latSeleccionada = e.latlng.lat.toFixed(6);
+        lngSeleccionada = e.latlng.lng.toFixed(6);
+
+        // Quitar pin temporal anterior
+        if (pinTemporal) mapPistas.removeLayer(pinTemporal);
+        pinTemporal = L.marker([latSeleccionada, lngSeleccionada], {icon: iconTemporal}).addTo(mapPistas);
+
+        document.getElementById('coords-status').style.background = '#ede9fe';
+        document.getElementById('coords-status').style.borderColor = '#a78bfa';
+        document.getElementById('coords-text').innerHTML =
+            `<i class="bi bi-check-circle-fill" style="color:#7c3aed;"></i> &nbsp;${latSeleccionada}, ${lngSeleccionada}`;
+        document.getElementById('btn-guardar-pista').disabled = false;
+    });
+});
+@endif
+
+// ─── Construir tooltip bonito con foto ────────────────────────────────────────
+function buildTooltip(etiqueta, foto, fecha) {
+    const fotoHtml = foto
+        ? `<img src="${foto}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid #f59e0b;flex-shrink:0;">`
+        : `<div style="width:48px;height:48px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid #e2e8f0;"><span style="font-size:1.3rem;">👤</span></div>`;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:4px 2px;min-width:180px;max-width:240px;">
+        ${fotoHtml}
+        <div>
+            <div style="font-weight:700;color:#1e293b;font-size:0.85rem;line-height:1.2;">${etiqueta}</div>
+            ${fecha ? `<div style="color:#64748b;font-size:0.75rem;margin-top:2px;"><i class="bi bi-clock"></i> ${fecha}</div>` : ''}
+        </div>
+    </div>`;
+}
+
+// ─── Agregar marcador de pista al mapa ────────────────────────────────────────
+function agregarMarcadorPista(lat, lng, etiqueta, fecha) {
+    const tooltipHtml = buildTooltip(etiqueta, FOTO_URL, fecha);
+    L.marker([lat, lng], {icon: iconPista})
+     .bindTooltip(tooltipHtml, {
+         permanent: false, direction: 'top', offset: [0, -10],
+         className: 'leaflet-tooltip-pista',
+         opacity: 1
+     })
+     .bindPopup(`<strong>${etiqueta}</strong><br><small class="text-muted">${fecha}</small>`)
+     .addTo(mapPistas);
+}
+
+// ─── Activar/Cancelar modo pista ─────────────────────────────────────────────
+function activarModoPista() {
+    modoPista = true;
+    document.getElementById('panel-pista').style.display = 'block';
+    document.getElementById('mapa-pistas').classList.add('modo-pista');
+    document.getElementById('btn-modo-pista').style.display = 'none';
+}
+
+function cancelarModoPista() {
+    modoPista = false;
+    latSeleccionada = null; lngSeleccionada = null;
+    document.getElementById('panel-pista').style.display = 'none';
+    document.getElementById('mapa-pistas').classList.remove('modo-pista');
+    document.getElementById('btn-modo-pista').style.display = 'inline-flex';
+    document.getElementById('btn-guardar-pista').disabled = true;
+    document.getElementById('coords-text').textContent = 'Haz clic en el mapa para elegir ubicación';
+    document.getElementById('coords-status').style.background = '#fef3c7';
+    document.getElementById('coords-status').style.borderColor = '#fcd34d';
+    if (pinTemporal) { mapPistas.removeLayer(pinTemporal); pinTemporal = null; }
+    document.getElementById('pista-msg').innerHTML = '';
+}
+
+// ─── Guardar pista vía AJAX ───────────────────────────────────────────────────
+function guardarPista() {
+    if (!latSeleccionada || !lngSeleccionada) return;
+
+    const etiqueta    = document.getElementById('sel-etiqueta').value;
+    const cuadranteId = document.getElementById('sel-cuadrante').value;
+    const btn         = document.getElementById('btn-guardar-pista');
+    const msg         = document.getElementById('pista-msg');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
+
+    fetch(`/reportes/${REPORTE_ID}/pistas`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            lat:          parseFloat(latSeleccionada),
+            lng:          parseFloat(lngSeleccionada),
+            etiqueta:     etiqueta,
+            cuadrante_id: cuadranteId || null
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) {
+            msg.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${data.error}</span>`;
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-cloud-arrow-up-fill me-2"></i>Guardar Pista';
+            return;
+        }
+        // Agregar marcador permanente en el mapa
+        const ahora = new Date().toLocaleString('es-BO');
+        agregarMarcadorPista(parseFloat(latSeleccionada), parseFloat(lngSeleccionada), etiqueta, ahora);
+
+        // Quitar pin temporal
+        if (pinTemporal) { mapPistas.removeLayer(pinTemporal); pinTemporal = null; }
+
+        Swal.fire({
+            icon: 'success',
+            title: '¡Pista registrada!',
+            text: `"${etiqueta}" guardada en el mapa.`,
+            timer: 2500,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
+        });
+
+        cancelarModoPista();
+    })
+    .catch(() => {
+        msg.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>Error de conexión.</span>`;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-cloud-arrow-up-fill me-2"></i>Guardar Pista';
+    });
+}
+</script>
+
+<style>
+.leaflet-tooltip-pista {
+    background: white !important;
+    border: none !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+    padding: 8px 12px !important;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+.leaflet-tooltip-pista::before {
+    border-top-color: white !important;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.12));
+}
+</style>
+
 @endsection

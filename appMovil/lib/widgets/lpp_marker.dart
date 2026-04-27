@@ -10,10 +10,14 @@ class LppMarker extends StatelessWidget {
   /// Nombre o título del reporte (persona desaparecida).
   final String nombre;
 
+  /// Color principal del marcador (opcional, por defecto rojo).
+  final Color? color;
+
   const LppMarker({
     super.key,
     this.fotoUrl,
     required this.nombre,
+    this.color,
   });
 
   @override
@@ -28,7 +32,7 @@ class LppMarker extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.white,
-            border: Border.all(color: const Color(0xFFD32F2F), width: 3),
+            border: Border.all(color: color ?? const Color(0xFFD32F2F), width: 3),
             boxShadow: const [
               BoxShadow(
                 color: Colors.black38,
@@ -53,7 +57,7 @@ class LppMarker extends StatelessWidget {
         // Triángulo del pin
         CustomPaint(
           size: const Size(14, 8),
-          painter: _PinTrianglePainter(),
+          painter: _PinTrianglePainter(color: color ?? const Color(0xFFD32F2F)),
         ),
 
         // Nombre de la persona
@@ -61,7 +65,7 @@ class LppMarker extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 100),
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            color: const Color(0xFFD32F2F),
+            color: color ?? const Color(0xFFD32F2F),
             borderRadius: BorderRadius.circular(6),
             boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
           ),
@@ -84,22 +88,22 @@ class LppMarker extends StatelessWidget {
   Widget _defaultIcon() {
     return Container(
       color: const Color(0xFFFFEBEE),
-      child: const Icon(
+      child: Icon(
         Icons.person,
-        color: Color(0xFFD32F2F),
+        color: color ?? const Color(0xFFD32F2F),
         size: 32,
       ),
     );
   }
 
   Widget _loadingSpinner() {
-    return const Center(
+    return Center(
       child: SizedBox(
         width: 20,
         height: 20,
         child: CircularProgressIndicator(
           strokeWidth: 2,
-          color: Color(0xFFD32F2F),
+          color: color ?? const Color(0xFFD32F2F),
         ),
       ),
     );
@@ -108,10 +112,13 @@ class LppMarker extends StatelessWidget {
 
 /// Pinta el triángulo inferior del pin.
 class _PinTrianglePainter extends CustomPainter {
+  final Color color;
+  _PinTrianglePainter({required this.color});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFFD32F2F)
+      ..color = color
       ..style = PaintingStyle.fill;
 
     final path = Path()

@@ -16,6 +16,7 @@ class Respuesta extends Model
 
     protected $fillable = [
         'reporte_id',
+        'cuadrante_id',
         'usuario_id',
         'tipo_respuesta',
         'mensaje',

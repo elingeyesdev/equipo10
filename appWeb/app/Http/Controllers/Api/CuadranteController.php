@@ -57,6 +57,54 @@ class CuadranteController extends Controller
     }
 
     /**
+     * Actualizar cuadrante existente
+     */
+    public function update(Request $request, $id)
+    {
+        try {
+            $cuadrante = Cuadrante::findOrFail($id);
+            
+            $validator = Validator::make($request->all(), [
+                'codigo' => 'required|string|max:20|unique:cuadrantes,codigo,' . $id,
+                'fila' => 'required|string|max:5',
+                'columna' => 'required|integer',
+                'nombre' => 'required|string|max:100',
+                'lat_min' => 'required|numeric',
+                'lat_max' => 'required|numeric',
+                'lng_min' => 'required|numeric',
+                'lng_max' => 'required|numeric',
+                'centro_lat' => 'required|numeric',
+                'centro_lng' => 'required|numeric',
+                'ciudad' => 'required|string|max:100',
+                'zona' => 'nullable|string|max:100',
+                'activo' => 'boolean'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $cuadrante->update($request->all());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cuadrante actualizado exitosamente',
+                'data' => $cuadrante
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar cuadrante',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Agregar barrio a un cuadrante
      */
     public function agregarBarrio(Request $request, $cuadranteId)
@@ -116,24 +164,48 @@ class CuadranteController extends Controller
             $lat = $request->lat;
             $lng = $request->lng;
 
-            $cuadrante = Cuadrante::where('activo', true)
+            // 1. Filtrado rápido por Bounding Box (para rendimiento)
+            $candidatos = Cuadrante::where('activo', true)
                 ->where('lat_min', '<=', $lat)
                 ->where('lat_max', '>=', $lat)
                 ->where('lng_min', '<=', $lng)
                 ->where('lng_max', '>=', $lng)
-                ->with(['barrios', 'grupos'])
-                ->first();
+                ->get();
 
-            if (!$cuadrante) {
+            $cuadranteEncontrado = null;
+
+            // 2. Verificación Geométrica Precisa (Ray Casting Algorithm)
+            foreach ($candidatos as $c) {
+                if (!$c->geometria) continue;
+                
+                $geo = json_decode($c->geometria, true);
+                $polygon = null;
+
+                if (isset($geo['geometry']['coordinates'][0])) {
+                    $polygon = $geo['geometry']['coordinates'][0];
+                } elseif (isset($geo['coordinates'][0])) {
+                    $polygon = $geo['coordinates'][0];
+                }
+
+                if ($polygon && $this->isPointInPolygon($lat, $lng, $polygon)) {
+                    $cuadranteEncontrado = $c;
+                    break;
+                }
+            }
+
+            if (!$cuadranteEncontrado) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se encontró un cuadrante para esta ubicación'
+                    'message' => 'No se encontró un cuadrante preciso para esta ubicación'
                 ], 404);
             }
 
+            // Cargar relaciones
+            $cuadranteEncontrado->load(['barrios', 'grupos']);
+
             return response()->json([
                 'success' => true,
-                'data' => $cuadrante
+                'data' => $cuadranteEncontrado
             ], 200);
 
         } catch (\Exception $e) {
@@ -272,12 +344,8 @@ class CuadranteController extends Controller
     public function index()
     {
         try {
-            $cuadrantes = Cuadrante::with(['barrios', 'grupos'])
-                ->where('activo', true)
-                ->orderBy('fila')
-                ->orderBy('columna')
-                ->get();
-
+            $cuadrantes = Cuadrante::with(['barrios', 'grupos'])->get();
+            
             return response()->json([
                 'success' => true,
                 'data' => $cuadrantes
@@ -312,6 +380,24 @@ class CuadranteController extends Controller
                 'error' => $e->getMessage()
             ], 404);
         }
+    }
+    /**
+     * Algoritmo de Ray Casting para determinar si un punto está dentro de un polígono
+     */
+    private function isPointInPolygon($lat, $lng, $polygon) {
+        $inside = false;
+        $n = count($polygon);
+        for ($i = 0, $j = $n - 1; $i < $n; $j = $i++) {
+            $xi = $polygon[$i][0]; $yi = $polygon[$i][1]; // lng, lat
+            $xj = $polygon[$j][0]; $yj = $polygon[$j][1];
+
+            if ($yj == $yi) continue; // Evitar división por cero en bordes horizontales
+
+            $intersect = (($yi > $lat) != ($yj > $lat))
+                && ($lng < ($xj - $xi) * ($lat - $yi) / ($yj - $yi) + $xi);
+            if ($intersect) $inside = !$inside;
+        }
+        return $inside;
     }
 }
 
