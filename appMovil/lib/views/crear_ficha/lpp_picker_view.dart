@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../../viewmodels/crear_ficha_viewmodel.dart';
 import '../../services/nominatim_service.dart';
 import '../../widgets/map_tile_layer.dart';
+import '../../models/cuadrante_model.dart';
+import '../../services/cuadrante_service.dart';
 
 class LPPPickerView extends StatefulWidget {
   const LPPPickerView({super.key});
@@ -16,10 +18,15 @@ class LPPPickerView extends StatefulWidget {
 
 class _LPPPickerViewState extends State<LPPPickerView> {
   LatLng? _selectedLPP;
-  List<List<LatLng>> _drawnQuadrants = [];
   final MapController _mapController = MapController();
   final LatLng _defaultCenter = const LatLng(-17.7833, -63.1821);
   bool _useSatellite = true;
+
+  // Cuadrantes
+  List<CuadranteModel> _cuadrantes = [];
+  List<Polygon>? _cachedPolygons; // Memoria para evitar lag
+  final CuadranteService _cuadranteService = CuadranteService();
+  CuadranteModel? _cuadranteSeleccionado;
 
   // Buscador
   final TextEditingController _searchController = TextEditingController();
@@ -35,7 +42,62 @@ class _LPPPickerViewState extends State<LPPPickerView> {
     final vm = context.read<CrearFichaViewModel>();
     if (vm.latitudLPP != null && vm.longitudLPP != null) {
       _selectedLPP = LatLng(vm.latitudLPP!, vm.longitudLPP!);
-      _generarCuadrantes(desde: _selectedLPP!);
+      _detectarCuadrante(_selectedLPP!.latitude, _selectedLPP!.longitude);
+    }
+    _cargarCuadrantes();
+  }
+
+  Future<void> _cargarCuadrantes() async {
+    final resultados = await _cuadranteService.getCuadrantes();
+    if (mounted) {
+      setState(() {
+        _cuadrantes = resultados;
+        _actualizarCachePoligonos();
+      });
+    }
+  }
+
+  void _actualizarCachePoligonos() {
+    _cachedPolygons = _cuadrantes.map((c) {
+      if (c.geometria == null) return null;
+      try {
+        // Asegurar que sea un Map (si viene como String de la API)
+        var geometryData = c.geometria;
+        
+        final geometry = geometryData!['type'] == 'Feature' 
+            ? geometryData['geometry'] 
+            : geometryData;
+        
+        if (geometry['type'] != 'Polygon') return null;
+        
+        final coords = geometry['coordinates'][0] as List;
+        final points = coords.map((coord) {
+          return LatLng(double.parse(coord[1].toString()), double.parse(coord[0].toString()));
+        }).toList();
+
+        bool esSeleccionado = _cuadranteSeleccionado?.id == c.id;
+
+        return Polygon(
+          points: points,
+          color: esSeleccionado 
+              ? Colors.blue.withOpacity(0.4) 
+              : Colors.blue.withOpacity(0.1), // Muy ligero para fluidez
+          borderColor: esSeleccionado ? Colors.blue.shade900 : Colors.blue.withOpacity(0.5),
+          borderStrokeWidth: esSeleccionado ? 3.0 : 1.2,
+        );
+      } catch (e) {
+        return null;
+      }
+    }).whereType<Polygon>().toList();
+  }
+
+  Future<void> _detectarCuadrante(double lat, double lng) async {
+    final res = await _cuadranteService.detectarCuadrante(lat, lng);
+    if (mounted) {
+      setState(() {
+        _cuadranteSeleccionado = res;
+        _actualizarCachePoligonos(); // Refrescar colores al seleccionar
+      });
     }
   }
 
@@ -70,7 +132,6 @@ class _LPPPickerViewState extends State<LPPPickerView> {
     final punto = LatLng(lugar.lat, lugar.lng);
     setState(() {
       _selectedLPP = punto;
-      _generarCuadrantes(desde: punto);
       _sugerencias = [];
       _mostrarSugerencias = false;
       _searchController.text = lugar.nombre;
@@ -82,56 +143,19 @@ class _LPPPickerViewState extends State<LPPPickerView> {
   void _onMapTap(TapPosition tapPosition, LatLng point) {
     setState(() {
       _selectedLPP = point;
-      _generarCuadrantes(desde: point);
       _mostrarSugerencias = false;
     });
+    _detectarCuadrante(point.latitude, point.longitude);
     FocusScope.of(context).unfocus();
-  }
-
-  void _generarCuadrantes({required LatLng desde}) {
-    double delta = 0.002;
-    _drawnQuadrants = [
-      // Superior izquierdo
-      [
-        LatLng(desde.latitude, desde.longitude - delta),
-        LatLng(desde.latitude + delta, desde.longitude - delta),
-        LatLng(desde.latitude + delta, desde.longitude),
-        LatLng(desde.latitude, desde.longitude),
-      ],
-      // Superior derecho
-      [
-        LatLng(desde.latitude, desde.longitude),
-        LatLng(desde.latitude + delta, desde.longitude),
-        LatLng(desde.latitude + delta, desde.longitude + delta),
-        LatLng(desde.latitude, desde.longitude + delta),
-      ],
-      // Inferior izquierdo
-      [
-        LatLng(desde.latitude - delta, desde.longitude - delta),
-        LatLng(desde.latitude, desde.longitude - delta),
-        LatLng(desde.latitude, desde.longitude),
-        LatLng(desde.latitude - delta, desde.longitude),
-      ],
-      // Inferior derecho
-      [
-        LatLng(desde.latitude - delta, desde.longitude),
-        LatLng(desde.latitude, desde.longitude),
-        LatLng(desde.latitude, desde.longitude + delta),
-        LatLng(desde.latitude - delta, desde.longitude + delta),
-      ],
-    ];
   }
 
   void _confirmarUbicacion() {
     if (_selectedLPP == null) return;
-    final jsonQuadrants = _drawnQuadrants.map((polygon) {
-      return polygon.map((e) => {'lat': e.latitude, 'lng': e.longitude}).toList();
-    }).toList();
 
     context.read<CrearFichaViewModel>().setUbicacion(
           _selectedLPP!.latitude,
           _selectedLPP!.longitude,
-          jsonQuadrants,
+          _cuadranteSeleccionado != null ? [_cuadranteSeleccionado!.id] : [],
         );
     Navigator.pop(context, true);
   }
@@ -164,23 +188,8 @@ class _LPPPickerViewState extends State<LPPPickerView> {
             ),
             children: [
               MapTileLayer(useSatellite: _useSatellite),
-              if (_drawnQuadrants.isNotEmpty)
-                PolygonLayer(
-                  polygons: List.generate(_drawnQuadrants.length, (i) {
-                    final colores = [
-                      Colors.blue,
-                      Colors.green,
-                      Colors.orange,
-                      Colors.purple,
-                    ];
-                    return Polygon(
-                      points: _drawnQuadrants[i],
-                      color: colores[i].withOpacity(0.18),
-                      borderColor: colores[i].shade700,
-                      borderStrokeWidth: 2.0,
-                    );
-                  }),
-                ),
+              if (_cachedPolygons != null)
+                PolygonLayer(polygons: _cachedPolygons!),
               if (_selectedLPP != null)
                 MarkerLayer(
                   markers: [
@@ -336,14 +345,16 @@ class _LPPPickerViewState extends State<LPPPickerView> {
                       color: const Color(0xFF1B5E20).withOpacity(0.9),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.check_circle, size: 16, color: Colors.white),
-                        SizedBox(width: 6),
+                        const Icon(Icons.check_circle, size: 16, color: Colors.white),
+                        const SizedBox(width: 6),
                         Text(
-                          'LPP y cuadrantes trazados. Toca ✓ para confirmar.',
-                          style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),
+                          _cuadranteSeleccionado != null 
+                              ? 'Ubicado en: ${_cuadranteSeleccionado!.nombre}. Toca ✓ para confirmar.'
+                              : 'LPP y cuadrantes trazados. Toca ✓ para confirmar.',
+                          style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
