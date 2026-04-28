@@ -339,30 +339,58 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     setState(() => _guardandoPista = true);
     try {
       final userId = await _api.getCurrentUserId();
-      final desc = _descripcionPistaCtrl.text.trim();
 
+      // ── Caso especial: mover el punto original (LPP) ──────────────
+      if (_editandoPista && _pistaEnEdicion?.id == 'LPP') {
+        final lppData = {
+          'ubicacion_exacta_lat': _pinTemporal!.latitude,
+          'ubicacion_exacta_lng': _pinTemporal!.longitude,
+          'cuadrante_id': _cuadranteTemporal?.id,
+        };
+        final response = await _api.client.put(
+          '/reportes/${widget.ficha.id}',
+          data: lppData,
+        );
+        if ((response.statusCode == 200) && response.data['success'] == true) {
+          setState(() {
+            _lpp = _pinTemporal;
+            _pinTemporal = null;
+            _cuadranteTemporal = null;
+            _modoPista = false;
+            _editandoPista = false;
+            _pistaEnEdicion = null;
+          });
+          await _cargarPistas();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Punto original actualizado correctamente'),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+            ));
+          }
+        } else {
+          throw Exception(response.data['message'] ?? 'Error al mover el punto original');
+        }
+        return;
+      }
+
+      // ── Caso normal: crear o editar una pista ─────────────────────
+      final desc = _descripcionPistaCtrl.text.trim();
       final data = {
         'usuario_id': userId,
         'lat': _pinTemporal!.latitude,
         'lng': _pinTemporal!.longitude,
-        'ubicacion_exacta_lat': _pinTemporal!.latitude, // Para el reporte LPP
-        'ubicacion_exacta_lng': _pinTemporal!.longitude, // Para el reporte LPP
         'etiqueta': _etiquetaSeleccionada,
         'descripcion': desc.isNotEmpty ? desc : null,
         'cuadrante_id': _cuadranteTemporal?.id,
       };
 
-      final response = _editandoPista 
-        ? (_pistaEnEdicion!.id == 'LPP' 
-            ? await _api.client.put('/reportes/${widget.ficha.id}', data: data)
-            : await _api.client.put('/reportes/pistas/${_pistaEnEdicion!.id}', data: data))
+      final response = _editandoPista
+        ? await _api.client.put('/reportes/pistas/${_pistaEnEdicion!.id}', data: data)
         : await _api.client.post('/reportes/${widget.ficha.id}/pistas', data: data);
 
       if ((response.statusCode == 200 || response.statusCode == 201) && response.data['success'] == true) {
         setState(() {
-          if (_editandoPista && _pistaEnEdicion!.id == 'LPP') {
-            _lpp = _pinTemporal;
-          }
           _pinTemporal = null;
           _cuadranteTemporal = null;
           _modoPista = false;
