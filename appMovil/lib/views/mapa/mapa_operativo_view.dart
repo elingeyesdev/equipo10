@@ -19,9 +19,9 @@ const List<Color> _coloresVoluntarios = [
   Color(0xFF795548), // marrón
 ];
 
-// Etiquetas disponibles para las pistas
+// Etiquetas disponibles para las pistas (NO incluye 'Visto por última vez',
+// esa etiqueta es exclusiva del punto original LPP y no se puede reasignar)
 const List<Map<String, String>> _etiquetasPista = [
-  {'emoji': '📍', 'label': 'Visto por última vez'},
   {'emoji': '🔍', 'label': 'Nueva pista'},
   {'emoji': '✅', 'label': 'Avistamiento confirmado'},
   {'emoji': '📡', 'label': 'Última señal'},
@@ -80,7 +80,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   bool _modoPista = false;
   LatLng? _pinTemporal;
   CuadranteModel? _cuadranteTemporal; // Cuadrante donde cae el pin
-  String _etiquetaSeleccionada = 'Visto por última vez';
+  String _etiquetaSeleccionada = 'Nueva pista';
   final TextEditingController _descripcionPistaCtrl = TextEditingController();
   bool _guardandoPista = false;
   List<_PistaInfo> _pistas = [];
@@ -265,14 +265,28 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   }
 
   void _iniciarEdicionPista(_PistaInfo pista) {
+    if (pista.id == 'LPP') {
+      // Para el punto original, entrar directamente en modo de mover
+      // sin abrir selectores de etiqueta ni descripción
+      setState(() {
+        _pistaEnEdicion = pista;
+        _editandoPista = true;
+        _modoPista = true;
+        _pinTemporal = pista.punto;
+        _etiquetaSeleccionada = pista.etiqueta; // Mantiene 'Visto por última vez'
+        _pistaTooltip = null;
+      });
+      _detectarCuadranteTemporal(pista.punto.latitude, pista.punto.longitude);
+      return;
+    }
     setState(() {
       _pistaEnEdicion = pista;
       _editandoPista = true;
-      _modoPista = true; // Reusamos el modo pista para la UI
+      _modoPista = true;
       _pinTemporal = pista.punto;
       _etiquetaSeleccionada = pista.etiqueta;
       _descripcionPistaCtrl.text = pista.descripcion ?? '';
-      _pistaTooltip = null; // Cerramos el tooltip
+      _pistaTooltip = null;
     });
     _detectarCuadranteTemporal(pista.punto.latitude, pista.punto.longitude);
   }
@@ -340,7 +354,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
 
       final response = _editandoPista 
         ? (_pistaEnEdicion!.id == 'LPP' 
-            ? await _api.client.put('/reportes/reportes/${widget.ficha.id}', data: data)
+            ? await _api.client.put('/reportes/${widget.ficha.id}', data: data)
             : await _api.client.put('/reportes/pistas/${_pistaEnEdicion!.id}', data: data))
         : await _api.client.post('/reportes/${widget.ficha.id}/pistas', data: data);
 
@@ -389,6 +403,76 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     } finally {
       setState(() => _guardandoPista = false);
     }
+  }
+
+  /// Muestra un diálogo de confirmación serio para mover el punto original (LPP).
+  /// No se permite cambiar la etiqueta ni la descripción del LPP.
+  void _mostrarConfirmacionMoverLPP() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        icon: const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 48),
+        title: const Text(
+          '¿Mover punto original?',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Estás a punto de cambiar la ubicación del punto original de la búsqueda '
+              '(Último Punto Visto). Este es el punto más importante del operativo.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.black87, height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.orange, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Nueva ubicación: ${_pinTemporal!.latitude.toStringAsFixed(5)}, '
+                      '${_pinTemporal!.longitude.toStringAsFixed(5)}',
+                      style: const TextStyle(fontSize: 11, color: Colors.black54),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actionsAlignment: MainAxisAlignment.spaceEvenly,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _guardarPista();
+            },
+            icon: const Icon(Icons.move_down, size: 18),
+            label: const Text('Sí, mover punto'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Color _getColorParaEtiqueta(String etiqueta) {
@@ -896,7 +980,9 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1B5E20).withOpacity(0.95),
+                  color: (_editandoPista && _pistaEnEdicion?.id == 'LPP')
+                      ? Colors.orange.withOpacity(0.95)
+                      : const Color(0xFF1B5E20).withOpacity(0.95),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: const [BoxShadow(blurRadius: 8, color: Colors.black38, offset: Offset(0, 4))],
                 ),
@@ -908,14 +994,18 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            _cuadranteTemporal != null
-                                ? 'En cuadrante: ${_cuadranteTemporal!.codigo}'
-                                : 'Ubicación seleccionada',
+                            (_editandoPista && _pistaEnEdicion?.id == 'LPP')
+                                ? '⚠️ Moviendo punto original'
+                                : _cuadranteTemporal != null
+                                    ? 'En cuadrante: ${_cuadranteTemporal!.codigo}'
+                                    : 'Ubicación seleccionada',
                             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                           ),
-                          const Text(
-                            'Puedes seguir moviendo el pin',
-                            style: TextStyle(color: Colors.white70, fontSize: 11),
+                          Text(
+                            (_editandoPista && _pistaEnEdicion?.id == 'LPP')
+                                ? 'Toca en el mapa para elegir la nueva posición'
+                                : 'Puedes seguir moviendo el pin',
+                            style: const TextStyle(color: Colors.white70, fontSize: 11),
                           ),
                         ],
                       ),
@@ -924,7 +1014,9 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                       width: 130,
                       height: 40,
                       child: ElevatedButton(
-                        onPressed: _mostrarSelectorEtiqueta,
+                        onPressed: (_editandoPista && _pistaEnEdicion?.id == 'LPP')
+                            ? _mostrarConfirmacionMoverLPP
+                            : _mostrarSelectorEtiqueta,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: const Color(0xFF1B5E20),
