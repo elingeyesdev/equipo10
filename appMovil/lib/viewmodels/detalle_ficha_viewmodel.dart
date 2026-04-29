@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../models/app_notification.dart';
 import '../models/reporte_model.dart';
+import '../services/notification_service.dart';
 import '../services/reporte_service.dart';
 import '../services/vinculacion_service.dart';
 
@@ -48,6 +50,7 @@ class DetalleFichaViewModel extends ChangeNotifier {
   }
 
   /// Une el usuario a la búsqueda. Retorna true si fue exitoso.
+  /// Tras unirse correctamente, dispara una notificación local de confirmación.
   Future<bool> unirseABusqueda(String fichaId, String usuarioId) async {
     _setLoading(true);
     _errorMessage = null;
@@ -59,6 +62,21 @@ class DetalleFichaViewModel extends ChangeNotifier {
       );
       _yaVinculado = true;
       _successMessage = '¡Te has unido a la búsqueda exitosamente!';
+
+      // ── Notificación de confirmación ───────────────────────────────────────
+      // Usa el título de la ficha ya cargada en memoria para personalizar el
+      // mensaje. Si aún no se cargó (raro), usa un texto genérico.
+      final nombreOperativo = _ficha?.titulo ?? 'el operativo';
+      await NotificationService().show(
+        AppNotification(
+          type: NotificationType.joinSearchConfirmation,
+          title: '¡Excelente! Te uniste a la búsqueda 🔍',
+          body: 'Ahora eres voluntario en "$nombreOperativo". ¡Buena suerte en la misión!',
+          payload: {'fichaId': fichaId},
+        ),
+      );
+      // ──────────────────────────────────────────────────────────────────────
+
       return true;
     } catch (e) {
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
