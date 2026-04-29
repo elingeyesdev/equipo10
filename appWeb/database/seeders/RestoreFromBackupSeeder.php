@@ -26,21 +26,19 @@ class RestoreFromBackupSeeder extends Seeder
 
         // 1. Restore Cuadrantes
         $this->restoreTableFromCopy($content, 'cuadrantes', [
-            'id', 'codigo', 'fila', 'columna', 'nombre', 'geometria', 'centro', 
-            'lat_min', 'lat_max', 'lng_min', 'lng_max', 'ciudad', 'zona', 'barrios', 
-            'activo', 'created_at', 'centro_lat', 'centro_lng'
+            'id', 'codigo', 'fila', 'columna', 'nombre', 'lat_min', 'lat_max', 'lng_min', 'lng_max', 
+            'centro_lat', 'centro_lng', 'ciudad', 'zona', 'activo', 'created_at'
         ]);
 
         // 2. Restore Grupos
         $this->restoreTableFromCopy($content, 'grupos', [
             'id', 'cuadrante_id', 'nombre', 'descripcion', 'imagen_url', 'publico', 
-            'requiere_aprobacion', 'miembros_count', 'reportes_activos_count', 
-            'reportes_resueltos_count', 'created_at', 'updated_at'
+            'requiere_aprobacion', 'created_at', 'updated_at'
         ]);
 
         // 3. Restore Categorias
         $this->restoreTableFromCopy($content, 'categorias', [
-            'id', 'nombre', 'icono', 'color', 'descripcion', 'activo', 'created_at', 'updated_at'
+            'id', 'nombre', 'icono', 'color', 'descripcion', 'activo', 'created_at'
         ]);
         
         $this->command->info('✅ Data restoration from backup completed!');
