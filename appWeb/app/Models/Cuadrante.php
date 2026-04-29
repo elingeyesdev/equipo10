@@ -166,7 +166,6 @@ class Cuadrante extends Model
      */
     public static function detectByLocation($lat, $lng)
     {
-        // Usar una consulta más robusta que maneje min/max invertidos
         $candidatos = self::where('activo', true)
             ->where(function($q) use ($lat) {
                 $q->where(function($sq) use ($lat) {
@@ -183,6 +182,10 @@ class Cuadrante extends Model
                 });
             })
             ->get();
+
+        if ($candidatos->isEmpty()) {
+            return null;
+        }
 
         // 2. Verificación Geométrica Precisa
         foreach ($candidatos as $c) {
@@ -203,7 +206,9 @@ class Cuadrante extends Model
             }
         }
 
-        return null;
+        // 3. Fallback: Si no hay geometría o la precisión falló, 
+        // pero estamos dentro del bounding box de un candidato, usar el primero.
+        return $candidatos->first();
     }
 
     /**
