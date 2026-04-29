@@ -128,11 +128,29 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                   return LatLng(double.parse(coord[1].toString()), double.parse(coord[0].toString()));
                 }).toList();
               }
-            } catch (_) {}
+            } catch (_) {
+              // Fallback si falla el parseo de la geometría
+              _usarBoundingBoxParaCuadrante(c);
+            }
+          } else {
+            // Fallback si no hay geometría: usar lat_min, lat_max, etc.
+            _usarBoundingBoxParaCuadrante(c);
           }
         }
         _actualizarCachePoligonos();
       });
+    }
+  }
+
+  void _usarBoundingBoxParaCuadrante(CuadranteModel c) {
+    if (c.latMin != null && c.latMax != null && c.lngMin != null && c.lngMax != null) {
+      _cuadrantePoints[c.id] = [
+        LatLng(c.latMin!, c.lngMin!),
+        LatLng(c.latMin!, c.lngMax!),
+        LatLng(c.latMax!, c.lngMax!),
+        LatLng(c.latMax!, c.lngMin!),
+        LatLng(c.latMin!, c.lngMin!), // Cerrar el polígono
+      ];
     }
   }
 
