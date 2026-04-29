@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'services/api_service.dart';
+import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
 import 'viewmodels/auth_viewmodel.dart';
 import 'viewmodels/feed_viewmodel.dart';
@@ -29,6 +30,9 @@ Future<void> main() async {
   // Cargar sesión previa en memoria (token + userId)
   final apiService = ApiService();
   await apiService.loadSession();
+
+  // Inicializar módulo de notificaciones
+  await NotificationService().initialize();
 
   final prefs = await SharedPreferences.getInstance();
   final hasToken = prefs.getString('auth_token') != null;

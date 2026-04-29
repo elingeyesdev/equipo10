@@ -12,6 +12,9 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <!-- Ubicación en segundo plano (Android 10+) - permite seguir grabando al cambiar de app -->
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
+
+    <!-- Notificaciones (requerido para Android 13 / API 33+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="echoes"
         android:name="${applicationName}"
