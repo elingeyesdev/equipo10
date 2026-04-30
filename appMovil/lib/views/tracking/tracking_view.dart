@@ -36,6 +36,75 @@ class _TrackingViewState extends State<TrackingView> {
     });
   }
 
+  /// Intercepta el botón de regresar: ofrece pausar, terminar o volver.
+  Future<bool> _onWillPop() async {
+    final vm = context.read<TrackingViewModel>();
+
+    // Si no hay búsqueda activa, dejar salir libremente
+    if (vm.estado == TrackingEstado.inactivo ||
+        vm.estado == TrackingEstado.terminado) {
+      return true;
+    }
+
+    final accion = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(children: [
+          Icon(Icons.warning_amber_rounded, color: Colors.orange),
+          SizedBox(width: 8),
+          Text('Búsqueda en curso'),
+        ]),
+        content: const Text(
+          '¿Qué deseas hacer con la búsqueda activa?\n\n'
+          '• Pausar y salir: el GPS se detiene pero el recorrido se conserva.\n'
+          '• Terminar: el recorrido se guarda y finaliza la sesión.\n'
+          '• Volver al mapa: continuar la búsqueda.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop('cancelar'),
+            child: const Text('Volver al mapa'),
+          ),
+          OutlinedButton(
+            onPressed: () => Navigator.of(ctx).pop('pausar'),
+            child: const Text('Pausar y salir'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop('terminar'),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
+            child: const Text('Terminar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (accion == null || accion == 'cancelar') return false;
+
+    if (accion == 'pausar') {
+      await vm.pausarBusqueda();
+      if (mounted) Navigator.of(context).pop();
+      return false;
+    }
+
+    if (accion == 'terminar') {
+      final ok = await vm.terminarBusqueda();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(ok
+              ? '¡Recorrido guardado! Otros voluntarios ya pueden verlo.'
+              : 'Recorrido terminado localmente (sin conexión).'),
+          backgroundColor: ok ? const Color(0xFF1B5E20) : Colors.orange,
+        ));
+        Navigator.of(context).pop(true);
+      }
+      return false;
+    }
+
+    return false;
+  }
+
   Future<void> _onTerminar() async {
     final confirmar = await showDialog<bool>(
       context: context,
@@ -73,7 +142,7 @@ class _TrackingViewState extends State<TrackingView> {
           : 'Recorrido terminado localmente (sin conexión).'),
       backgroundColor: ok ? const Color(0xFF1B5E20) : Colors.orange,
     ));
-    Navigator.of(context).pop(true); // regresa al detalle
+    Navigator.of(context).pop(true);
   }
 
   @override
@@ -85,202 +154,240 @@ class _TrackingViewState extends State<TrackingView> {
         ? LatLng(widget.ficha.latitud!, widget.ficha.longitud!)
         : (pts.isNotEmpty ? LatLng(pts.last.lat, pts.last.lng) : const LatLng(0, 0));
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0D1117),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1B5E20),
-        foregroundColor: Colors.white,
-        title: const Text('Búsqueda en Curso'),
-        actions: [
-          // Pausa / Reanudar
-          if (vm.estado == TrackingEstado.activo)
-            IconButton(
-              icon: const Icon(Icons.pause_circle_outline),
-              tooltip: 'Pausar',
-              onPressed: () => vm.pausarBusqueda(),
-            )
-          else if (vm.estado == TrackingEstado.pausado)
-            IconButton(
-              icon: const Icon(Icons.play_circle_outline),
-              tooltip: 'Reanudar',
-              onPressed: () => vm.reanudarBusqueda(),
-            ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          // Mapa con el recorrido dibujado
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: center,
-              initialZoom: 16.0,
-            ),
-            children: [
-              MapTileLayer(useSatellite: _useSatellite),
-              // Cuadrante del reporte (si tiene bounds)
-              if (widget.ficha.cuadranteLatMin != null)
-                PolygonLayer(polygons: [
-                  Polygon(
-                    points: [
-                      LatLng(widget.ficha.cuadranteLatMin!, widget.ficha.cuadranteLngMin!),
-                      LatLng(widget.ficha.cuadranteLatMax!, widget.ficha.cuadranteLngMin!),
-                      LatLng(widget.ficha.cuadranteLatMax!, widget.ficha.cuadranteLngMax!),
-                      LatLng(widget.ficha.cuadranteLatMin!, widget.ficha.cuadranteLngMax!),
-                    ],
-                    color: Colors.blue.withOpacity(0.12),
-                    borderColor: Colors.blue.shade400,
-                    borderStrokeWidth: 2,
-                  )
-                ]),
-              // Recorrido del usuario actual
-              if (polylinePoints.length >= 2)
-                PolylineLayer(polylines: [
-                  Polyline(
-                    points: polylinePoints,
-                    color: const Color(0xFF4CAF50),
-                    strokeWidth: 4,
-                  )
-                ]),
-              // Marcador de posición actual
-              if (pts.isNotEmpty)
-                MarkerLayer(markers: [
-                  Marker(
-                    point: LatLng(pts.last.lat, pts.last.lng),
-                    width: 36,
-                    height: 36,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1B5E20),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 3),
-                        boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black38)],
-                      ),
-                      child: const Icon(Icons.navigation, color: Colors.white, size: 18),
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0D1117),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF1B5E20),
+          foregroundColor: Colors.white,
+          title: const Text('Búsqueda en Curso'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () async {
+              final canPop = await _onWillPop();
+              if (canPop && mounted) Navigator.of(context).pop();
+            },
+          ),
+          actions: [
+            // Botón Pausar / Reanudar — ancho fijo para evitar infinite width en AppBar
+            if (vm.estado == TrackingEstado.activo)
+              SizedBox(
+                width: 108,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.pause_circle_outline, size: 18),
+                    label: const Text('Pausar', style: TextStyle(fontSize: 13)),
+                    onPressed: () => vm.pausarBusqueda(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     ),
-                  ),
-                ]),
-              // Marcador LPP personalizado con foto y nombre
-              MarkerLayer(markers: [
-                Marker(
-                  point: center,
-                  width: 110,
-                  height: 90,
-                  child: LppMarker(
-                    fotoUrl: widget.ficha.fotoUrl,
-                    nombre: widget.ficha.titulo,
                   ),
                 ),
-              ]),
-            ],
-          ),
-
-          // Toggle de capas (satelital / callejero)
-          Positioned(
-            bottom: 210,
-            right: 80,
-            child: MapLayerToggleButton(
-              heroTag: 'btn_toggle_tracking',
-              useSatellite: _useSatellite,
-              onToggle: () => setState(() => _useSatellite = !_useSatellite),
-            ),
-          ),
-
-          // Botón de centrado dinámico en LPP
-          Positioned(
-            bottom: 170,
-            right: 20,
-            child: FloatingActionButton(
-              heroTag: 'btn_centrar_tracking',
-              mini: true,
-              backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF1B5E20),
-              onPressed: () {
-                _mapController.move(center, 16.0);
-              },
-              child: const Icon(Icons.my_location),
-            ),
-          ),
-
-          // Panel de estado en la parte inferior
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                boxShadow: [BoxShadow(blurRadius: 12, color: Colors.black26)],
-              ),
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Indicador de estado
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: vm.estado == TrackingEstado.activo
-                              ? const Color(0xFF4CAF50)
-                              : Colors.orange,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        vm.estado == TrackingEstado.activo
-                            ? 'Grabando recorrido...'
-                            : vm.estado == TrackingEstado.pausado
-                                ? 'Búsqueda pausada'
-                                : 'Iniciando...',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: Color(0xFF1A1A1A),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${vm.totalPuntos} puntos GPS registrados',
-                    style: const TextStyle(color: Color(0xFF5F6368), fontSize: 13),
-                  ),
-                  const SizedBox(height: 16),
-                  // Botón terminar
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      onPressed: vm.isLoading ? null : _onTerminar,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1B5E20),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                      icon: vm.isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Icon(Icons.flag),
-                      label: const Text('Terminar Búsqueda',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              )
+            else if (vm.estado == TrackingEstado.pausado)
+              SizedBox(
+                width: 120,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.play_circle_outline, size: 18),
+                    label: const Text('Reanudar', style: TextStyle(fontSize: 13)),
+                    onPressed: () => vm.reanudarBusqueda(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4CAF50),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     ),
                   ),
-                ],
+                ),
+              ),
+          ],
+        ),
+        body: Stack(
+          children: [
+            // ── Mapa con el recorrido dibujado ─────────────────────────
+            FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: center,
+                initialZoom: 16.0,
+              ),
+              children: [
+                MapTileLayer(useSatellite: _useSatellite),
+
+                // Cuadrante del reporte (si tiene bounds)
+                if (widget.ficha.cuadranteLatMin != null)
+                  PolygonLayer(polygons: [
+                    Polygon(
+                      points: [
+                        LatLng(widget.ficha.cuadranteLatMin!, widget.ficha.cuadranteLngMin!),
+                        LatLng(widget.ficha.cuadranteLatMax!, widget.ficha.cuadranteLngMin!),
+                        LatLng(widget.ficha.cuadranteLatMax!, widget.ficha.cuadranteLngMax!),
+                        LatLng(widget.ficha.cuadranteLatMin!, widget.ficha.cuadranteLngMax!),
+                      ],
+                      color: Colors.blue.withValues(alpha: 0.12),
+                      borderColor: Colors.blue.shade400,
+                      borderStrokeWidth: 2,
+                    )
+                  ]),
+
+                // Recorrido del usuario actual
+                if (polylinePoints.length >= 2)
+                  PolylineLayer(polylines: [
+                    Polyline(
+                      points: polylinePoints,
+                      color: const Color(0xFF4CAF50),
+                      strokeWidth: 4,
+                    )
+                  ]),
+
+                // Marcador de posición actual
+                if (pts.isNotEmpty)
+                  MarkerLayer(markers: [
+                    Marker(
+                      point: LatLng(pts.last.lat, pts.last.lng),
+                      width: 36,
+                      height: 36,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1B5E20),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black38)],
+                        ),
+                        child: const Icon(Icons.navigation, color: Colors.white, size: 18),
+                      ),
+                    ),
+                  ]),
+
+                // Marcador LPP personalizado con foto y nombre
+                MarkerLayer(markers: [
+                  Marker(
+                    point: center,
+                    width: 110,
+                    height: 90,
+                    child: LppMarker(
+                      fotoUrl: widget.ficha.fotoUrl,
+                      nombre: widget.ficha.titulo,
+                    ),
+                  ),
+                ]),
+              ],
+            ),
+
+            // ── Toggle de capas (satelital / callejero) ─────────────────
+            Positioned(
+              bottom: 210,
+              right: 80,
+              child: MapLayerToggleButton(
+                heroTag: 'btn_toggle_tracking',
+                useSatellite: _useSatellite,
+                onToggle: () => setState(() => _useSatellite = !_useSatellite),
               ),
             ),
-          ),
-        ],
+
+            // ── Botón de centrado en LPP ────────────────────────────────
+            Positioned(
+              bottom: 170,
+              right: 20,
+              child: FloatingActionButton(
+                heroTag: 'btn_centrar_tracking',
+                mini: true,
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF1B5E20),
+                onPressed: () {
+                  _mapController.move(center, 16.0);
+                },
+                child: const Icon(Icons.my_location),
+              ),
+            ),
+
+            // ── Panel de estado en la parte inferior ────────────────────
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  boxShadow: [BoxShadow(blurRadius: 12, color: Colors.black26)],
+                ),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Indicador de estado
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: vm.estado == TrackingEstado.activo
+                                ? const Color(0xFF4CAF50)
+                                : Colors.orange,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          vm.estado == TrackingEstado.activo
+                              ? 'Grabando recorrido...'
+                              : vm.estado == TrackingEstado.pausado
+                                  ? 'Búsqueda pausada'
+                                  : 'Iniciando...',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Color(0xFF1A1A1A),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${vm.totalPuntos} puntos GPS registrados',
+                      style: const TextStyle(color: Color(0xFF5F6368), fontSize: 13),
+                    ),
+                    const SizedBox(height: 16),
+                    // Botón terminar
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        onPressed: vm.isLoading ? null : _onTerminar,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1B5E20),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: vm.isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.flag),
+                        label: const Text('Terminar Búsqueda',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

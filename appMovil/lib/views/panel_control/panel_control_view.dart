@@ -3,8 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../viewmodels/panel_control_viewmodel.dart';
-import '../../models/ficha_model.dart';
-import '../../models/perfil_model.dart';
 import '../../widgets/map_tile_layer.dart';
 
 class PanelControlView extends StatefulWidget {
@@ -40,7 +38,7 @@ class _PanelControlViewState extends State<PanelControlView> {
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('Confirmar Reanudación'),
-          content: const Text('¿Deseas volver a poner el operativo en estado Activo? Los voluntarios podrán unirse nuevamente.'),
+          content: const Text('¿Deseas volver a poner la búsqueda en estado Activa? Los voluntarios podrán unirse nuevamente.'),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
             ElevatedButton(
@@ -60,7 +58,7 @@ class _PanelControlViewState extends State<PanelControlView> {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Operativo cambiado a $nuevoEstado exitosamente.'),
+          content: Text('Búsqueda cambiada a $nuevoEstado exitosamente.'),
           backgroundColor: const Color(0xFF1B5E20),
         ),
       );
@@ -81,7 +79,7 @@ class _PanelControlViewState extends State<PanelControlView> {
       builder: (ctx) {
         String actionTitle = nuevoEstado == 'cerrado' ? 'Finalizar' : 'Pausar';
         return AlertDialog(
-          title: Text('$actionTitle Operativo'),
+          title: Text('$actionTitle Búsqueda'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -198,7 +196,7 @@ class _PanelControlViewState extends State<PanelControlView> {
     if (vm.ficha == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Panel de Control')),
-        body: const Center(child: Text('Operativo no encontrado.')),
+        body: const Center(child: Text('Búsqueda no encontrada.')),
       );
     }
 

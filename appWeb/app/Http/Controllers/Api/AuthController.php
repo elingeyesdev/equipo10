@@ -243,6 +243,51 @@ class AuthController extends Controller
     }
 
     /**
+     * Actualizar contraseña
+     */
+    public function actualizarContrasena(Request $request, $usuarioId)
+    {
+        $validator = Validator::make($request->all(), [
+            'contrasena_actual' => 'required|string',
+            'nueva_contrasena' => 'required|string|min:6'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $usuario = Usuario::findOrFail($usuarioId);
+
+            if (!Hash::check($request->contrasena_actual, $usuario->contrasena)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La contraseña actual es incorrecta'
+                ], 401);
+            }
+
+            $usuario->update([
+                'contrasena' => Hash::make($request->nueva_contrasena)
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Contraseña actualizada correctamente'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar contraseña',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Actualizar perfil
      */
     public function actualizarPerfil(Request $request, $usuarioId)

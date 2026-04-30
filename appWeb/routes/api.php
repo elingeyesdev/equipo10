@@ -25,6 +25,7 @@ Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::get('perfil/{usuarioId}', [AuthController::class, 'perfil']);
     Route::put('perfil/{usuarioId}', [AuthController::class, 'actualizarPerfil']);
+    Route::put('perfil/{usuarioId}/password', [AuthController::class, 'actualizarContrasena']);
     Route::put('ubicacion/{usuarioId}', [AuthController::class, 'actualizarUbicacion']);
     Route::put('notificaciones/{usuarioId}', [AuthController::class, 'actualizarNotificaciones']);
 });

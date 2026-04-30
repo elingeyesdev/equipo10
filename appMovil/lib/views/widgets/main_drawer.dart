@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../feed/feed_view.dart';
 import '../perfil/perfil_view.dart';
-import '../mis_operativos/mis_operativos_view.dart';
 
 class MainDrawer extends StatelessWidget {
   const MainDrawer({super.key});
@@ -31,7 +30,7 @@ class MainDrawer extends StatelessWidget {
             leading: const Icon(Icons.person),
             title: const Text('Mi Perfil'),
             onTap: () {
-              Navigator.pop(context); // Close drawer
+              Navigator.pop(context);
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const PerfilView()),
               );
@@ -39,21 +38,11 @@ class MainDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.feed),
-            title: const Text('Muro de Operativos'),
+            title: const Text('Muro de Búsquedas'),
             onTap: () {
-              Navigator.pop(context); // Close drawer
+              Navigator.pop(context);
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (_) => const FeedView()),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.folder_shared),
-            title: const Text('Mis Operativos'),
-            onTap: () {
-              Navigator.pop(context); // Close drawer
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const MisOperativosView()),
               );
             },
           ),

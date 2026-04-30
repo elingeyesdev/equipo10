@@ -22,7 +22,7 @@ class MisOperativosViewModel extends ChangeNotifier {
     try {
       _reportes = await _reporteService.obtenerMisReportes(userId);
     } catch (e) {
-      _errorMessage = 'Error al cargar tus operativos: $e';
+      _errorMessage = 'Error al cargar tus búsquedas: $e';
     } finally {
       _isLoading = false;
       notifyListeners();

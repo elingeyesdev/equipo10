@@ -91,6 +91,25 @@ class AuthService {
     await _api.clearSession();
   }
 
+  /// Cambia la contraseña del usuario.
+  Future<bool> cambiarContrasena(String contrasenaActual, String nuevaContrasena) async {
+    final id = currentUserId;
+    if (id == null) throw Exception('No hay sesión activa.');
+
+    try {
+      final response = await _api.client.put('/auth/perfil/$id/password', data: {
+        'contrasena_actual': contrasenaActual,
+        'nueva_contrasena': nuevaContrasena,
+      });
+      return response.statusCode == 200;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        throw Exception('La contraseña actual es incorrecta.');
+      }
+      throw Exception(e.response?.data?['message'] ?? 'Error de conexión. Intenta nuevamente.');
+    }
+  }
+
   /// Obtiene el perfil del usuario utilizando desde Laravel.
   Future<PerfilModel?> obtenerPerfilActual() async {
     final id = currentUserId;

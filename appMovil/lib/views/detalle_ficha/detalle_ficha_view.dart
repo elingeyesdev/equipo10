@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../models/reporte_model.dart';
 import '../../models/campos_categoria.dart';
 import '../../models/campo_categoria_model.dart';
@@ -234,7 +236,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                                   size: 14, color: Color(0xFF1B5E20)),
                               SizedBox(width: 4),
                               Text(
-                                'Tú creaste este operativo',
+                                'Tú creaste esta búsqueda',
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: Color(0xFF1B5E20),
@@ -314,36 +316,63 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                         decoration: BoxDecoration(
                           color: const Color(0xFFE3F2FD),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                              color: const Color(0xFF00BCD4), width: 1.5),
-                          image: const DecorationImage(
-                            image: NetworkImage('https://maps.wikimedia.org/osm-intl/14/5443/9262.png'), // Mapa genérico visual
-                            fit: BoxFit.cover,
-                            opacity: 0.4,
-                          )
+                          border: Border.all(color: const Color(0xFF00BCD4), width: 1.5),
                         ),
-                        child: Center(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.map, color: Color(0xFF00BCD4)),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Ver Mapa de Cuadrantes',
-                                  style: TextStyle(
-                                    color: Color(0xFF0277BD),
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                        clipBehavior: Clip.hardEdge,
+                        child: Stack(
+                          children: [
+                            IgnorePointer(
+                              child: FlutterMap(
+                                options: MapOptions(
+                                  initialCenter: LatLng(ficha.latitud!, ficha.longitud!),
+                                  initialZoom: 15.0,
+                                  interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
                                 ),
-                              ],
+                                children: [
+                                  TileLayer(
+                                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    userAgentPackageName: 'com.amigate.echoes',
+                                  ),
+                                  MarkerLayer(
+                                    markers: [
+                                      Marker(
+                                        point: LatLng(ficha.latitud!, ficha.longitud!),
+                                        width: 40,
+                                        height: 40,
+                                        child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
+                            Container(
+                              color: Colors.black.withValues(alpha: 0.1),
+                            ),
+                            Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.map, color: Color(0xFF00BCD4)),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Ver Mapa de Cuadrantes',
+                                      style: TextStyle(
+                                        color: Color(0xFF0277BD),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -384,7 +413,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                 }
               },
               icon: const Icon(Icons.admin_panel_settings_outlined),
-              label: const Text('Ir al Panel de Control del Operativo'),
+              label: const Text('Ir al Panel de Control de la búsqueda'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1B5E20),
                 foregroundColor: Colors.white,
@@ -540,7 +569,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                         context: context,
                         builder: (ctx) => AlertDialog(
                           title: const Text('Reanudar Búsqueda'),
-                          content: const Text('¿Deseas volver a poner el operativo en estado Activo? Los voluntarios podrán unirse nuevamente.'),
+                          content: const Text('¿Deseas volver a poner e la búsqueda en estado Activo? Los voluntarios podrán unirse nuevamente.'),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.of(ctx).pop(false),
@@ -897,130 +926,174 @@ class _InfoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = <_InfoRow>[];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1. Grid superior (Categoría, Prioridad, Recompensa)
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 2.5,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          children: [
+            if (ficha.nombreCategoria != null && (ficha.nombreCategoria as String).isNotEmpty)
+              _MiniCard(icon: Icons.category_outlined, label: 'Categoría', value: ficha.nombreCategoria),
+            if (ficha.fechaPerdida != null && (ficha.fechaPerdida as String).isNotEmpty)
+              _MiniCard(
+                  icon: Icons.calendar_today_outlined,
+                  label: 'Fecha',
+                  value: (ficha.fechaPerdida as String).length > 10 ? (ficha.fechaPerdida as String).substring(0, 10) : ficha.fechaPerdida),
+            if (ficha.prioridad != null && (ficha.prioridad as String).isNotEmpty)
+              _MiniCard(icon: Icons.priority_high, label: 'Prioridad', value: (ficha.prioridad as String).toUpperCase(), color: Colors.orange),
+            if (ficha.recompensa != null && (ficha.recompensa as num) > 0)
+              _MiniCard(icon: Icons.monetization_on_outlined, label: 'Recompensa', value: '${ficha.recompensa} BOB', color: Colors.green),
+          ],
+        ),
+        const SizedBox(height: 16),
 
-    if (ficha.nombreCategoria != null && (ficha.nombreCategoria as String).isNotEmpty) {
-      items.add(_InfoRow(icon: Icons.category_outlined, label: 'Categoría', value: ficha.nombreCategoria));
-    }
-    if (ficha.tipoReporte != null && (ficha.tipoReporte as String).isNotEmpty) {
-      items.add(_InfoRow(
-        icon: ficha.tipoReporte == 'perdido' ? Icons.search : Icons.check_circle_outline,
-        label: 'Tipo',
-        value: ficha.tipoReporte == 'perdido' ? 'Persona Perdida' : 'Persona Encontrada',
-      ));
-    }
-    if (ficha.prioridad != null && (ficha.prioridad as String).isNotEmpty) {
-      items.add(_InfoRow(icon: Icons.priority_high, label: 'Prioridad', value: (ficha.prioridad as String).toUpperCase()));
-    }
-    if (ficha.fechaPerdida != null && (ficha.fechaPerdida as String).isNotEmpty) {
-      final rawFecha = ficha.fechaPerdida as String;
-      final shortFecha = rawFecha.length > 10 ? rawFecha.substring(0, 10) : rawFecha;
-      items.add(_InfoRow(icon: Icons.calendar_today_outlined, label: 'Fecha del evento', value: shortFecha));
-    }
-    if (ficha.direccionReferencia != null && (ficha.direccionReferencia as String).isNotEmpty) {
-      items.add(_InfoRow(icon: Icons.location_on_outlined, label: 'Dirección de referencia', value: ficha.direccionReferencia));
-    }
-    if (ficha.telefonoContacto != null && (ficha.telefonoContacto as String).isNotEmpty) {
-      items.add(_InfoRow(icon: Icons.phone_outlined, label: 'Teléfono de contacto', value: ficha.telefonoContacto));
-    }
-    if (ficha.emailContacto != null && (ficha.emailContacto as String).isNotEmpty) {
-      items.add(_InfoRow(icon: Icons.email_outlined, label: 'Email de contacto', value: ficha.emailContacto));
-    }
-    if (ficha.nombreUsuario != null && (ficha.nombreUsuario as String).isNotEmpty) {
-      items.add(_InfoRow(icon: Icons.person_outline, label: 'Reportado por', value: ficha.nombreUsuario));
-    }
-    if (ficha.vistas != null) {
-      items.add(_InfoRow(icon: Icons.visibility_outlined, label: 'Vistas', value: '${ficha.vistas}'));
-    }
-
-    // Campos dinámicos de la categoría
-    if (ficha.caracteristicas != null && (ficha.caracteristicas as Map).isNotEmpty) {
-      final chars = ficha.caracteristicas as Map<String, dynamic>;
-      final camposRef = ficha.nombreCategoria != null 
-          ? CamposCategoria.paraNombre(ficha.nombreCategoria!)
-          : <CampoCategoria>[];
-
-      chars.forEach((clave, valor) {
-        // Buscar el campo en la referencia para obtener etiqueta e icono
-        final campoRef = camposRef.where((c) => c.clave == clave).firstOrNull;
-        
-        final etiqueta = campoRef?.etiqueta ?? clave.replaceAll('_', ' ').toUpperCase();
-        final icono = campoRef?.icono ?? Icons.info_outline;
-        
-        String valorStr;
-        if (valor is bool) {
-          valorStr = valor ? 'Sí' : 'No';
-        } else {
-          valorStr = valor.toString();
-        }
-
-        items.add(_InfoRow(icon: icono, label: etiqueta, value: valorStr));
-      });
-    }
-
-    if (items.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE0E0E0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 14, 16, 8),
-            child: Text(
-              'INFORMACIÓN DEL CASO',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF5F6368),
-                letterSpacing: 1.2,
+        // 2. Información de Contacto
+        if ((ficha.telefonoContacto != null && (ficha.telefonoContacto as String).isNotEmpty) ||
+            (ficha.emailContacto != null && (ficha.emailContacto as String).isNotEmpty) ||
+            (ficha.direccionReferencia != null && (ficha.direccionReferencia as String).isNotEmpty))
+          Card(
+            elevation: 0,
+            color: const Color(0xFFF8F9FA),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFFE0E0E0))),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('INFORMACIÓN DE CONTACTO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF5F6368), letterSpacing: 1.2)),
+                  const SizedBox(height: 12),
+                  if (ficha.telefonoContacto != null && (ficha.telefonoContacto as String).isNotEmpty)
+                    _ContactRow(icon: Icons.phone_outlined, text: ficha.telefonoContacto),
+                  if (ficha.emailContacto != null && (ficha.emailContacto as String).isNotEmpty)
+                    _ContactRow(icon: Icons.email_outlined, text: ficha.emailContacto),
+                  if (ficha.direccionReferencia != null && (ficha.direccionReferencia as String).isNotEmpty)
+                    _ContactRow(icon: Icons.location_on_outlined, text: ficha.direccionReferencia),
+                ],
               ),
             ),
           ),
-          const Divider(height: 1, color: Color(0xFFE0E0E0)),
-          ...items.map((row) => row).toList(),
+        const SizedBox(height: 16),
+
+        // 3. Características dinámicas (Chips)
+        if (ficha.caracteristicas != null && (ficha.caracteristicas as Map).isNotEmpty)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('CARACTERÍSTICAS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF5F6368), letterSpacing: 1.2)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: (ficha.caracteristicas as Map<String, dynamic>).entries.map((entry) {
+                  final clave = entry.key;
+                  final valor = entry.value;
+
+                  final camposRef = ficha.nombreCategoria != null ? CamposCategoria.paraNombre(ficha.nombreCategoria!) : <CampoCategoria>[];
+                  final campoRef = camposRef.where((c) => c.clave == clave).firstOrNull;
+                  
+                  final etiqueta = campoRef?.etiqueta ?? clave.replaceAll('_', ' ').toUpperCase();
+                  final icono = campoRef?.icono ?? Icons.info_outline;
+                  
+                  String valorStr;
+                  if (valor is bool) {
+                    valorStr = valor ? 'Sí' : 'No';
+                  } else if (valor == 1 || valor == '1' || valor == 'true') {
+                    valorStr = 'Sí';
+                  } else if (valor == 0 || valor == '0' || valor == 'false') {
+                    valorStr = 'No';
+                  } else {
+                    valorStr = valor.toString();
+                  }
+
+                  return Chip(
+                    avatar: Icon(icono, size: 16, color: const Color(0xFF1B5E20)),
+                    label: Text('$etiqueta: $valorStr'),
+                    backgroundColor: const Color(0xFFE8F5E9),
+                    side: BorderSide.none,
+                    labelStyle: const TextStyle(fontSize: 13, color: Color(0xFF1A1A1A)),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        
+        const SizedBox(height: 24),
+        
+        // 4. Metadatos del footer
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            if (ficha.nombreUsuario != null && (ficha.nombreUsuario as String).isNotEmpty)
+              Expanded(
+                child: Text('Reportado por: ${ficha.nombreUsuario}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              ),
+            if (ficha.vistas != null)
+              Text('👁 ${ficha.vistas} vistas', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _MiniCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  const _MiniCard({required this.icon, required this.label, required this.value, this.color = const Color(0xFF0277BD)});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 14, color: color),
+              const SizedBox(width: 4),
+              Expanded(child: Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87), overflow: TextOverflow.ellipsis),
         ],
       ),
     );
   }
 }
 
-class _InfoRow extends StatelessWidget {
+class _ContactRow extends StatelessWidget {
   final IconData icon;
-  final String label;
-  final String? value;
+  final String text;
 
-  const _InfoRow({required this.icon, required this.label, required this.value});
+  const _ContactRow({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: const Color(0xFF1B5E20)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF5F6368), fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value ?? '—',
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A), fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-          ),
+          Icon(icon, size: 18, color: const Color(0xFF5F6368)),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)))),
         ],
       ),
     );

@@ -24,6 +24,7 @@ class ReporteModel {
   final String? fechaPerdida;
   final Map<String, dynamic>? caracteristicas;
   final double? recompensa;
+  final DateTime? createdAt;
 
   // Bounds del cuadrante asignado (para geofencing)
   final double? cuadranteLatMin;
@@ -69,6 +70,7 @@ class ReporteModel {
     this.fechaPerdida,
     this.caracteristicas,
     this.recompensa,
+    this.createdAt,
     this.cuadranteLatMin,
     this.cuadranteLatMax,
     this.cuadranteLngMin,
@@ -156,6 +158,7 @@ class ReporteModel {
       fechaPerdida: map['fecha_perdida']?.toString(),
       caracteristicas: chars,
       recompensa: _parseDouble(map['recompensa']),
+      createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at'].toString()) : null,
       // Extraer bounds del cuadrante anidado (disponible en el endpoint show)
       cuadranteLatMin: _parseDouble(map['cuadrante']?['lat_min']),
       cuadranteLatMax: _parseDouble(map['cuadrante']?['lat_max']),

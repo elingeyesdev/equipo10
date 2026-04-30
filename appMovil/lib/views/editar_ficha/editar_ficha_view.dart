@@ -161,7 +161,7 @@ class _EditarFichaViewState extends State<EditarFichaView> {
     final vm = context.watch<EditarFichaViewModel>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Editar Operativo')),
+      appBar: AppBar(title: const Text('Editar búsqueda')),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -185,7 +185,7 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ─── Sección: Datos generales ───
-                      _SectionHeader(label: 'Datos del operativo', icon: Icons.info_outline),
+                      _SectionHeader(label: 'Datos de la búsqueda', icon: Icons.info_outline),
                       const SizedBox(height: 16),
 
                       // Fecha del incidente (OBLIGATORIA)
@@ -223,7 +223,7 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                         textCapitalization: TextCapitalization.sentences,
                         maxLength: 200,
                         decoration: const InputDecoration(
-                          labelText: 'Título del operativo',
+                          labelText: 'Título de la búsqueda',
                           prefixIcon: Icon(Icons.title),
                           counterText: '',
                         ),
@@ -310,22 +310,14 @@ class _EditarFichaViewState extends State<EditarFichaView> {
 
                       TextFormField(
                         controller: _recompensaCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                        ],
+                        readOnly: true,
+                        enabled: false,
                         decoration: const InputDecoration(
                           labelText: 'Recompensa en Bs.',
                           prefixIcon: Icon(Icons.attach_money),
+                          filled: true,
+                          fillColor: Color(0xFFF5F5F5),
                         ),
-                        validator: (v) {
-                          if (v == null || v.trim().isEmpty) return null;
-                          final val = double.tryParse(v);
-                          if (val == null) return 'Ingresa un monto válido';
-                          if (val < 0) return 'La recompensa no puede ser negativa';
-                          if (val > 1000000) return 'Monto demasiado alto';
-                          return null;
-                        },
                       ),
                       const SizedBox(height: 28),
 

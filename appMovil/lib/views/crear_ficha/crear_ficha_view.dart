@@ -187,7 +187,7 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ─── Sección: Datos generales ───
-                      _SectionHeader(label: 'Datos del operativo', icon: Icons.info_outline),
+                      _SectionHeader(label: 'Datos de la búsqueda', icon: Icons.info_outline),
                       const SizedBox(height: 16),
 
                       // Dropdown de Categoría
@@ -258,7 +258,7 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                         textCapitalization: TextCapitalization.sentences,
                         maxLength: 200,
                         decoration: const InputDecoration(
-                          labelText: 'Título del operativo',
+                          labelText: 'Título de la búsqueda',
                           hintText: 'Ej: Búsqueda de persona mayor en zona norte',
                           prefixIcon: Icon(Icons.title),
                           counterText: '',
@@ -377,6 +377,20 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                           if (val > 1000000) return 'Monto demasiado alto';
                           return null;
                         },
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.deepOrange),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Atención: El monto de la recompensa no podrá ser modificado posteriormente.',
+                              style: TextStyle(fontSize: 12, color: Colors.deepOrange.shade700, fontStyle: FontStyle.italic),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 24),
 

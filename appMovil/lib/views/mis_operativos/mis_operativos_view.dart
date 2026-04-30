@@ -30,7 +30,7 @@ class _MisOperativosViewState extends State<MisOperativosView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mis Operativos'),
+        title: const Text('Mis Búsquedas'),
       ),
       drawer: const MainDrawer(),
       body: RefreshIndicator(
@@ -77,7 +77,7 @@ class _MisOperativosViewState extends State<MisOperativosView> {
             Icon(Icons.folder_off, size: 64, color: Color(0xFF4CAF50)),
             SizedBox(height: 12),
             Text(
-              'No tienes operativos creados',
+              'No tienes búsquedas creadas',
               style: TextStyle(fontSize: 18, color: Color(0xFF5F6368)),
             ),
           ],

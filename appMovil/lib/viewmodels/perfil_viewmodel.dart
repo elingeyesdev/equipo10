@@ -82,4 +82,55 @@ class PerfilViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Actualiza los datos básicos (nombre, teléfono)
+  Future<bool> actualizarDatosPersonales(String nombre, String? telefono) async {
+    if (_authService.currentUserId == null) return false;
+    
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final success = await _authService.actualizarPerfil(
+        _authService.currentUserId!,
+        {
+          'nombre': nombre,
+          'telefono': telefono ?? '',
+        },
+      );
+
+      if (success) {
+        await cargarPerfil();
+        return true;
+      } else {
+        _errorMessage = 'Error al actualizar datos personales.';
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Cambia la contraseña
+  Future<bool> cambiarContrasena(String actual, String nueva) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final success = await _authService.cambiarContrasena(actual, nueva);
+      return success;
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }
