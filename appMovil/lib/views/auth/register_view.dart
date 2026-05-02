@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
-import '../feed/feed_view.dart';
+import '../home/home_view.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -48,7 +48,7 @@ class _RegisterViewState extends State<RegisterView> {
         ),
       );
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const FeedView()),
+        MaterialPageRoute(builder: (_) => const HomeView()),
         (_) => false,
       );
     } else {

@@ -215,6 +215,8 @@ class _PanelControlViewState extends State<PanelControlView> {
               Tab(icon: Icon(Icons.map), text: 'Mapa de Cobertura'),
             ],
             indicatorColor: Colors.white,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
           ),
         ),
         body: TabBarView(

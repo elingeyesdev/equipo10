@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import 'register_view.dart';
-import '../feed/feed_view.dart';
+import '../home/home_view.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -37,7 +37,7 @@ class _LoginViewState extends State<LoginView> {
 
     if (success) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const FeedView()),
+        MaterialPageRoute(builder: (_) => const HomeView()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -64,17 +64,13 @@ class _LoginViewState extends State<LoginView> {
               children: [
                 const SizedBox(height: 20),
                 // Logo / Header
-                Container(
-                  width: 90,
-                  height: 90,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1B5E20),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: const Icon(
-                    Icons.search,
-                    size: 50,
-                    color: Colors.white,
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Image.asset(
+                    'assets/images/logoapp.png',
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.contain,
                   ),
                 ),
                 const SizedBox(height: 20),

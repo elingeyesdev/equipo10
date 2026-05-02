@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../models/perfil_model.dart';
 import 'api_service.dart';
 
@@ -138,6 +139,33 @@ class AuthService {
       return false;
     } catch (e) {
       return false;
+    }
+  }
+
+  /// Sube la imagen de avatar directamente al servidor Laravel.
+  Future<String?> subirAvatarDirecto(String userId, String filePath) async {
+    try {
+      final fileName = filePath.split('/').last;
+      final formData = FormData.fromMap({
+        'id': userId,
+        'avatar': await MultipartFile.fromFile(filePath, filename: fileName),
+      });
+
+      final response = await _api.client.post(
+        '/subir-avatar-directo',
+        data: formData,
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['avatar_url'];
+      }
+      return null;
+    } on DioException catch (e) {
+      debugPrint('❌ Error subiendo avatar: ${e.response?.statusCode} - ${e.message}');
+      return null;
+    } catch (e) {
+      debugPrint('❌ Error inesperado: $e');
+      return null;
     }
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../feed/feed_view.dart';
+import '../home/home_view.dart';
 import '../perfil/perfil_view.dart';
+import '../about/about_view.dart';
 
 class MainDrawer extends StatelessWidget {
   const MainDrawer({super.key});
@@ -41,8 +43,19 @@ class MainDrawer extends StatelessWidget {
             title: const Text('Muro de Búsquedas'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const FeedView()),
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const HomeView()),
+                (route) => false,
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: const Text('Sobre Echoes'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AboutView()),
               );
             },
           ),

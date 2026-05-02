@@ -16,7 +16,7 @@
     <!-- Notificaciones (requerido para Android 13 / API 33+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
-        android:label="echoes"
+        android:label="Echoes"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -133,4 +133,30 @@ class PerfilViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Actualiza el avatar del usuario
+  Future<bool> actualizarAvatar(String filePath) async {
+    if (_authService.currentUserId == null) return false;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final avatarUrl = await _authService.subirAvatarDirecto(_authService.currentUserId!, filePath);
+      if (avatarUrl != null) {
+        await cargarPerfil();
+        return true;
+      } else {
+        _errorMessage = 'Error al subir la imagen.';
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = 'Error inesperado al subir la imagen: $e';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }

@@ -13,8 +13,8 @@ class MapTileLayer extends StatelessWidget {
   Widget build(BuildContext context) {
     final mapboxToken = dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '';
 
-    // Vista satelital (Mapbox) si hay token y se solicita
-    if (useSatellite && mapboxToken.isNotEmpty) {
+    // Vista satelital (Mapbox) si hay token válido y se solicita
+    if (useSatellite && mapboxToken.isNotEmpty && mapboxToken.startsWith('pk.')) {
       return TileLayer(
         urlTemplate:
             'https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',

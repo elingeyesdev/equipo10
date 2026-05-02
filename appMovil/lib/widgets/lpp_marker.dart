@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 /// Marcador personalizado para el Punto LPP (Último Punto de Paradero).
 /// Muestra la foto de la persona desaparecida dentro de un pin circular,
@@ -43,12 +44,11 @@ class LppMarker extends StatelessWidget {
           ),
           child: ClipOval(
             child: fotoUrl != null && fotoUrl!.isNotEmpty
-                ? Image.network(
-                    fotoUrl!,
+                ? CachedNetworkImage(
+                    imageUrl: fotoUrl!,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _defaultIcon(),
-                    loadingBuilder: (_, child, progress) =>
-                        progress == null ? child : _loadingSpinner(),
+                    errorWidget: (_, __, ___) => _defaultIcon(),
+                    placeholder: (_, __) => _loadingSpinner(),
                   )
                 : _defaultIcon(),
           ),

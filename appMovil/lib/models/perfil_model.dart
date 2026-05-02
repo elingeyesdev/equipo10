@@ -1,3 +1,5 @@
+import '../services/api_service.dart';
+
 class PerfilModel {
   final String id;
   final String nombreCompleto;
@@ -23,7 +25,7 @@ class PerfilModel {
       nombreCompleto: map['nombre_completo'] as String? ?? map['nombre'] as String? ?? '',
       telefono: map['telefono'] as String? ?? '',
       email: map['email'] as String? ?? '',
-      avatarUrl: map['avatar_url'] as String?,
+      avatarUrl: _parseAvatarUrl(map['avatar_url'] as String?),
       habilidades: map['habilidades'] != null ? List<String>.from(map['habilidades']) : [],
       estadisticas: map['estadisticas'] != null ? Map<String, dynamic>.from(map['estadisticas']) : {},
     );
@@ -39,5 +41,10 @@ class PerfilModel {
       'habilidades': habilidades,
       'estadisticas': estadisticas,
     };
+  }
+  static String? _parseAvatarUrl(String? path) {
+    if (path == null || path.isEmpty) return null;
+    if (path.startsWith('http')) return path;
+    return '${ApiService().apiHost}/storage/$path';
   }
 }

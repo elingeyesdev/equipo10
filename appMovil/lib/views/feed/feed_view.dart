@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/feed_viewmodel.dart';
@@ -71,103 +72,21 @@ class _FeedViewState extends State<FeedView> {
     final feedVm = context.watch<FeedViewModel>();
     final currentUserId = context.read<AuthViewModel>().currentUserId ?? '';
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.radar, color: Colors.white),
-              SizedBox(width: 8),
-              Text('Echoes', style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          actions: [
-            Consumer<NotificacionesViewModel>(
-              builder: (context, notifVm, child) {
-                return Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.notifications),
-                      tooltip: 'Notificaciones',
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const NotificacionesView()),
-                        );
-                      },
-                    ),
-                    if (notifVm.unreadCount > 0)
-                      Positioned(
-                        right: 8,
-                        top: 8,
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                          child: Text(
-                            notifVm.unreadCount > 9 ? '9+' : '${notifVm.unreadCount}',
-                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.logout),
-              tooltip: 'Cerrar sesión',
-              onPressed: _onLogout,
-            ),
-          ],
-          bottom: const TabBar(
-            tabs: [
-              Tab(icon: Icon(Icons.public), text: 'Todos'),
-              Tab(icon: Icon(Icons.folder_shared), text: 'Mis búsquedas'),
-            ],
-          ),
+    return TabBarView(
+      children: [
+        // ── Pestaña 1: Feed social completo ──────────────────
+        RefreshIndicator(
+          onRefresh: () => context.read<FeedViewModel>().cargarFichas(),
+          color: const Color(0xFF1B5E20),
+          child: _buildSocialFeed(feedVm, currentUserId),
         ),
-        drawer: const MainDrawer(),
-        body: TabBarView(
-          children: [
-            // ── Pestaña 1: Feed social completo ──────────────────
-            RefreshIndicator(
-              onRefresh: () => context.read<FeedViewModel>().cargarFichas(),
-              color: const Color(0xFF1B5E20),
-              child: _buildSocialFeed(feedVm, currentUserId),
-            ),
-            // ── Pestaña 2: Mis búsquedas ─────────────────────────
-            RefreshIndicator(
-              onRefresh: () => context.read<FeedViewModel>().cargarFichas(),
-              color: const Color(0xFF1B5E20),
-              child: _buildSimpleList(feedVm, currentUserId, showOnlyMine: true),
-            ),
-          ],
+        // ── Pestaña 2: Mis búsquedas ─────────────────────────
+        RefreshIndicator(
+          onRefresh: () => context.read<FeedViewModel>().cargarFichas(),
+          color: const Color(0xFF1B5E20),
+          child: _buildSimpleList(feedVm, currentUserId, showOnlyMine: true),
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () async {
-            final feedVmLocal = context.read<FeedViewModel>();
-            final nav = Navigator.of(context);
-            final result = await nav.push(
-              MaterialPageRoute(builder: (_) => const CrearFichaView()),
-            );
-            if (result == true) {
-              feedVmLocal.cargarFichas();
-            }
-          },
-          backgroundColor: const Color(0xFF1B5E20),
-          foregroundColor: Colors.white,
-          icon: const Icon(Icons.add),
-          label: const Text('Reportar'),
-        ),
-      ),
+      ],
     );
   }
 
@@ -472,79 +391,88 @@ class _FichaCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final esCreador = ficha.creadoPor == currentUserId;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () async {
-          final feedVm = context.read<FeedViewModel>();
-          final result = await Navigator.of(context).push<bool>(
-            MaterialPageRoute(
-              builder: (_) => DetalleFichaView(fichaId: ficha.id, currentUserId: currentUserId),
-            ),
-          );
-          if (result == true) feedVm.cargarFichas();
-        },
-        child: SizedBox(
-          height: 110,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _FichaImage(fotoUrl: ficha.fotoUrl),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              ficha.titulo,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1A1A1A), height: 1.3),
+    return RepaintBoundary(
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () async {
+            final feedVm = context.read<FeedViewModel>();
+            final result = await Navigator.of(context).push<bool>(
+              MaterialPageRoute(
+                builder: (_) => DetalleFichaView(fichaId: ficha.id, currentUserId: currentUserId),
+              ),
+            );
+            if (result == true) feedVm.cargarFichas();
+          },
+          child: SizedBox(
+            height: 110,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _FichaImage(fotoUrl: ficha.fotoUrl),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                ficha.titulo,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1A1A1A), height: 1.3),
+                              ),
                             ),
-                          ),
-                          if (esCreador) ...[
-                            const SizedBox(width: 6),
-                            const Icon(Icons.person_pin, size: 16, color: Color(0xFF1B5E20)),
+                            if (ficha.avatarUsuario != null && ficha.avatarUsuario!.isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              CircleAvatar(
+                                radius: 10,
+                                backgroundImage: CachedNetworkImageProvider(ficha.avatarUsuario!),
+                                backgroundColor: Colors.transparent,
+                              ),
+                            ] else if (esCreador) ...[
+                              const SizedBox(width: 6),
+                              const Icon(Icons.person_pin, size: 16, color: Color(0xFF1B5E20)),
+                            ],
                           ],
-                        ],
-                      ),
-                      Text(
-                        ficha.descripcion,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Color(0xFF5F6368), fontSize: 12),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _EstadoChip(estado: ficha.estado),
-                          if (distanciaKm != null && distanciaKm! < double.infinity)
-                            Row(
-                              children: [
-                                const Icon(Icons.near_me, size: 12, color: Color(0xFF1B5E20)),
-                                const SizedBox(width: 2),
-                                Text(
-                                  distanciaKm! < 1 ? '${(distanciaKm! * 1000).round()} m' : '${distanciaKm!.toStringAsFixed(1)} km',
-                                  style: const TextStyle(fontSize: 11, color: Color(0xFF1B5E20), fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            )
-                          else
-                            const Icon(Icons.chevron_right, size: 18, color: Color(0xFF9E9E9E)),
-                        ],
-                      ),
-                    ],
+                        ),
+                        Text(
+                          ficha.descripcion,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Color(0xFF5F6368), fontSize: 12),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _EstadoChip(estado: ficha.estado),
+                            if (distanciaKm != null && distanciaKm! < double.infinity)
+                              Row(
+                                children: [
+                                  const Icon(Icons.near_me, size: 12, color: Color(0xFF1B5E20)),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    distanciaKm! < 1 ? '${(distanciaKm! * 1000).round()} m' : '${distanciaKm!.toStringAsFixed(1)} km',
+                                    style: const TextStyle(fontSize: 11, color: Color(0xFF1B5E20), fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              )
+                            else
+                              const Icon(Icons.chevron_right, size: 18, color: Color(0xFF9E9E9E)),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -561,7 +489,14 @@ class _FichaImage extends StatelessWidget {
     if (fotoUrl != null && fotoUrl!.isNotEmpty) {
       return SizedBox(
         width: 110,
-        child: Image.network(fotoUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _placeholder()),
+        child: CachedNetworkImage(
+          imageUrl: fotoUrl!,
+          fit: BoxFit.cover,
+          alignment: Alignment.topCenter,
+          memCacheWidth: 220, 
+          placeholder: (context, url) => _placeholder(),
+          errorWidget: (context, url, error) => _placeholder(),
+        ),
       );
     }
     return SizedBox(width: 110, child: _placeholder());

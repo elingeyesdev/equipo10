@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/mis_operativos_viewmodel.dart';
 import '../../models/reporte_model.dart';
@@ -133,16 +134,30 @@ class _MiFichaCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        ficha.titulo,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A1A1A),
-                          height: 1.3,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              ficha.titulo,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1A1A1A),
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                          if (ficha.avatarUsuario != null && ficha.avatarUsuario!.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            CircleAvatar(
+                              radius: 10,
+                              backgroundImage: CachedNetworkImageProvider(ficha.avatarUsuario!),
+                              backgroundColor: Colors.transparent,
+                            ),
+                          ],
+                        ],
                       ),
                       Text(
                         ficha.descripcion,
@@ -182,10 +197,12 @@ class _FichaImage extends StatelessWidget {
     if (fotoUrl != null && fotoUrl!.isNotEmpty) {
       return SizedBox(
         width: 110,
-        child: Image.network(
-          fotoUrl!,
+        child: CachedNetworkImage(
+          imageUrl: fotoUrl!,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _placeholder(),
+          alignment: Alignment.topCenter,
+          placeholder: (context, url) => _placeholder(),
+          errorWidget: (context, url, error) => _placeholder(),
         ),
       );
     }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -12,6 +13,7 @@ import '../editar_ficha/editar_ficha_view.dart';
 import '../mapa/mapa_operativo_view.dart';
 import '../panel_control/panel_control_view.dart';
 import '../tracking/tracking_view.dart';
+import '../widgets/full_screen_image_view.dart';
 
 class DetalleFichaView extends StatefulWidget {
   final String fichaId;
@@ -105,7 +107,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
           backgroundColor: Color(0xFF1B5E20),
         ),
       );
-      // pop(true) → el feed escucha esto y recarga inmediatamente
       nav.pop(true);
     } else {
       messenger.showSnackBar(
@@ -144,7 +145,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
         title: Text(ficha.titulo, overflow: TextOverflow.ellipsis),
         actions: esCreador
             ? [
-                // El creador puede editar siempre (activa o cerrada)
                 IconButton(
                   icon: const Icon(Icons.edit_outlined),
                   tooltip: 'Editar ficha',
@@ -182,7 +182,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Imagen hero
             _HeroImage(fotoUrl: ficha.fotoUrl),
 
             Padding(
@@ -190,11 +189,12 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Fila: estado + badge creador
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       _EstadoBadge(estado: ficha.estado),
-                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
@@ -218,7 +218,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                           ],
                         ),
                       ),
-                      const Spacer(),
                       if (esCreador)
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -229,13 +228,19 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                             border:
                                 Border.all(color: const Color(0xFF1B5E20)),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.person,
-                                  size: 14, color: Color(0xFF1B5E20)),
-                              SizedBox(width: 4),
-                              Text(
+                              if (ficha.avatarUsuario != null && ficha.avatarUsuario!.isNotEmpty) ...[
+                                CircleAvatar(
+                                  radius: 8,
+                                  backgroundImage: CachedNetworkImageProvider(ficha.avatarUsuario!),
+                                  backgroundColor: Colors.transparent,
+                                ),
+                              ] else
+                                const Icon(Icons.person, size: 14, color: Color(0xFF1B5E20)),
+                              const SizedBox(width: 4),
+                              const Text(
                                 'Tú creaste esta búsqueda',
                                 style: TextStyle(
                                   fontSize: 11,
@@ -250,7 +255,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Título
                   Text(
                     ficha.titulo,
                     style: const TextStyle(
@@ -261,7 +265,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Divider celeste
                   Container(
                     height: 3,
                     width: 40,
@@ -272,7 +275,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Descripción
                   const Text(
                     'Descripción del caso',
                     style: TextStyle(
@@ -293,7 +295,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                   ),
                   const SizedBox(height: 24),
 
-                  // ── Información adicional del reporte ──
                   _InfoSection(ficha: ficha),
                   const SizedBox(height: 20),
 
@@ -378,7 +379,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                     ),
                   const SizedBox(height: 28),
 
-                  // Botones de acción según rol y estado
                   _buildActionArea(vm, esCreador, esBloqueado, estadoText),
                   const SizedBox(height: 8),
                 ],
@@ -395,7 +395,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
     if (esCreador) {
       return Column(
         children: [
-          // Botón Panel de Control
           SizedBox(
             width: double.infinity,
             height: 50,
@@ -407,7 +406,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                     builder: (_) => PanelControlView(fichaId: widget.fichaId),
                   ),
                 );
-                // Recargar al volver
                 if (mounted) {
                   detaVm.cargarFicha(widget.fichaId, widget.currentUserId);
                 }
@@ -423,205 +421,11 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
             ),
           ),
           const SizedBox(height: 12),
-          if (!esBloqueado)
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      final TextEditingController ctrl = TextEditingController();
-                      final justificacion = await showDialog<String>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Pausar Búsqueda'),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text('Indica la razón para pausar esta búsqueda.'),
-                              const SizedBox(height: 12),
-                              TextField(
-                                controller: ctrl,
-                                maxLines: 3,
-                                decoration: InputDecoration(
-                                  hintText: 'Ej: Clima adverso, falta de luz, etc.',
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                              ),
-                            ],
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(ctx).pop(null),
-                              child: const Text('Cancelar'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () {
-                                if (ctrl.text.trim().isEmpty) {
-                                  ScaffoldMessenger.of(ctx).showSnackBar(
-                                    const SnackBar(content: Text('La justificación es obligatoria.')),
-                                  );
-                                } else {
-                                  Navigator.of(ctx).pop(ctrl.text.trim());
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF9800)),
-                              child: const Text('Pausar'),
-                            ),
-                          ],
-                        ),
-                      );
-
-                      if (justificacion != null && mounted) {
-                        final detaVm = context.read<DetalleFichaViewModel>();
-                        final success = await detaVm.pausarBusqueda(widget.fichaId, justificacion);
-                        if (success && mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('La búsqueda ha sido pausada.'),
-                              backgroundColor: Color(0xFF1B5E20),
-                            ),
-                          );
-                          detaVm.cargarFicha(widget.fichaId, widget.currentUserId);
-                        } else if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(detaVm.errorMessage ?? 'Error al pausar.'),
-                              backgroundColor: Colors.red.shade700,
-                            ),
-                          );
-                        }
-                      }
-                    },
-                    icon: const Icon(Icons.pause),
-                    label: const Text('Pausar'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF9800),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      final confirmar = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Finalizar Búsqueda'),
-                          content: const Text('¿Estás seguro de que deseas dar por finalizada esta búsqueda?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(ctx).pop(false),
-                              child: const Text('Cancelar'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () => Navigator.of(ctx).pop(true),
-                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
-                              child: const Text('Finalizar'),
-                            ),
-                          ],
-                        ),
-                      );
-
-                      if (confirmar == true && mounted) {
-                        final detaVm = context.read<DetalleFichaViewModel>();
-                        final success = await detaVm.cerrarBusqueda(widget.fichaId);
-                        if (success && mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('La búsqueda ha sido finalizada.'),
-                              backgroundColor: Color(0xFF1B5E20),
-                            ),
-                          );
-                          detaVm.cargarFicha(widget.fichaId, widget.currentUserId);
-                        } else if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(detaVm.errorMessage ?? 'Error al finalizar.'),
-                              backgroundColor: Colors.red.shade700,
-                            ),
-                          );
-                        }
-                      }
-                    },
-                    icon: const Icon(Icons.check_circle_outline),
-                    label: const Text('Finalizar'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF388E3C),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          if (esBloqueado) ...[
-            if (estadoText.toLowerCase() == 'pausado')
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      final confirmar = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Reanudar Búsqueda'),
-                          content: const Text('¿Deseas volver a poner e la búsqueda en estado Activo? Los voluntarios podrán unirse nuevamente.'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(ctx).pop(false),
-                              child: const Text('Cancelar'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () => Navigator.of(ctx).pop(true),
-                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
-                              child: const Text('Reanudar'),
-                            ),
-                          ],
-                        ),
-                      );
-
-                      if (confirmar == true && mounted) {
-                        final detaVm = context.read<DetalleFichaViewModel>();
-                        final success = await detaVm.reabrirBusqueda(widget.fichaId);
-                        if (success && mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('La búsqueda ha sido reanudada exitosamente.'),
-                              backgroundColor: Color(0xFF1B5E20),
-                            ),
-                          );
-                          detaVm.cargarFicha(widget.fichaId, widget.currentUserId);
-                        } else if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(detaVm.errorMessage ?? 'Error al reanudar.'),
-                              backgroundColor: Colors.red.shade700,
-                            ),
-                          );
-                        }
-                      }
-                    },
-                    icon: const Icon(Icons.play_arrow),
-                    label: const Text('Reanudar Búsqueda'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4CAF50),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
-              ),
-            _BannerBloqueado(estado: estadoText),
-          ],
+          if (esBloqueado) _BannerBloqueado(estado: estadoText),
         ],
       );
     }
 
-    // — Voluntario —
     if (esBloqueado) {
       return _BannerBloqueado(estado: estadoText);
     }
@@ -631,7 +435,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
     if (vm.yaVinculado) {
       return Column(
         children: [
-          // Banner: ya participando
           Container(
             width: double.infinity,
             height: 50,
@@ -658,7 +461,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
             ),
           ),
           const SizedBox(height: 12),
-          // Botón de iniciar búsqueda (tracking)
           SizedBox(
             width: double.infinity,
             height: 50,
@@ -681,7 +483,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
       );
     }
 
-    // Botón unirse (búsqueda activa, usuario no vinculado)
     return SizedBox(
       width: double.infinity,
       height: 50,
@@ -709,8 +510,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
     );
   }
 
-  Future<void> _onIniciarBusqueda(dynamic ficha) async {
-    // Verificar que el reporte tenga cuadrante con bounds
+  Future<void> _onIniciarBusqueda(ReporteModel ficha) async {
     if (ficha.cuadranteLatMin == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -720,7 +520,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
       return;
     }
 
-    // Verificar geofencing con el ViewModel de tracking
     final trackingVm = TrackingViewModel();
     final pos = await trackingVm.verificarGeofencing(
       latMin: ficha.cuadranteLatMin!,
@@ -739,19 +538,17 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
       return;
     }
 
-    // Navegar a la pantalla de tracking
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider(
           create: (_) => TrackingViewModel(),
           child: TrackingView(
-            ficha: ficha as ReporteModel,
+            ficha: ficha,
             usuarioId: widget.currentUserId,
           ),
         ),
       ),
     );
-    // Recargar detalle al volver
     if (mounted) {
       context
           .read<DetalleFichaViewModel>()
@@ -760,8 +557,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
   }
 }
 
-
-/// Banner que indica que la búsqueda está cerrada o pausada.
 class _BannerBloqueado extends StatelessWidget {
   final String estado;
 
@@ -808,7 +603,6 @@ class _BannerBloqueado extends StatelessWidget {
   }
 }
 
-/// Imagen hero en la parte superior del detalle.
 class _HeroImage extends StatelessWidget {
   final String? fotoUrl;
 
@@ -819,12 +613,30 @@ class _HeroImage extends StatelessWidget {
     return Stack(
       children: [
         if (fotoUrl != null && fotoUrl!.isNotEmpty)
-          Image.network(
-            fotoUrl!,
-            width: double.infinity,
-            height: 300,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _placeholder(),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => FullScreenImageView(
+                    imageUrl: fotoUrl!,
+                    tag: 'hero-image-${fotoUrl!}',
+                  ),
+                ),
+              );
+            },
+            child: Hero(
+              tag: 'hero-image-${fotoUrl!}',
+              child: CachedNetworkImage(
+                imageUrl: fotoUrl!,
+                width: double.infinity,
+                height: 300,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+                placeholder: (context, url) => _placeholder(),
+                errorWidget: (context, url, error) => _placeholder(),
+              ),
+            ),
           )
         else
           _placeholder(),
@@ -862,7 +674,6 @@ class _HeroImage extends StatelessWidget {
   }
 }
 
-/// Badge del estado de la ficha (activo / cerrado).
 class _EstadoBadge extends StatelessWidget {
   final String estado;
 
@@ -918,9 +729,8 @@ class _EstadoBadge extends StatelessWidget {
   }
 }
 
-/// Sección de información detallada del reporte.
 class _InfoSection extends StatelessWidget {
-  final dynamic ficha; // ReporteModel
+  final dynamic ficha;
 
   const _InfoSection({required this.ficha});
 
@@ -929,7 +739,6 @@ class _InfoSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 1. Grid superior (Categoría, Prioridad, Recompensa)
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
@@ -953,7 +762,6 @@ class _InfoSection extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        // 2. Información de Contacto
         if ((ficha.telefonoContacto != null && (ficha.telefonoContacto as String).isNotEmpty) ||
             (ficha.emailContacto != null && (ficha.emailContacto as String).isNotEmpty) ||
             (ficha.direccionReferencia != null && (ficha.direccionReferencia as String).isNotEmpty))
@@ -980,7 +788,6 @@ class _InfoSection extends StatelessWidget {
           ),
         const SizedBox(height: 16),
 
-        // 3. Características dinámicas (Chips)
         if (ficha.caracteristicas != null && (ficha.caracteristicas as Map).isNotEmpty)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1025,7 +832,6 @@ class _InfoSection extends StatelessWidget {
         
         const SizedBox(height: 24),
         
-        // 4. Metadatos del footer
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [

@@ -3,8 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 
 /// URL base de la API de Laravel (definida en main.dart)
-const String _kApiUrl = 'http://localhost:8081/api';
-// const String _kApiUrl = 'http://10.26.1.13:8081/api'; // para emulador android
+const String _kApiUrl = 'http://192.168.1.17:8081'; // Host raíz
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -15,8 +14,8 @@ class ApiService {
   ApiService._internal() {
     _dio = Dio(BaseOptions(
       baseUrl: _kApiUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      connectTimeout: const Duration(seconds: 60),
+      receiveTimeout: const Duration(seconds: 60),
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -26,6 +25,16 @@ class ApiService {
     // Interceptor que inyecta el token JWT en cada petición
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
+        // Asegurar que todas las peticiones lleven el prefijo /api
+        if (!options.path.startsWith('/api/')) {
+          String path = options.path;
+          if (!path.startsWith('/')) path = '/$path';
+          options.path = '/api$path';
+        }
+
+        final fullUrl = '${options.baseUrl}${options.path}';
+        debugPrint('🚀 API Request: [${options.method}] $fullUrl');
+        
         final prefs = await SharedPreferences.getInstance();
         final token = prefs.getString('auth_token');
         if (token != null) {
@@ -34,7 +43,8 @@ class ApiService {
         return handler.next(options);
       },
       onError: (DioException e, handler) {
-        debugPrint('API_ERROR: ${e.response?.statusCode} - ${e.message}');
+        final fullUrl = '${e.requestOptions.baseUrl}${e.requestOptions.path}';
+        debugPrint('❌ API_ERROR [${e.response?.statusCode}]: $fullUrl');
         return handler.next(e);
       },
     ));

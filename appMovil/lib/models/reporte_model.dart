@@ -22,6 +22,7 @@ class ReporteModel {
   final String? prioridad;
   final int? vistas;
   final String? fechaPerdida;
+  final String? avatarUsuario;
   final Map<String, dynamic>? caracteristicas;
   final double? recompensa;
   final DateTime? createdAt;
@@ -68,6 +69,7 @@ class ReporteModel {
     this.prioridad,
     this.vistas,
     this.fechaPerdida,
+    this.avatarUsuario,
     this.caracteristicas,
     this.recompensa,
     this.createdAt,
@@ -116,11 +118,28 @@ class ReporteModel {
     if (cat is Map) {
       catNombre = cat['nombre']?.toString();
     }
-    // Extraer nombre del usuario creador
+    // Extraer nombre y avatar del usuario creador
     String? uNombre;
+    String? uAvatar;
     final u = map['usuario'];
     if (u is Map) {
       uNombre = u['nombre']?.toString();
+      uAvatar = u['avatar_url']?.toString();
+    }
+
+    // Fix para URL del avatar del usuario
+    if (uAvatar != null && !uAvatar.startsWith('http')) {
+      final host = ApiService().apiHost;
+      if (uAvatar.startsWith('/')) {
+        uAvatar = host + uAvatar;
+      } else if (!uAvatar.startsWith('storage/')) {
+        uAvatar = '$host/storage/' + uAvatar;
+      } else {
+        uAvatar = '$host/' + uAvatar;
+      }
+    } else if (uAvatar != null && (uAvatar.contains('localhost') || uAvatar.contains('127.0.0.1'))) {
+      final host = ApiService().apiHost;
+      uAvatar = uAvatar.replaceFirst(RegExp(r'http://(localhost|127\.0\.0\.1)(:\d+)?'), host);
     }
     
     // Parsear características (backend devuelve lista de objetos [{clave: '...', valor: '...'}])
@@ -156,6 +175,7 @@ class ReporteModel {
       prioridad: map['prioridad']?.toString(),
       vistas: map['vistas'] is int ? map['vistas'] : int.tryParse(map['vistas']?.toString() ?? ''),
       fechaPerdida: map['fecha_perdida']?.toString(),
+      avatarUsuario: uAvatar,
       caracteristicas: chars,
       recompensa: _parseDouble(map['recompensa']),
       createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at'].toString()) : null,

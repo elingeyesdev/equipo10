@@ -18,6 +18,7 @@ import 'viewmodels/notificaciones_viewmodel.dart';
 import 'services/auth_service.dart';
 import 'views/auth/login_view.dart';
 import 'views/feed/feed_view.dart';
+import 'views/home/home_view.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,7 +78,7 @@ class _AuthGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (hasToken) {
-      return const FeedView();
+      return const HomeView();
     }
     return const LoginView();
   }
