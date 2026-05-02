@@ -372,5 +372,44 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Subir avatar directamente para el usuario
+     */
+    public function subirAvatarDirecto(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|exists:usuarios,id',
+            'avatar' => 'required|image|max:5120', // Max 5MB
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $usuario = Usuario::findOrFail($request->id);
+            $file = $request->file('avatar');
+            $path = $file->store('avatares', 'public');
+            
+            $usuario->avatar_url = $path;
+            $usuario->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Avatar actualizado correctamente',
+                'avatar_url' => asset('storage/' . $path)
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al procesar el avatar',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
 

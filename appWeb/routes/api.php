@@ -30,6 +30,8 @@ Route::prefix('auth')->group(function () {
     Route::put('notificaciones/{usuarioId}', [AuthController::class, 'actualizarNotificaciones']);
 });
 
+Route::post('subir-avatar-directo', [AuthController::class, 'subirAvatarDirecto']);
+
 // ============================================
 // CATEGORÍAS
 // ============================================

@@ -225,9 +225,9 @@ class Reporte extends Model
     {
         $primeraImagen = $this->imagenes()->first();
         if ($primeraImagen) {
-            return asset('storage/' . $primeraImagen->ruta);
+            return $primeraImagen->url;
         }
-        return asset('images/placeholder-reporte.png');
+        return 'images/placeholder-reporte.png';
     }
 
     public function marcarComoResuelto()
