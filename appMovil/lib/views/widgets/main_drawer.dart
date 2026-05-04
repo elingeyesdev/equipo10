@@ -3,6 +3,7 @@ import '../feed/feed_view.dart';
 import '../home/home_view.dart';
 import '../perfil/perfil_view.dart';
 import '../about/about_view.dart';
+import '../../theme/app_theme.dart';
 
 class MainDrawer extends StatelessWidget {
   const MainDrawer({super.key});
@@ -13,8 +14,14 @@ class MainDrawer extends StatelessWidget {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          const DrawerHeader(
-            decoration: BoxDecoration(color: Color(0xFF1B5E20)),
+          DrawerHeader(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppTheme.primary, AppTheme.primaryLight],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,

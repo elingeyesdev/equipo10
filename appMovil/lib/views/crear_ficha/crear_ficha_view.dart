@@ -6,6 +6,7 @@ import '../../models/campos_categoria.dart';
 import '../../viewmodels/crear_ficha_viewmodel.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import 'lpp_picker_view.dart';
+import '../../theme/app_theme.dart';
 
 class CrearFichaView extends StatefulWidget {
   const CrearFichaView({super.key});
@@ -125,7 +126,7 @@ class _CrearFichaViewState extends State<CrearFichaView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('¡Reporte publicado exitosamente!'),
-          backgroundColor: Color(0xFF1B5E20),
+          backgroundColor: AppTheme.primary,
         ),
       );
       setState(() {
@@ -408,13 +409,13 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: vm.latitudLPP != null
-                                ? const Color(0xFFE8F5E9)
+                                ? AppTheme.primary.withValues(alpha: 0.06)
                                 : const Color(0xFFE3F2FD),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: vm.latitudLPP != null
-                                  ? const Color(0xFF4CAF50)
-                                  : const Color(0xFF00BCD4),
+                                  ? AppTheme.success
+                                  : AppTheme.info,
                             ),
                           ),
                           child: Row(
@@ -422,8 +423,8 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                               Icon(
                                 Icons.map_outlined,
                                 color: vm.latitudLPP != null
-                                    ? const Color(0xFF1B5E20)
-                                    : const Color(0xFF00BCD4),
+                                    ? AppTheme.primary
+                                    : AppTheme.info,
                               ),
                               const SizedBox(width: 10),
                               Expanded(
@@ -433,15 +434,15 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                                       : 'Toca aquí para marcar la ubicación en el mapa',
                                   style: TextStyle(
                                     color: vm.latitudLPP != null
-                                        ? const Color(0xFF1B5E20)
-                                        : const Color(0xFF0277BD),
+                                        ? AppTheme.primary
+                                        : AppTheme.primaryLight,
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),
                               if (vm.latitudLPP != null)
-                                const Icon(Icons.check_circle, color: Color(0xFF4CAF50)),
+                                const Icon(Icons.check_circle, color: AppTheme.success),
                             ],
                           ),
                         ),
@@ -470,7 +471,7 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF1B5E20),
+                                  backgroundColor: AppTheme.primary,
                                   foregroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12)),
@@ -502,14 +503,14 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: const Color(0xFF1B5E20), size: 20),
+        Icon(icon, color: AppTheme.primary, size: 20),
         const SizedBox(width: 8),
         Text(
           label,
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1B5E20),
+            color: AppTheme.primary,
           ),
         ),
       ],
@@ -613,10 +614,10 @@ class _CampoDinamico extends StatelessWidget {
               title: Text(campo.etiqueta,
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               secondary: campo.icono != null
-                  ? Icon(campo.icono, color: const Color(0xFF1B5E20))
+                  ? Icon(campo.icono, color: AppTheme.primary)
                   : null,
               value: switchValue ?? false,
-              activeColor: const Color(0xFF1B5E20),
+              activeColor: AppTheme.primary,
               onChanged: onSwitchChanged,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12),
             ),
@@ -654,7 +655,7 @@ class _ImagePickerSection extends StatelessWidget {
             duration: const Duration(milliseconds: 300),
             height: tieneImagen ? 280 : 200,
             width: double.infinity,
-            decoration: const BoxDecoration(color: Color(0xFFE8F5E9)),
+            decoration: BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.06)),
             child: tieneImagen && imageBytes != null
                 ? Image.memory(
                     imageBytes! as dynamic,
@@ -674,14 +675,14 @@ class _ImagePickerSection extends StatelessWidget {
                         child: const Icon(
                           Icons.add_photo_alternate_outlined,
                           size: 48,
-                          color: Color(0xFF1B5E20),
+                          color: AppTheme.primary,
                         ),
                       ),
                       const SizedBox(height: 12),
                       const Text(
                         'Toca para agregar una foto',
                         style: TextStyle(
-                          color: Color(0xFF1B5E20),
+                          color: AppTheme.primary,
                           fontWeight: FontWeight.w600,
                           fontSize: 15,
                         ),
@@ -733,3 +734,4 @@ class _ImagePickerSection extends StatelessWidget {
     );
   }
 }
+

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import 'register_view.dart';
 import '../home/home_view.dart';
+import '../../theme/app_theme.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -79,7 +80,7 @@ class _LoginViewState extends State<LoginView> {
                   style: TextStyle(
                     fontSize: 34,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1B5E20),
+                    color: AppTheme.primary,
                     letterSpacing: 1.5,
                   ),
                 ),
@@ -88,7 +89,7 @@ class _LoginViewState extends State<LoginView> {
                   'Búsqueda y Rescate',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF00BCD4),
+                    color: AppTheme.primaryLight,
                     letterSpacing: 2,
                     fontWeight: FontWeight.w500,
                   ),
@@ -150,7 +151,7 @@ class _LoginViewState extends State<LoginView> {
                   },
                   child: const Text(
                     '¿No tienes cuenta? Regístrate aquí',
-                    style: TextStyle(color: Color(0xFF00BCD4)),
+                    style: TextStyle(color: AppTheme.primaryLight),
                   ),
                 ),
               ],

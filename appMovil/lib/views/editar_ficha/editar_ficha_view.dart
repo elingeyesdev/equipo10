@@ -5,6 +5,7 @@ import '../../models/reporte_model.dart';
 import '../../models/campo_categoria_model.dart';
 import '../../models/campos_categoria.dart';
 import '../../viewmodels/editar_ficha_viewmodel.dart';
+import '../../theme/app_theme.dart';
 
 class EditarFichaView extends StatefulWidget {
   final ReporteModel ficha;
@@ -142,7 +143,7 @@ class _EditarFichaViewState extends State<EditarFichaView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('¡Ficha actualizada exitosamente!'),
-          backgroundColor: Color(0xFF1B5E20),
+          backgroundColor: AppTheme.primary,
         ),
       );
       Navigator.of(context).pop(true);
@@ -342,7 +343,7 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF1B5E20),
+                                  backgroundColor: AppTheme.primary,
                                   foregroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
@@ -373,14 +374,14 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: const Color(0xFF1B5E20), size: 20),
+        Icon(icon, color: AppTheme.primary, size: 20),
         const SizedBox(width: 8),
         Text(
           label,
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1B5E20),
+            color: AppTheme.primary,
           ),
         ),
       ],
@@ -474,9 +475,9 @@ class _CampoDinamico extends StatelessWidget {
             ),
             child: SwitchListTile(
               title: Text(campo.etiqueta, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-              secondary: campo.icono != null ? Icon(campo.icono, color: const Color(0xFF1B5E20)) : null,
+              secondary: campo.icono != null ? Icon(campo.icono, color: AppTheme.primary) : null,
               value: switchValue ?? false,
-              activeColor: const Color(0xFF1B5E20),
+              activeColor: AppTheme.primary,
               onChanged: onSwitchChanged,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12),
             ),
@@ -520,7 +521,7 @@ class _ImagePickerSection extends StatelessWidget {
         fit: BoxFit.cover,
         width: double.infinity,
         errorBuilder: (_, __, ___) => const Center(
-          child: Icon(Icons.broken_image, size: 60, color: Color(0xFF4CAF50)),
+          child: Icon(Icons.broken_image, size: 60, color: AppTheme.success),
         ),
       );
     } else {
@@ -533,10 +534,10 @@ class _ImagePickerSection extends StatelessWidget {
               color: const Color(0xCCFFFFFF),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.add_photo_alternate_outlined, size: 48, color: Color(0xFF1B5E20)),
+            child: const Icon(Icons.add_photo_alternate_outlined, size: 48, color: AppTheme.primary),
           ),
           const SizedBox(height: 12),
-          const Text('Toca para agregar una foto', style: TextStyle(color: Color(0xFF1B5E20), fontWeight: FontWeight.w600)),
+          const Text('Toca para agregar una foto', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600)),
         ],
       );
     }
@@ -549,7 +550,7 @@ class _ImagePickerSection extends StatelessWidget {
             duration: const Duration(milliseconds: 300),
             height: tieneImagen ? 280 : 200,
             width: double.infinity,
-            color: const Color(0xFFE8F5E9),
+            color: AppTheme.primary.withValues(alpha: 0.06),
             child: imageContent,
           ),
         ),
@@ -588,3 +589,4 @@ class _ImagePickerSection extends StatelessWidget {
     );
   }
 }
+

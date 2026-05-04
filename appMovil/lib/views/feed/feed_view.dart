@@ -5,11 +5,8 @@ import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/feed_viewmodel.dart';
 import '../../viewmodels/notificaciones_viewmodel.dart';
 import '../../models/reporte_model.dart';
-import '../auth/login_view.dart';
-import '../notificaciones/notificaciones_view.dart';
-import '../crear_ficha/crear_ficha_view.dart';
 import '../detalle_ficha/detalle_ficha_view.dart';
-import '../widgets/main_drawer.dart';
+import '../../theme/app_theme.dart';
 
 class FeedView extends StatefulWidget {
   const FeedView({super.key});
@@ -36,57 +33,15 @@ class _FeedViewState extends State<FeedView> {
     super.dispose();
   }
 
-  Future<void> _onLogout() async {
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Cerrar sesión'),
-        content: const Text('¿Estás seguro de que deseas cerrar sesión?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD32F2F)),
-            child: const Text('Cerrar sesión', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmar != true) return;
-
-    final vm = context.read<AuthViewModel>();
-    await vm.logout();
-    if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginView()),
-      (_) => false,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final feedVm = context.watch<FeedViewModel>();
     final currentUserId = context.read<AuthViewModel>().currentUserId ?? '';
 
-    return TabBarView(
-      children: [
-        // ── Pestaña 1: Feed social completo ──────────────────
-        RefreshIndicator(
-          onRefresh: () => context.read<FeedViewModel>().cargarFichas(),
-          color: const Color(0xFF1B5E20),
-          child: _buildSocialFeed(feedVm, currentUserId),
-        ),
-        // ── Pestaña 2: Mis búsquedas ─────────────────────────
-        RefreshIndicator(
-          onRefresh: () => context.read<FeedViewModel>().cargarFichas(),
-          color: const Color(0xFF1B5E20),
-          child: _buildSimpleList(feedVm, currentUserId, showOnlyMine: true),
-        ),
-      ],
+    return RefreshIndicator(
+      onRefresh: () => context.read<FeedViewModel>().cargarFichas(),
+      color: AppTheme.primary,
+      child: _buildSocialFeed(feedVm, currentUserId),
     );
   }
 
@@ -124,7 +79,7 @@ class _FeedViewState extends State<FeedView> {
               onChanged: vm.actualizarQuery,
               decoration: InputDecoration(
                 hintText: 'Buscar por nombre, categoría...',
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF1B5E20)),
+                prefixIcon: const Icon(Icons.search, color: AppTheme.primary),
                 suffixIcon: vm.query.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
@@ -156,7 +111,7 @@ class _FeedViewState extends State<FeedView> {
                   Container(
                     width: 8,
                     height: 8,
-                    decoration: const BoxDecoration(color: Color(0xFF4CAF50), shape: BoxShape.circle),
+                    decoration: const BoxDecoration(color: AppTheme.success, shape: BoxShape.circle),
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -222,11 +177,11 @@ class _FeedViewState extends State<FeedView> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.near_me, color: Color(0xFF1B5E20), size: 18),
+                      const Icon(Icons.near_me, color: AppTheme.primary, size: 18),
                       const SizedBox(width: 6),
                       const Text(
                         'CERCA DE TI',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1B5E20), letterSpacing: 1.1),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primary, letterSpacing: 1.1),
                       ),
                       const Spacer(),
                       const Text('radio 5 km', style: TextStyle(fontSize: 11, color: Color(0xFF5F6368))),
@@ -288,34 +243,6 @@ class _FeedViewState extends State<FeedView> {
                 ),
               ),
       ],
-    );
-  }
-
-  // ── Lista simple (Mis Búsquedas) ────────────────────────────────────
-  Widget _buildSimpleList(FeedViewModel vm, String currentUserId, {bool showOnlyMine = false}) {
-    if (vm.isLoading) return const Center(child: CircularProgressIndicator());
-
-    final fichas = showOnlyMine ? vm.fichas.where((f) => f.creadoPor == currentUserId).toList() : vm.fichas;
-
-    if (fichas.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.search_off, size: 64, color: Color(0xFF4CAF50)),
-            const SizedBox(height: 12),
-            const Text('No tienes búsquedas activas', style: TextStyle(fontSize: 18, color: Color(0xFF5F6368))),
-            const SizedBox(height: 6),
-            const Text('Reporta un desaparecido tocando el botón +', style: TextStyle(color: Color(0xFF9E9E9E))),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      itemCount: fichas.length,
-      itemBuilder: (_, index) => _FichaCard(ficha: fichas[index], currentUserId: currentUserId),
     );
   }
 }
@@ -438,7 +365,7 @@ class _FichaCard extends StatelessWidget {
                               ),
                             ] else if (esCreador) ...[
                               const SizedBox(width: 6),
-                              const Icon(Icons.person_pin, size: 16, color: Color(0xFF1B5E20)),
+                              const Icon(Icons.person_pin, size: 16, color: AppTheme.primary),
                             ],
                           ],
                         ),
@@ -455,11 +382,11 @@ class _FichaCard extends StatelessWidget {
                             if (distanciaKm != null && distanciaKm! < double.infinity)
                               Row(
                                 children: [
-                                  const Icon(Icons.near_me, size: 12, color: Color(0xFF1B5E20)),
+                                  const Icon(Icons.near_me, size: 12, color: AppTheme.primary),
                                   const SizedBox(width: 2),
                                   Text(
                                     distanciaKm! < 1 ? '${(distanciaKm! * 1000).round()} m' : '${distanciaKm!.toStringAsFixed(1)} km',
-                                    style: const TextStyle(fontSize: 11, color: Color(0xFF1B5E20), fontWeight: FontWeight.bold),
+                                    style: const TextStyle(fontSize: 11, color: AppTheme.primary, fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               )
@@ -504,8 +431,8 @@ class _FichaImage extends StatelessWidget {
 
   Widget _placeholder() {
     return Container(
-      color: const Color(0xFFE8F5E9),
-      child: const Center(child: Icon(Icons.person_search, size: 40, color: Color(0xFF4CAF50))),
+      color: AppTheme.primary.withValues(alpha: 0.05),
+      child: const Center(child: Icon(Icons.person_search, size: 40, color: AppTheme.primaryLight)),
     );
   }
 }
@@ -520,9 +447,9 @@ class _EstadoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: isActive ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
+        color: isActive ? AppTheme.success.withValues(alpha: 0.1) : AppTheme.warning.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isActive ? const Color(0xFF4CAF50) : const Color(0xFFFF9800)),
+        border: Border.all(color: isActive ? AppTheme.success : AppTheme.warning),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -531,7 +458,7 @@ class _EstadoChip extends StatelessWidget {
             width: 6,
             height: 6,
             decoration: BoxDecoration(
-              color: isActive ? const Color(0xFF4CAF50) : const Color(0xFFFF9800),
+              color: isActive ? AppTheme.success : AppTheme.warning,
               shape: BoxShape.circle,
             ),
           ),
@@ -541,7 +468,7 @@ class _EstadoChip extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.bold,
-              color: isActive ? const Color(0xFF1B5E20) : const Color(0xFFE65100),
+              color: isActive ? AppTheme.success : const Color(0xFFE65100),
             ),
           ),
         ],

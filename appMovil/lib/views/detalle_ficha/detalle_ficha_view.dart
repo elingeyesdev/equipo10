@@ -14,6 +14,7 @@ import '../mapa/mapa_operativo_view.dart';
 import '../panel_control/panel_control_view.dart';
 import '../tracking/tracking_view.dart';
 import '../widgets/full_screen_image_view.dart';
+import '../../theme/app_theme.dart';
 
 class DetalleFichaView extends StatefulWidget {
   final String fichaId;
@@ -55,7 +56,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
             ? (vm.successMessage ?? '¡Te uniste a la búsqueda!')
             : (vm.errorMessage ?? 'Error al unirse.')),
         backgroundColor:
-            success ? const Color(0xFF1B5E20) : Colors.red.shade700,
+            success ? AppTheme.primary : Colors.red.shade700,
       ),
     );
   }
@@ -104,7 +105,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
       messenger.showSnackBar(
         const SnackBar(
           content: Text('Ficha eliminada.'),
-          backgroundColor: Color(0xFF1B5E20),
+          backgroundColor: AppTheme.primary,
         ),
       );
       nav.pop(true);
@@ -223,10 +224,10 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0x1A1B5E20),
+                            color: AppTheme.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                             border:
-                                Border.all(color: const Color(0xFF1B5E20)),
+                                Border.all(color: AppTheme.primary),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -238,13 +239,13 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                                   backgroundColor: Colors.transparent,
                                 ),
                               ] else
-                                const Icon(Icons.person, size: 14, color: Color(0xFF1B5E20)),
+                                const Icon(Icons.person, size: 14, color: AppTheme.primary),
                               const SizedBox(width: 4),
                               const Text(
                                 'Tú creaste esta búsqueda',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Color(0xFF1B5E20),
+                                  color: AppTheme.primary,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -269,7 +270,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                     height: 3,
                     width: 40,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00BCD4),
+                      color: AppTheme.info,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -317,7 +318,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                         decoration: BoxDecoration(
                           color: const Color(0xFFE3F2FD),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFF00BCD4), width: 1.5),
+                          border: Border.all(color: AppTheme.info, width: 1.5),
                         ),
                         clipBehavior: Clip.hardEdge,
                         child: Stack(
@@ -360,12 +361,12 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.map, color: Color(0xFF00BCD4)),
+                                    Icon(Icons.map, color: AppTheme.info),
                                     SizedBox(width: 8),
                                     Text(
                                       'Ver Mapa de Cuadrantes',
                                       style: TextStyle(
-                                        color: Color(0xFF0277BD),
+                                        color: AppTheme.primaryLight,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -413,7 +414,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
               icon: const Icon(Icons.admin_panel_settings_outlined),
               label: const Text('Ir al Panel de Control de la búsqueda'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1B5E20),
+                backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
@@ -439,20 +440,20 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
             width: double.infinity,
             height: 50,
             decoration: BoxDecoration(
-              color: const Color(0xFFE8F5E9),
+              color: AppTheme.primary.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF4CAF50)),
+              border: Border.all(color: AppTheme.success),
             ),
             child: const Center(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.check_circle, color: Color(0xFF1B5E20)),
+                  Icon(Icons.check_circle, color: AppTheme.primary),
                   SizedBox(width: 8),
                   Text(
                     'Ya estás participando en esta búsqueda',
                     style: TextStyle(
-                      color: Color(0xFF1B5E20),
+                      color: AppTheme.primary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -467,7 +468,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
             child: ElevatedButton.icon(
               onPressed: ficha == null ? null : () => _onIniciarBusqueda(ficha),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1B5E20),
+                backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
@@ -489,7 +490,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
       child: ElevatedButton.icon(
         onPressed: vm.isLoading ? null : _onUnirse,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF00BCD4),
+          backgroundColor: AppTheme.info,
           foregroundColor: Colors.white,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -663,12 +664,12 @@ class _HeroImage extends StatelessWidget {
   Widget _placeholder() {
     return Container(
       height: 240,
-      color: const Color(0xFFE8F5E9),
+      color: AppTheme.primary.withValues(alpha: 0.06),
       width: double.infinity,
       child: const Icon(
         Icons.person_search,
         size: 80,
-        color: Color(0xFF4CAF50),
+        color: AppTheme.primaryLight,
       ),
     );
   }
@@ -686,8 +687,8 @@ class _EstadoBadge extends StatelessWidget {
     Color border;
 
     if (isActive) {
-      bg = const Color(0xFFE8F5E9);
-      border = const Color(0xFF4CAF50);
+      bg = AppTheme.primary.withValues(alpha: 0.06);
+      border = AppTheme.success;
     } else if (estado.toLowerCase() == 'pausado') {
       bg = const Color(0xFFFFF3E0);
       border = const Color(0xFFFF9800);
@@ -819,9 +820,9 @@ class _InfoSection extends StatelessWidget {
                   }
 
                   return Chip(
-                    avatar: Icon(icono, size: 16, color: const Color(0xFF1B5E20)),
+                    avatar: Icon(icono, size: 16, color: AppTheme.primary),
                     label: Text('$etiqueta: $valorStr'),
-                    backgroundColor: const Color(0xFFE8F5E9),
+                    backgroundColor: AppTheme.primary.withValues(alpha: 0.06),
                     side: BorderSide.none,
                     labelStyle: const TextStyle(fontSize: 13, color: Color(0xFF1A1A1A)),
                   );
@@ -854,7 +855,7 @@ class _MiniCard extends StatelessWidget {
   final String value;
   final Color color;
 
-  const _MiniCard({required this.icon, required this.label, required this.value, this.color = const Color(0xFF0277BD)});
+  const _MiniCard({required this.icon, required this.label, required this.value, this.color = AppTheme.primaryLight});
 
   @override
   Widget build(BuildContext context) {
@@ -905,3 +906,4 @@ class _ContactRow extends StatelessWidget {
     );
   }
 }
+

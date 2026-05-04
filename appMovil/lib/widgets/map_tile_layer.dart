@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../theme/app_theme.dart';
 
 /// Un widget reutilizable que proporciona la capa base del mapa.
 /// [useSatellite] = true → Mapbox Satellite-Streets (requiere token en .env)
@@ -49,7 +50,7 @@ class MapLayerToggleButton extends StatelessWidget {
     return FloatingActionButton.extended(
       heroTag: heroTag,
       backgroundColor: Colors.white,
-      foregroundColor: const Color(0xFF1B5E20),
+      foregroundColor: AppTheme.primary,
       elevation: 4,
       label: Text(
         useSatellite ? 'Callejero' : 'Satélite',

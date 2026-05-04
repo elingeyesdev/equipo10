@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/perfil_viewmodel.dart';
+import '../../theme/app_theme.dart';
 
 class TuActividadView extends StatefulWidget {
   const TuActividadView({super.key});
@@ -87,7 +88,7 @@ class _TuActividadViewState extends State<TuActividadView> {
                   if (!mounted) return;
                   if (success) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Habilidad agregada.'), backgroundColor: Color(0xFF1B5E20)),
+                      const SnackBar(content: Text('Habilidad agregada.'), backgroundColor: AppTheme.primary),
                     );
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -95,7 +96,7 @@ class _TuActividadViewState extends State<TuActividadView> {
                     );
                   }
                 },
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
                 child: const Text('Agregar'),
               ),
             ],
@@ -179,7 +180,7 @@ class _TuActividadViewState extends State<TuActividadView> {
                 ),
                 IconButton(
                   onPressed: () => _mostrarDialogoAgregarHabilidad(context),
-                  icon: const Icon(Icons.add_circle, color: Color(0xFF1B5E20)),
+                  icon: const Icon(Icons.add_circle, color: AppTheme.primary),
                   tooltip: 'Añadir habilidad',
                 )
               ],
@@ -213,9 +214,9 @@ class _TuActividadViewState extends State<TuActividadView> {
                 children: perfil.habilidades.map((hab) {
                   return Chip(
                     label: Text(hab),
-                    backgroundColor: const Color(0xFFE8F5E9),
-                    labelStyle: const TextStyle(color: Color(0xFF1B5E20), fontWeight: FontWeight.bold),
-                    deleteIconColor: const Color(0xFF1B5E20),
+                    backgroundColor: AppTheme.primary.withValues(alpha: 0.08),
+                    labelStyle: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
+                    deleteIconColor: AppTheme.primary,
                     onDeleted: () async {
                       final confirm = await showDialog<bool>(
                         context: context,

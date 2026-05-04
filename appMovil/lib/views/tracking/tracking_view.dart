@@ -6,6 +6,7 @@ import '../../models/reporte_model.dart';
 import '../../viewmodels/tracking_viewmodel.dart';
 import '../../widgets/map_tile_layer.dart';
 import '../../widgets/lpp_marker.dart';
+import '../../theme/app_theme.dart';
 
 class TrackingView extends StatefulWidget {
   final ReporteModel ficha;
@@ -73,7 +74,7 @@ class _TrackingViewState extends State<TrackingView> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop('terminar'),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
             child: const Text('Terminar', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -95,7 +96,7 @@ class _TrackingViewState extends State<TrackingView> {
           content: Text(ok
               ? '¡Recorrido guardado! Otros voluntarios ya pueden verlo.'
               : 'Recorrido terminado localmente (sin conexión).'),
-          backgroundColor: ok ? const Color(0xFF1B5E20) : Colors.orange,
+          backgroundColor: ok ? AppTheme.success : Colors.orange,
         ));
         Navigator.of(context).pop(true);
       }
@@ -111,7 +112,7 @@ class _TrackingViewState extends State<TrackingView> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(children: [
-          Icon(Icons.flag, color: Color(0xFF1B5E20)),
+          Icon(Icons.flag, color: AppTheme.primary),
           SizedBox(width: 8),
           Text('Terminar búsqueda'),
         ]),
@@ -125,7 +126,7 @@ class _TrackingViewState extends State<TrackingView> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
             child: const Text('Terminar', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -140,7 +141,7 @@ class _TrackingViewState extends State<TrackingView> {
       content: Text(ok
           ? '¡Recorrido guardado! Otros voluntarios ya pueden verlo.'
           : 'Recorrido terminado localmente (sin conexión).'),
-      backgroundColor: ok ? const Color(0xFF1B5E20) : Colors.orange,
+      backgroundColor: ok ? AppTheme.success : Colors.orange,
     ));
     Navigator.of(context).pop(true);
   }
@@ -159,7 +160,15 @@ class _TrackingViewState extends State<TrackingView> {
       child: Scaffold(
         backgroundColor: const Color(0xFF0D1117),
         appBar: AppBar(
-          backgroundColor: const Color(0xFF1B5E20),
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppTheme.primary, AppTheme.primaryLight],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
           foregroundColor: Colors.white,
           title: const Text('Búsqueda en Curso'),
           leading: IconButton(
@@ -199,7 +208,7 @@ class _TrackingViewState extends State<TrackingView> {
                     label: const Text('Reanudar', style: TextStyle(fontSize: 13)),
                     onPressed: () => vm.reanudarBusqueda(),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4CAF50),
+                      backgroundColor: AppTheme.success,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -242,7 +251,7 @@ class _TrackingViewState extends State<TrackingView> {
                   PolylineLayer(polylines: [
                     Polyline(
                       points: polylinePoints,
-                      color: const Color(0xFF4CAF50),
+                      color: AppTheme.success,
                       strokeWidth: 4,
                     )
                   ]),
@@ -256,7 +265,7 @@ class _TrackingViewState extends State<TrackingView> {
                       height: 36,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1B5E20),
+                          color: AppTheme.primary,
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 3),
                           boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black38)],
@@ -300,7 +309,7 @@ class _TrackingViewState extends State<TrackingView> {
                 heroTag: 'btn_centrar_tracking',
                 mini: true,
                 backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFF1B5E20),
+                foregroundColor: AppTheme.primary,
                 onPressed: () {
                   _mapController.move(center, 16.0);
                 },
@@ -332,7 +341,7 @@ class _TrackingViewState extends State<TrackingView> {
                           height: 10,
                           decoration: BoxDecoration(
                             color: vm.estado == TrackingEstado.activo
-                                ? const Color(0xFF4CAF50)
+                                ? AppTheme.success
                                 : Colors.orange,
                             shape: BoxShape.circle,
                           ),
@@ -365,7 +374,7 @@ class _TrackingViewState extends State<TrackingView> {
                       child: ElevatedButton.icon(
                         onPressed: vm.isLoading ? null : _onTerminar,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1B5E20),
+                          backgroundColor: AppTheme.primary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12)),

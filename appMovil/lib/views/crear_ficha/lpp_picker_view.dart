@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
@@ -172,7 +173,7 @@ class _LPPPickerViewState extends State<LPPPickerView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1B5E20),
+        backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
         title: const Text('Indicar LPP', style: TextStyle(color: Colors.white)),
         actions: [
@@ -256,7 +257,7 @@ class _LPPPickerViewState extends State<LPPPickerView> {
                     decoration: InputDecoration(
                       hintText: 'Buscar lugar en Santa Cruz...',
                       hintStyle: const TextStyle(color: Colors.grey),
-                      prefixIcon: const Icon(Icons.search, color: Color(0xFF1B5E20)),
+                      prefixIcon: const Icon(Icons.search, color: AppTheme.primary),
                       suffixIcon: _buscando
                           ? const Padding(
                               padding: EdgeInsets.all(12),
@@ -265,7 +266,7 @@ class _LPPPickerViewState extends State<LPPPickerView> {
                                 height: 18,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Color(0xFF1B5E20),
+                                  color: AppTheme.primary,
                                 ),
                               ),
                             )
@@ -310,7 +311,7 @@ class _LPPPickerViewState extends State<LPPPickerView> {
                         return ListTile(
                           leading: const Icon(
                             Icons.place_outlined,
-                            color: Color(0xFF1B5E20),
+                            color: AppTheme.primary,
                           ),
                           title: Text(
                             s.nombre,
@@ -356,7 +357,7 @@ class _LPPPickerViewState extends State<LPPPickerView> {
                     margin: const EdgeInsets.only(top: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1B5E20).withOpacity(0.9),
+                      color: AppTheme.primary.withOpacity(0.9),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Row(

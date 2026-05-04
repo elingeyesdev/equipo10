@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import '../../theme/app_theme.dart';
 
 class AboutView extends StatefulWidget {
   const AboutView({super.key});
@@ -168,7 +169,7 @@ class _AboutViewState extends State<AboutView> {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1B5E20),
+                      color: AppTheme.primary,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -210,7 +211,7 @@ class _AboutViewState extends State<AboutView> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: const Color(0xFF00BCD4), size: 24),
+          Icon(icon, color: AppTheme.primaryLight, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

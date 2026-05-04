@@ -8,6 +8,7 @@ import '../../widgets/map_tile_layer.dart';
 import '../../widgets/lpp_marker.dart';
 import '../../models/cuadrante_model.dart';
 import '../../services/cuadrante_service.dart';
+import '../../theme/app_theme.dart';
 
 // Paleta de colores para los recorridos de distintos voluntarios
 const List<Color> _coloresVoluntarios = [
@@ -15,7 +16,7 @@ const List<Color> _coloresVoluntarios = [
   Color(0xFFFF9800), // naranja
   Color(0xFF9C27B0), // morado
   Color(0xFFE91E63), // rosa
-  Color(0xFF00BCD4), // cyan
+  AppTheme.info, // cyan
   Color(0xFF795548), // marrón
 ];
 
@@ -426,7 +427,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               const SizedBox(width: 10),
               Expanded(child: Text(_editandoPista ? 'Cambios guardados' : 'Nueva pista guardada')),
             ]),
-            backgroundColor: const Color(0xFF1B5E20),
+            backgroundColor: AppTheme.primary,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ));
@@ -599,7 +600,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                       style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
-                          color: Color(0xFF1B5E20))),
+                          color: AppTheme.primary)),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8, runSpacing: 8,
@@ -615,12 +616,12 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                                     : FontWeight.normal)),
                         selected: selected,
                         onSelected: (_) => setModalState(() => etiquetaLocal = label),
-                        selectedColor: const Color(0xFFB8F5C2),
-                        checkmarkColor: const Color(0xFF1B5E20),
+                        selectedColor: AppTheme.primaryLight.withValues(alpha: 0.2),
+                        checkmarkColor: AppTheme.primary,
                         backgroundColor: Colors.grey[100],
                         side: BorderSide(
                             color: selected
-                                ? const Color(0xFF1B5E20)
+                                ? AppTheme.primary
                                 : Colors.grey[300]!),
                       );
                     }).toList(),
@@ -636,7 +637,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey[300]!)),
                       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey[300]!)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF1B5E20))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.primary)),
                     ),
                     style: const TextStyle(fontSize: 13),
                     maxLines: 2,
@@ -668,7 +669,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                             _guardarPista();
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1B5E20),
+                            backgroundColor: AppTheme.primary,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10)),
@@ -873,8 +874,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             ),
 
           Positioned(
-            bottom: (_modoPista && _pinTemporal != null) ? 140 : 96,
-            right: 80,
+            bottom: 20,
+            left: 20,
             child: MapLayerToggleButton(
               heroTag: 'btn_toggle_operativo',
               useSatellite: _useSatellite,
@@ -889,7 +890,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               heroTag: 'btn_centrar_operativo',
               mini: true,
               backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF1B5E20),
+              foregroundColor: AppTheme.primary,
               onPressed: () => _mapController.move(_lpp!, 15.0),
               child: const Icon(Icons.my_location),
             ),
@@ -921,7 +922,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                             ? 'Aún no hay recorridos registrados en este operativo.'
                             : '${_recorridos.length} recorrido(s) de voluntarios registrado(s).',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1B5E20)),
+                        style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.primary),
                       ),
               ),
             ),
@@ -1028,7 +1029,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                 decoration: BoxDecoration(
                   color: (_editandoPista && _pistaEnEdicion?.id == 'LPP')
                       ? Colors.orange.withOpacity(0.95)
-                      : const Color(0xFF1B5E20).withOpacity(0.95),
+                      : AppTheme.primary.withOpacity(0.95),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: const [BoxShadow(blurRadius: 8, color: Colors.black38, offset: Offset(0, 4))],
                 ),
@@ -1065,7 +1066,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                             : _mostrarSelectorEtiqueta,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF1B5E20),
+                          foregroundColor: AppTheme.primary,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
                         ),
@@ -1136,7 +1137,7 @@ class _LeyendaRecorridos extends StatelessWidget {
                     Text(r.nombre, style: const TextStyle(fontSize: 11, color: Color(0xFF1A1A1A))),
                     const SizedBox(width: 4),
                     if (r.terminado)
-                      const Icon(Icons.check_circle, size: 11, color: Color(0xFF4CAF50))
+                      const Icon(Icons.check_circle, size: 11, color: AppTheme.success)
                     else
                       const Icon(Icons.radio_button_checked, size: 11, color: Colors.orange),
                   ],

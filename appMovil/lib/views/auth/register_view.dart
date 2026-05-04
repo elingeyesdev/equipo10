@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../home/home_view.dart';
+import '../../theme/app_theme.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -44,7 +45,7 @@ class _RegisterViewState extends State<RegisterView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('¡Cuenta creada exitosamente!'),
-          backgroundColor: Color(0xFF1B5E20),
+          backgroundColor: AppTheme.success,
         ),
       );
       Navigator.of(context).pushAndRemoveUntil(
@@ -83,7 +84,7 @@ class _RegisterViewState extends State<RegisterView> {
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1B5E20),
+                    color: AppTheme.primary,
                   ),
                 ),
                 const SizedBox(height: 6),

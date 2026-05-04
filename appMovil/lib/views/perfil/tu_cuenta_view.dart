@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/perfil_viewmodel.dart';
+import '../../theme/app_theme.dart';
 
 class TuCuentaView extends StatefulWidget {
   const TuCuentaView({super.key});
@@ -156,7 +157,7 @@ class _TuCuentaViewState extends State<TuCuentaView> with SingleTickerProviderSt
                           height: 50,
                           child: ElevatedButton(
                             onPressed: _guardarDatos,
-                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
+                            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
                             child: const Text('Guardar Datos', style: TextStyle(color: Colors.white, fontSize: 16)),
                           ),
                         ),
@@ -259,7 +260,7 @@ class _TuCuentaViewState extends State<TuCuentaView> with SingleTickerProviderSt
                           height: 50,
                           child: ElevatedButton(
                             onPressed: _cambiarPassword,
-                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
+                            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
                             child: const Text('Actualizar Contraseña', style: TextStyle(color: Colors.white, fontSize: 16)),
                           ),
                         ),

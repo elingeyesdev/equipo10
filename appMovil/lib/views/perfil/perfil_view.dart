@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../viewmodels/perfil_viewmodel.dart';
 import 'tu_cuenta_view.dart';
 import 'tu_actividad_view.dart';
+import '../../theme/app_theme.dart';
 
 class PerfilView extends StatefulWidget {
   const PerfilView({super.key});
@@ -64,7 +65,7 @@ class _PerfilViewState extends State<PerfilView> {
             width: double.infinity,
             padding: const EdgeInsets.only(bottom: 24, top: 24),
             decoration: const BoxDecoration(
-              color: Color(0xFF1B5E20),
+              color: AppTheme.primary,
               borderRadius: BorderRadius.only(
                 bottomLeft: Radius.circular(30),
                 bottomRight: Radius.circular(30),
@@ -84,11 +85,11 @@ class _PerfilViewState extends State<PerfilView> {
                                 width: 100,
                                 height: 100,
                                 fit: BoxFit.cover,
-                                errorWidget: (context, url, error) => const Icon(Icons.person, size: 50, color: Color(0xFF1B5E20)),
+                                errorWidget: (context, url, error) => const Icon(Icons.person, size: 50, color: AppTheme.primary),
                               )
                             : Text(
                                 perfil.nombreCompleto.isNotEmpty ? perfil.nombreCompleto[0].toUpperCase() : 'U',
-                                style: const TextStyle(fontSize: 40, color: Color(0xFF1B5E20), fontWeight: FontWeight.bold),
+                                style: const TextStyle(fontSize: 40, color: AppTheme.primary, fontWeight: FontWeight.bold),
                               ),
                       ),
                     ),
@@ -103,7 +104,7 @@ class _PerfilViewState extends State<PerfilView> {
                             color: Colors.white,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.camera_alt, size: 20, color: Color(0xFF1B5E20)),
+                          child: const Icon(Icons.camera_alt, size: 20, color: AppTheme.primary),
                         ),
                       ),
                     ),
@@ -187,10 +188,10 @@ class _MenuOption extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: const Color(0xFFE8F5E9),
+          color: AppTheme.primary.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon, color: const Color(0xFF1B5E20)),
+        child: Icon(icon, color: AppTheme.primary),
       ),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
       subtitle: Text(subtitle, style: const TextStyle(fontSize: 13)),
