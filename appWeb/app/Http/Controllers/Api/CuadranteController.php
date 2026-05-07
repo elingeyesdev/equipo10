@@ -162,9 +162,14 @@ class CuadranteController extends Controller
 
         try {
             $lat = $request->lat;
-            $lng = $request->lng;
-
-            $cuadranteEncontrado = Cuadrante::detectByLocation($lat, $lng);
+            // El método detectByLocation de la clase modelo probablemente hace el query.
+            // Necesitamos asegurarnos de que solo agarre los de null geometria.
+            $cuadranteEncontrado = Cuadrante::whereNull('geometria')
+                                            ->where('lat_min', '<=', $lat)
+                                            ->where('lat_max', '>=', $lat)
+                                            ->where('lng_min', '<=', $lng)
+                                            ->where('lng_max', '>=', $lng)
+                                            ->first();
 
             if (!$cuadranteEncontrado) {
                 return response()->json([
@@ -218,6 +223,7 @@ class CuadranteController extends Controller
                     [$lat, $lng, $lat]
                 )
                 ->where('activo', true)
+                ->whereNull('geometria')
                 ->orderBy('distancia')
                 ->limit(25)
                 ->with(['grupos', 'barrios'])
@@ -317,7 +323,9 @@ class CuadranteController extends Controller
     public function index()
     {
         try {
-            $cuadrantes = Cuadrante::with(['barrios', 'grupos'])->get();
+            // Solo retornar los cuadrantes originales (cuadrícula base)
+            $cuadrantes = Cuadrante::whereNull('geometria')
+                                   ->get();
             
             return response()->json([
                 'success' => true,

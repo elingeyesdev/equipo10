@@ -69,6 +69,7 @@ class _FeedViewState extends State<FeedView> {
     final todos = vm.fichasFiltradas;
 
     return CustomScrollView(
+      cacheExtent: 1000, // Optimización: mantiene más elementos en memoria para evitar lag gráfico
       slivers: [
         // ── Barra de búsqueda ──────────────────────────────────
         SliverToBoxAdapter(

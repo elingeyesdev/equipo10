@@ -10,11 +10,20 @@ class CuadranteWebController extends Controller
 {
     public function index()
     {
-        $cuadrantes = Cuadrante::withCount('reportes')
-            ->with('grupos')
+        $cuadrantesRaw = Cuadrante::withCount('reportes')
+            ->with(['grupos', 'barrios'])
+            ->whereNull('geometria') // Ignorar los dibujados manualmente
             ->orderBy('fila')
             ->orderBy('columna')
             ->get();
+
+        // Pre-procesar barrios para evitar conflicto entre el cast 'barrios' y la relación 'barrios'
+        $cuadrantes = $cuadrantesRaw->map(function ($c) {
+            $c->barrios_nombres = $c->getRelation('barrios')
+                ? $c->getRelation('barrios')->pluck('nombre_barrio')->toArray()
+                : [];
+            return $c;
+        });
             
         $grupos = \App\Models\Grupo::count();
 

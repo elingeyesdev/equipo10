@@ -307,7 +307,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                           MaterialPageRoute(
                             builder: (_) => MapaOperativoView(
                               ficha: ficha,
-                              esCreador: esCreador,
+                              esCreador: esCreador, // Verificamos que se pase el valor correcto
                             ),
                           ),
                         );

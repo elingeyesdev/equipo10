@@ -540,12 +540,17 @@ const LPP_LNG   = {{ (float) $reporte->ubicacion_exacta_lng }};
 const REPORTE_ID = "{{ $reporte->id }}";
 const FOTO_URL  = @if($reporte->imagenes->count() > 0) "{{ $reporte->imagenes->first()->url }}" @else null @endif;
 const TITULO    = @json($reporte->titulo);
-const PISTAS_BD = @json($pistas->map(fn($p) => [
-    'lat'      => (float) $p->ubicacion_lat,
-    'lng'      => (float) $p->ubicacion_lng,
-    'etiqueta' => $p->mensaje,
-    'fecha'    => $p->created_at->format('d/m/Y H:i'),
-]));
+@php
+    $pistasJs = $pistas->map(function($p) {
+        return [
+            'lat'      => (float) $p->ubicacion_lat,
+            'lng'      => (float) $p->ubicacion_lng,
+            'etiqueta' => $p->mensaje,
+            'fecha'    => $p->created_at ? $p->created_at->format('d/m/Y H:i') : '',
+        ];
+    });
+@endphp
+const PISTAS_BD = @json($pistasJs);
 
 // ─── Estado ───────────────────────────────────────────────────────────────────
 let mapPistas, modoPista = false, pinTemporal = null;

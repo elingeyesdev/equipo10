@@ -97,6 +97,13 @@ class ReporteController extends Controller
                 $cuadranteId = $cuadrante?->id;
             }
 
+            if (!$cuadranteId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La ubicación seleccionada está fuera de la zona de búsqueda permitida'
+                ], 422);
+            }
+
             // Obtener configuración de expansión
             $tiempoExpansion = ConfiguracionSistema::where('clave', 'tiempo_expansion_horas')->first();
             $horasExpansion = $tiempoExpansion ? (float)$tiempoExpansion->valor : 24;

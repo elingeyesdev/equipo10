@@ -181,6 +181,7 @@ class Cuadrante extends Model
                     $sq->where('lng_min', '>=', $lng)->where('lng_max', '<=', $lng);
                 });
             })
+            ->whereNull('geometria')
             ->get();
 
         if ($candidatos->isEmpty()) {

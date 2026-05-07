@@ -106,11 +106,11 @@ class ReporteModel {
       } else {
         primeraImg = '$host/' + primeraImg;
       }
-    } else if (primeraImg != null && (primeraImg.contains('localhost') || primeraImg.contains('127.0.0.1'))) {
-      // Si el backend devolvió localhost/127.0.0.1 pero la app está usando otra IP
+    } else if (primeraImg != null) {
+      // Si el backend devolvió una IP vieja o localhost pero la app está usando otra IP
       final host = ApiService().apiHost;
-      // Reemplazamos el origen completo (protocolo + host + puerto si existe)
-      primeraImg = primeraImg.replaceFirst(RegExp(r'http://(localhost|127\.0\.0\.1)(:\d+)?'), host);
+      // Reemplazamos cualquier IP o localhost en la URL por el host actual del API
+      primeraImg = primeraImg.replaceFirst(RegExp(r'http://[0-9a-zA-Z\.]+(:[0-9]+)?'), host);
     }
     // Extraer nombre de categoría del objeto anidado
     String? catNombre;
@@ -137,9 +137,10 @@ class ReporteModel {
       } else {
         uAvatar = '$host/' + uAvatar;
       }
-    } else if (uAvatar != null && (uAvatar.contains('localhost') || uAvatar.contains('127.0.0.1'))) {
+    } else if (uAvatar != null) {
       final host = ApiService().apiHost;
-      uAvatar = uAvatar.replaceFirst(RegExp(r'http://(localhost|127\.0\.0\.1)(:\d+)?'), host);
+      // Reemplazamos cualquier IP o localhost en la URL por el host actual del API
+      uAvatar = uAvatar.replaceFirst(RegExp(r'http://[0-9a-zA-Z\.]+(:[0-9]+)?'), host);
     }
     
     // Parsear características (backend devuelve lista de objetos [{clave: '...', valor: '...'}])

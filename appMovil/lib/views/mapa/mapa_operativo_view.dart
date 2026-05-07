@@ -24,7 +24,6 @@ const List<Color> _coloresVoluntarios = [
 // esa etiqueta es exclusiva del punto original LPP y no se puede reasignar)
 const List<Map<String, String>> _etiquetasPista = [
   {'emoji': '🔍', 'label': 'Nueva pista'},
-  {'emoji': '✅', 'label': 'Avistamiento confirmado'},
   {'emoji': '📡', 'label': 'Última señal'},
   {'emoji': '⚠️', 'label': 'Zona de interés'},
 ];
@@ -173,39 +172,89 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     if (_cuadrantes.isEmpty) return;
     
     setState(() {
-      _cachedPolygons = _cuadrantes.map((c) {
+      final List<Polygon> finalPolygons = [];
+      const double radioGrados = 0.0009; // Mismo tamaño que en la web
+
+      // 1. Dibujar la cuadrícula base
+      for (var c in _cuadrantes) {
         final points = _cuadrantePoints[c.id];
-        if (points == null || points.isEmpty) return null;
+        if (points == null || points.isEmpty) continue;
 
-        // Determinar si debe ser rojo
         bool esOficial = widget.ficha.cuadranteId != null && widget.ficha.cuadranteId == c.id;
-        bool contieneLPP = _lpp != null && _puntoEnPoligono(_lpp!, points);
-        bool tienePista = _pistas.any((p) => p.cuadranteId == c.id);
-        bool esTemporal = _cuadranteTemporal?.id == c.id;
+        
+        // Rejilla base (MÁS FUERTE como pidió el usuario)
+        finalPolygons.add(Polygon(
+          points: points,
+          color: Colors.transparent, // NUNCA rellenar de azul
+          borderColor: Colors.blue.withOpacity(0.5), // Azul más fuerte y visible
+          borderStrokeWidth: esOficial ? 2.5 : 1.5, // El oficial tiene un borde ligeramente más firme
+        ));
+      }
 
-        // Prioridad: Si tiene pistas, es el oficial, o es donde cae el LPP (si no hay oficial)
-        bool resaltar = esOficial || tienePista || esTemporal || (widget.ficha.cuadranteId == null && contieneLPP);
+      // 2. Dibujar mini-cuadrantes verdes alrededor de CADA punto (LPP, Pistas y Pin Temporal)
+      // Esto es lo único que debe resaltar la zona según el usuario
+      const double radioMini = 0.0008; // Tamaño DOBLE como pidió el usuario
+      final List<LatLng> puntosDeInteres = [];
+      
+      if (_lpp != null) puntosDeInteres.add(_lpp!);
+      for (var p in _pistas) {
+        puntosDeInteres.add(p.punto);
+      }
+      
+      // TAMBIÉN dibujamos el verde para el pin que se está moviendo o creando
+      if (_pinTemporal != null) {
+        puntosDeInteres.add(_pinTemporal!);
+      }
 
-        if (resaltar) {
-          return Polygon(
-            points: points,
-            color: Colors.red.withOpacity(0.25),
-            borderColor: Colors.red.shade900,
-            borderStrokeWidth: (esOficial || esTemporal) ? 4.0 : 2.5,
-          );
-        } else {
-          return Polygon(
-            points: points,
-            color: Colors.blue.withOpacity(0.08),
-            borderColor: Colors.blue.withOpacity(0.5),
-            borderStrokeWidth: 1.2,
-          );
-        }
-      }).whereType<Polygon>().toList();
+      for (var pt in puntosDeInteres) {
+        finalPolygons.add(Polygon(
+          points: [
+            LatLng(pt.latitude - radioMini, pt.longitude - radioMini),
+            LatLng(pt.latitude - radioMini, pt.longitude + radioMini),
+            LatLng(pt.latitude + radioMini, pt.longitude + radioMini),
+            LatLng(pt.latitude + radioMini, pt.longitude - radioMini),
+          ],
+          color: const Color(0xFF10B981).withOpacity(0.4), // Verde sólido
+          borderColor: const Color(0xFF059669),
+          borderStrokeWidth: 3.0,
+        ));
+      }
+
+      _cachedPolygons = finalPolygons;
     });
   }
 
+  CuadranteModel? _encontrarCuadranteLocal(double lat, double lng) {
+    for (var c in _cuadrantes) {
+      // Prioridad 1: Geometría compleja (si existe)
+      if (_cuadrantePoints.containsKey(c.id)) {
+        if (_puntoEnPoligono(LatLng(lat, lng), _cuadrantePoints[c.id]!)) {
+          return c;
+        }
+      } 
+      // Prioridad 2: Bounding box (Rejilla base)
+      else if (c.latMin != null && c.latMax != null && c.lngMin != null && c.lngMax != null) {
+        if (lat >= c.latMin! && lat <= c.latMax! && lng >= c.lngMin! && lng <= c.lngMax!) {
+          return c;
+        }
+      }
+    }
+    return null;
+  }
+
   Future<void> _detectarCuadranteTemporal(double lat, double lng) async {
+    // Primero intentamos detección local (Instantánea y sin internet)
+    final localMatch = _encontrarCuadranteLocal(lat, lng);
+    
+    if (localMatch != null) {
+      setState(() {
+        _cuadranteTemporal = localMatch;
+        _actualizarCachePoligonos();
+      });
+      return;
+    }
+
+    // Fallback a la API si lo local falla (para mayor seguridad)
     final res = await _cuadranteService.detectarCuadrante(lat, lng);
     if (mounted) {
       setState(() {
@@ -355,6 +404,26 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
 
   Future<void> _guardarPista() async {
     if (_pinTemporal == null) return;
+
+    // VALIDACIÓN DE SEGURIDAD: No permitir puntos fuera de la zona de búsqueda
+    if (_cuadranteTemporal == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.white),
+              SizedBox(width: 10),
+              Expanded(child: Text('Ubicación fuera de límites. Debes colocar el punto dentro de la zona de cuadrantes.')),
+            ],
+          ),
+          backgroundColor: Colors.red.shade800,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
+      }
+      return;
+    }
+
     setState(() => _guardandoPista = true);
     try {
       final userId = await _api.getCurrentUserId();
@@ -525,10 +594,9 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   Color _getColorParaEtiqueta(String etiqueta) {
     switch (etiqueta) {
       case 'Visto por última vez': return Colors.purple;
-      case 'Nueva pista': return Colors.blueGrey;
-      case 'Avistamiento confirmado': return Colors.green;
-      case 'Última señal': return Colors.blue;
-      case 'Zona de interés': return Colors.orange;
+      case 'Nueva pista': return Colors.grey;
+      case 'Última señal': return Colors.white;
+      case 'Zona de interés': return Colors.yellow;
       default: return const Color(0xFFF59E0B);
     }
   }
@@ -788,7 +856,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
         title: const Text('Mapa Operativo'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, size: 24),
+            tooltip: 'Recargar página',
             onPressed: () {
               _cargarCuadrantes();
               _cargarPistas();
@@ -796,9 +865,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             },
           ),
           if (widget.esCreador)
-            IconButton(
-              icon: Icon(_modoPista ? Icons.close : Icons.add_location_alt, 
-                        color: _modoPista ? Colors.red : null),
+            TextButton.icon(
               onPressed: () => setState(() {
                 _modoPista = !_modoPista;
                 if (!_modoPista) { 
@@ -807,6 +874,10 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                   _actualizarCachePoligonos(); 
                 }
               }),
+              icon: Icon(_modoPista ? Icons.close : Icons.add_location_alt, 
+                        color: _modoPista ? Colors.red : Colors.white),
+              label: Text(_modoPista ? 'Cerrar' : 'Añadir', 
+                         style: TextStyle(color: _modoPista ? Colors.red : Colors.white, fontWeight: FontWeight.bold)),
             ),
         ],
       ),
@@ -990,27 +1061,48 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                           style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500),
                         ),
                         if (widget.esCreador)
-                          Row(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit_location_alt, size: 18, color: Color(0xFF2196F3)),
-                                onPressed: () => _iniciarEdicionPista(_pistaTooltip!),
-                                tooltip: 'Mover/Editar',
-                                constraints: const BoxConstraints(),
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                              ),
-                              if (_pistaTooltip!.id != 'LPP')
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
-                                  onPressed: () => _confirmarEliminarPista(_pistaTooltip!),
-                                  tooltip: 'Eliminar',
-                                  constraints: const BoxConstraints(),
-                                  padding: EdgeInsets.zero,
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Wrap(
+                              alignment: WrapAlignment.end,
+                              spacing: 4,
+                              children: [
+                                // Botón MOVER (Para todos)
+                                TextButton.icon(
+                                  onPressed: () => _iniciarEdicionPista(_pistaTooltip!),
+                                  icon: const Icon(Icons.move_down, size: 16),
+                                  label: const Text('Mover', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: const Color(0xFF2196F3),
+                                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
                                 ),
-                            ],
+                                // Botón ELIMINAR (Solo si NO es el original LPP)
+                                if (_pistaTooltip!.id != 'LPP')
+                                  TextButton.icon(
+                                    onPressed: () => _confirmarEliminarPista(_pistaTooltip!),
+                                    icon: const Icon(Icons.delete_outline, size: 16),
+                                    label: const Text('Eliminar', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.redAccent,
+                                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                                      minimumSize: Size.zero,
+                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                  ),
+                              ],
+                            ),
                           )
                         else
-                          const Icon(Icons.arrow_forward_ios, size: 10, color: Colors.grey),
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8.0),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Icon(Icons.arrow_forward_ios, size: 10, color: Colors.grey),
+                            ),
+                          ),
                       ],
                     ),
                   ],

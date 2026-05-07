@@ -502,8 +502,7 @@
                 <div class="map-container" style="height: 80vh;">
                     <div id="map"></div>
                     
-                    
-                    <div class="map-controls d-none d-md-block">
+                                    <div class="map-controls d-none d-md-block">
                         <h6><i class="bi bi-layers"></i> Capas y Filtros</h6>
                         
                         <div class="form-check form-switch mb-2">
@@ -513,12 +512,17 @@
                             </label>
                         </div>
                         
-
-
                         <div class="form-check form-switch mb-2">
                             <input class="form-check-input" type="checkbox" id="showResueltos" checked onchange="toggleLayer('resueltos')">
                             <label class="form-check-label text-primary" for="showResueltos">
                                 <i class="bi bi-check-all"></i> Resueltos (<span id="countResueltos">0</span>)
+                            </label>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="showCuadricula" checked onchange="toggleLayer('cuadricula')">
+                            <label class="form-check-label text-secondary" for="showCuadricula">
+                                <i class="bi bi-grid-3x3"></i> Cuadrícula Base
                             </label>
                         </div>
                     </div>
@@ -563,13 +567,7 @@
     
     // Datos de cuadrantes desde PHP (Base de Datos)
     const cuadrantesData = {!! json_encode($cuadrantes->map(function($c) {
-        $barrios = $c->barrios;
-        if (is_string($barrios)) {
-            $barrios = json_decode($barrios, true) ?? [];
-        }
-        if (!is_array($barrios)) {
-            $barrios = [];
-        }
+        $barrios = $c->barrios_nombres ?? [];
         
         return [
             'id' => $c->id,
@@ -581,6 +579,7 @@
             'lat_max' => (float)$c->lat_max,
             'lng_min' => (float)$c->lng_min,
             'lng_max' => (float)$c->lng_max,
+            'geometria' => $c->geometria ? json_decode($c->geometria) : null,
             'centro_lat' => (float)(($c->lat_min + $c->lat_max) / 2),
             'centro_lng' => (float)(($c->lng_min + $c->lng_max) / 2),
             'ciudad' => $c->ciudad,
@@ -594,7 +593,9 @@
     // Capas
     const capas = {
         perdidos: L.layerGroup(),
-        resueltos: L.layerGroup()
+        resueltos: L.layerGroup(),
+        zonasBusqueda: L.layerGroup(), // Zonas verdes (radios dinámicos)
+        cuadricula: L.layerGroup() // Rectángulos grises base e intersectados
     };
     
     // Datos y Configuración
@@ -602,7 +603,7 @@
     const totalGrupos = {{ $grupos ?? 0 }};
     const counts = { perdidos: 0, resueltos: 0 };
     const santaCruzBounds = {
-        norte: -17.7000, sur: -17.8500, este: -63.1000, oeste: -63.2500
+        norte: -17.7000, sur: -17.8530, este: -63.0960, oeste: -63.2500
     };
 
     // Función para validar y corregir coordenadas
@@ -646,6 +647,12 @@
         // Procesar Reportes
         allReportes.forEach(r => {
             const [lat, lng] = getValidLatLng(r.ubicacion_exacta_lat, r.ubicacion_exacta_lng);
+            
+            // Ocultar si está fuera de la zona base
+            const p = L.latLng(lat, lng);
+            const limit = L.latLngBounds([santaCruzBounds.sur, santaCruzBounds.oeste], [santaCruzBounds.norte, santaCruzBounds.este]);
+            if (!limit.contains(p)) return;
+
             // Normalizar el tipo de reporte (quitar espacios y minúsculas)
             let type = (r.tipo_reporte || '').toString().trim().toLowerCase();
             let state = (r.estado || '').toString().trim().toLowerCase();
@@ -786,68 +793,136 @@
         }
     }
 
-    // Cargar cuadrantes existentes de la base de datos (desde PHP)
     function cargarCuadrantesExistentes() {
         try {
-            // Limpiar cuadrantes anteriores
-            rectangles.forEach(rect => map.removeLayer(rect));
+            // Limpiar capas previas
+            capas.cuadricula.clearLayers();
+            capas.zonasBusqueda.clearLayers();
             rectangles = [];
             
             if (cuadrantesData.length === 0) {
                 return;
             }
 
-            // Dibujar cada cuadrante en el mapa
+            // 1. Procesar SOLO la cuadrícula base
             for (const cuadrante of cuadrantesData) {
+                const zona = cuadrante.zona || determinarZona(cuadrante.centro_lat, cuadrante.centro_lng);
+                
+                // Obtener barrios del cuadrante
+                const barrios = Array.isArray(cuadrante.barrios) ? cuadrante.barrios : [];
+                const barriosTexto = barrios.length > 0 ? barrios.join(', ') : 'Sin barrios registrados';
+
+                const popupHtml = `
+                    <div style="min-width: 220px;">
+                        <h6 style="margin-bottom: 10px; color: #64748b; font-weight: 800;">
+                            <i class="bi bi-geo-alt-fill"></i> ${cuadrante.nombre}
+                            <span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">
+                                SISTEMA ORIGINAL
+                            </span>
+                        </h6>
+                        <div style="font-size: 0.85rem; line-height: 1.4;">
+                            <p style="margin: 0 0 5px 0;"><strong>Código:</strong> ${cuadrante.codigo}</p>
+                            <p style="margin: 0 0 5px 0;"><strong>Zona:</strong> ${zona}</p>
+                            <p style="margin: 0 0 10px 0;"><strong>Ciudad:</strong> ${cuadrante.ciudad}</p>
+                            <div style="background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                                <strong style="display: block; margin-bottom: 4px; color: #475569;"><i class="bi bi-houses"></i> Barrios / Zonas:</strong>
+                                <div style="max-height: 60px; overflow-y: auto; color: #64748b; font-size: 0.8rem;">
+                                    ${barriosTexto}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Cuadrícula Base Original (Gris)
                 const bounds = [
                     [cuadrante.lat_min, cuadrante.lng_min],
                     [cuadrante.lat_max, cuadrante.lng_max]
                 ];
-                
-                const zona = cuadrante.zona || determinarZona(cuadrante.centro_lat, cuadrante.centro_lng);
-                
-                const rect = L.rectangle(bounds, {
-                    color: getColorPorZona(zona),
+                let layer = L.rectangle(bounds, {
+                    color: '#64748b', // Color gris para la cuadrícula base
                     weight: 1,
-                    fillOpacity: 0.1
-                }).addTo(map);
-
-                // Obtener barrios del cuadrante (desde el array barrios)
-                const barrios = Array.isArray(cuadrante.barrios) ? cuadrante.barrios : [];
-                
-                const barriosTexto = barrios.length > 0 
-                    ? barrios.join('<br>') 
-                    : 'Sin barrios';
-
-                rect.bindPopup(`
-                    <div style="min-width: 200px;">
-                        <h6 style="margin-bottom: 10px; color: #2563eb;">
-                            <i class="bi bi-geo-alt-fill"></i> ${cuadrante.nombre}
-                        </h6>
-                        <p style="margin: 5px 0;">
-                            <strong>Código:</strong> ${cuadrante.codigo}<br>
-                            <strong>Zona:</strong> ${zona}<br>
-                            <strong>Ciudad:</strong> ${cuadrante.ciudad}<br>
-                            <strong>Barrios:</strong> ${barrios.length}
-                        </p>
-                        <hr style="margin: 10px 0; border-color: #e2e8f0;">
-                        <div style="max-height: 150px; overflow-y: auto;">
-                            <small>${barriosTexto}</small>
-                        </div>
-                    </div>
-                `);
-
-                rectangles.push(rect);
+                    dashArray: '5, 5',
+                    fillOpacity: 0.05
+                });
+                layer.bindPopup(popupHtml);
+                layer.addTo(capas.cuadricula);
+                rectangles.push(layer);
             }
 
-            // Ajustar el mapa para que se vean todos los cuadrantes
             if (rectangles.length > 0) {
                 const group = L.featureGroup(rectangles);
-                map.fitBounds(group.getBounds().pad(0.1));
+                const gridBounds = group.getBounds();
+                map.fitBounds(gridBounds.pad(0.1));
+
+                // 2. Dibujar "Nuevos Cuadrantes" y MARCADORES de evidencias
+                allReportes.forEach(r => {
+                    const puntos = [];
+                    // Punto inicial (Reporte original) - Siempre Rojo
+                    if (r.ubicacion_exacta_lat && r.ubicacion_exacta_lng) {
+                        puntos.push({ 
+                            lat: r.ubicacion_exacta_lat, 
+                            lng: r.ubicacion_exacta_lng, 
+                            type: 'reporte',
+                            color: '#dc2626' // Rojo original
+                        });
+                    }
+                    
+                    // Respuestas (Evidencias, Pistas, etc.) - Sus propios colores
+                    if (r.respuestas) {
+                        r.respuestas.forEach(resp => {
+                            if (resp.ubicacion_lat && resp.ubicacion_lng) {
+                                // Determinar color según tipo (Sincronizado con móvil)
+                                let color = '#9ca3af'; // Gris (Nueva pista) por defecto
+                                if (resp.tipo_respuesta === 'pista' || resp.mensaje === 'Nueva pista') color = '#9ca3af'; // Gris
+                                if (resp.tipo_respuesta === 'ultima_senal' || resp.mensaje === 'Última señal') color = '#ffffff'; // Blanco
+                                if (resp.tipo_respuesta === 'zona_interes' || resp.mensaje === 'Zona de interés') color = '#fbbf24'; // Amarillo
+                                if (resp.tipo_respuesta === 'encontrado') color = '#198754'; // Verde (Se mantiene)
+
+                                puntos.push({ 
+                                    lat: resp.ubicacion_lat, 
+                                    lng: resp.ubicacion_lng, 
+                                    type: resp.tipo_respuesta || 'evidencia',
+                                    color: color
+                                });
+                            }
+                        });
+                    }
+                    
+                    puntos.forEach(pt => {
+                        const [lat, lng] = getValidLatLng(pt.lat, pt.lng);
+                        
+                        // Solo dibujar si el punto está DENTRO de la cuadrícula base original
+                        if (gridBounds.contains([lat, lng])) {
+                            const radioGrados = 0.0009; 
+                            const boundsCuadrito = [[lat - radioGrados, lng - radioGrados], [lat + radioGrados, lng + radioGrados]];
+                            
+                            // 1. Dibujar el CUADRANTE (Siempre Verde)
+                            L.rectangle(boundsCuadrito, {
+                                color: '#10b981', // Verde
+                                weight: 2,
+                                fillColor: '#10b981',
+                                fillOpacity: 0.3
+                            }).addTo(capas.cuadricula);
+
+                            // 2. Dibujar el PUNTO/MARCADOR (Si es evidencia, porque el reporte ya tiene su marcador pulsante)
+                            if (pt.type !== 'reporte') {
+                                L.circleMarker([lat, lng], {
+                                    radius: 6,
+                                    fillColor: pt.color,
+                                    color: '#fff',
+                                    weight: 2,
+                                    opacity: 1,
+                                    fillOpacity: 1
+                                }).addTo(capas.cuadricula);
+                            }
+                        }
+                    });
+                });
             }
             
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error cargando cuadrantes:', error);
         }
     }
 

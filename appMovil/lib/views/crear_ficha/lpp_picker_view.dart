@@ -60,39 +60,86 @@ class _LPPPickerViewState extends State<LPPPickerView> {
 
   void _actualizarCachePoligonos() {
     _cachedPolygons = _cuadrantes.map((c) {
-      if (c.geometria == null) return null;
-      try {
-        // Asegurar que sea un Map (si viene como String de la API)
-        var geometryData = c.geometria;
-        
-        final geometry = geometryData!['type'] == 'Feature' 
-            ? geometryData['geometry'] 
-            : geometryData;
-        
-        if (geometry['type'] != 'Polygon') return null;
-        
-        final coords = geometry['coordinates'][0] as List;
-        final points = coords.map((coord) {
-          return LatLng(double.parse(coord[1].toString()), double.parse(coord[0].toString()));
-        }).toList();
-
-        bool esSeleccionado = _cuadranteSeleccionado?.id == c.id;
-
-        return Polygon(
-          points: points,
-          color: esSeleccionado 
-              ? Colors.blue.withOpacity(0.4) 
-              : Colors.blue.withOpacity(0.1), // Muy ligero para fluidez
-          borderColor: esSeleccionado ? Colors.blue.shade900 : Colors.blue.withOpacity(0.5),
-          borderStrokeWidth: esSeleccionado ? 3.0 : 1.2,
-        );
-      } catch (e) {
-        return null;
+      List<LatLng>? points;
+      
+      if (c.geometria != null) {
+        try {
+          var geometryData = c.geometria;
+          final geometry = geometryData!['type'] == 'Feature' 
+              ? geometryData['geometry'] 
+              : geometryData;
+          
+          if (geometry['type'] == 'Polygon') {
+            final coords = geometry['coordinates'][0] as List;
+            points = coords.map((coord) {
+              return LatLng(double.parse(coord[1].toString()), double.parse(coord[0].toString()));
+            }).toList();
+          }
+        } catch (_) {}
+      } 
+      
+      // Fallback: usar bounding box si no hay geometría compleja
+      if (points == null && c.latMin != null) {
+        points = [
+          LatLng(c.latMin!, c.lngMin!),
+          LatLng(c.latMin!, c.lngMax!),
+          LatLng(c.latMax!, c.lngMax!),
+          LatLng(c.latMax!, c.lngMin!),
+          LatLng(c.latMin!, c.lngMin!),
+        ];
       }
+
+      if (points == null) return null;
+
+      bool esSeleccionado = _cuadranteSeleccionado?.id == c.id;
+
+      return Polygon(
+        points: points,
+        color: Colors.transparent, // NUNCA rellenar de azul
+        borderColor: Colors.blue.withOpacity(0.5), // Azul más fuerte
+        borderStrokeWidth: esSeleccionado ? 2.5 : 1.2, 
+      );
     }).whereType<Polygon>().toList();
+
+    // 2. Dibujar mini-cuadrante verde alrededor del LPP seleccionado
+    if (_selectedLPP != null) {
+      const double radioMini = 0.0008; // Tamaño DOBLE como pidió el usuario
+      _cachedPolygons!.add(Polygon(
+        points: [
+          LatLng(_selectedLPP!.latitude - radioMini, _selectedLPP!.longitude - radioMini),
+          LatLng(_selectedLPP!.latitude - radioMini, _selectedLPP!.longitude + radioMini),
+          LatLng(_selectedLPP!.latitude + radioMini, _selectedLPP!.longitude + radioMini),
+          LatLng(_selectedLPP!.latitude + radioMini, _selectedLPP!.longitude - radioMini),
+        ],
+        color: const Color(0xFF10B981).withOpacity(0.4),
+        borderColor: const Color(0xFF059669),
+        borderStrokeWidth: 3.0,
+      ));
+    }
+  }
+
+  CuadranteModel? _encontrarCuadranteLocal(double lat, double lng) {
+    for (var c in _cuadrantes) {
+      if (c.latMin != null && c.latMax != null && c.lngMin != null && c.lngMax != null) {
+        if (lat >= c.latMin! && lat <= c.latMax! && lng >= c.lngMin! && lng <= c.lngMax!) {
+          return c;
+        }
+      }
+    }
+    return null;
   }
 
   Future<void> _detectarCuadrante(double lat, double lng) async {
+    // Primero intentamos detección local (Instantánea)
+    final localMatch = _encontrarCuadranteLocal(lat, lng);
+    if (localMatch != null) {
+      setState(() {
+        _cuadranteSeleccionado = localMatch;
+        _actualizarCachePoligonos();
+      });
+      return;
+    }
+
     final res = await _cuadranteService.detectarCuadrante(lat, lng);
     if (mounted) {
       setState(() {
@@ -138,6 +185,7 @@ class _LPPPickerViewState extends State<LPPPickerView> {
       _searchController.text = lugar.nombre;
     });
     _mapController.move(punto, 16.0);
+    _detectarCuadrante(punto.latitude, punto.longitude); // Detectar cuadrante al buscar
     FocusScope.of(context).unfocus();
   }
 
@@ -153,10 +201,29 @@ class _LPPPickerViewState extends State<LPPPickerView> {
   void _confirmarUbicacion() {
     if (_selectedLPP == null) return;
 
+    // VALIDACIÓN: No permitir puntos fuera de la zona de cuadrantes
+    if (_cuadranteSeleccionado == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.white),
+              SizedBox(width: 10),
+              Expanded(child: Text('Ubicación inválida. Debes seleccionar un punto dentro de la zona de búsqueda permitida.')),
+            ],
+          ),
+          backgroundColor: Colors.red.shade800,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      return;
+    }
+
     context.read<CrearFichaViewModel>().setUbicacion(
           _selectedLPP!.latitude,
           _selectedLPP!.longitude,
-          _cuadranteSeleccionado != null ? [_cuadranteSeleccionado!.id] : [],
+          [_cuadranteSeleccionado!.id],
         );
     Navigator.pop(context, true);
   }

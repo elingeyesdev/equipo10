@@ -54,6 +54,17 @@ class RespuestaController extends Controller
                 }
             }
 
+            // Validar que la ubicación esté dentro de la cuadrícula si se proporciona
+            if ($request->ubicacion_lat && $request->ubicacion_lng) {
+                $cuadrante = \App\Models\Cuadrante::detectByLocation($request->ubicacion_lat, $request->ubicacion_lng);
+                if (!$cuadrante) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'La ubicación seleccionada está fuera de la zona de búsqueda permitida'
+                    ], 422);
+                }
+            }
+
             // Validar que solo "encontrado" o "avistamiento" puedan tener multimedia
             if (in_array($request->tipo_respuesta, ['encontrado', 'avistamiento'])) {
                 // Permitir imágenes y videos
