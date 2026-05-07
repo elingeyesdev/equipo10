@@ -111,7 +111,7 @@ class ReporteController extends Controller
             // 🧪 PARA TESTING: Descomentar la siguiente línea para usar 5 minutos
             // $horasExpansion = 5 / 60; // 5 minutos = 0.083 horas
 
-            // Crear reporte
+            // Crear reporte con nueva lógica de expansión escalonada (10 niveles)
             $reporte = Reporte::create([
                 'usuario_id' => $request->usuario_id,
                 'categoria_id' => $request->categoria_id,
@@ -127,8 +127,8 @@ class ReporteController extends Controller
                 'estado' => 'activo',
                 'prioridad' => 'normal',
                 'nivel_expansion' => 1,
-                'max_expansion' => 3,
-                'proxima_expansion' => now()->addHours($horasExpansion),
+                'max_expansion' => 10, // Hasta 10 anillos de crecimiento
+                'proxima_expansion' => now()->addMinutes(30), // Primer nivel a los 30 min
                 'contacto_publico' => $request->contacto_publico ?? true,
                 'telefono_contacto' => $request->telefono_contacto,
                 'email_contacto' => $request->email_contacto,
@@ -394,120 +394,28 @@ class ReporteController extends Controller
     public function expandirReporte($reporteId)
     {
         try {
-            DB::beginTransaction();
+            $reporte = Reporte::findOrFail($reporteId);
+            $service = new \App\Services\ExpansionService();
+            $success = $service->expandir($reporte);
 
-            $reporte = Reporte::with('cuadrante')->findOrFail($reporteId);
-
-            // Verificar si ya pasó el tiempo de expansión
-            if ($reporte->proxima_expansion && now()->lt($reporte->proxima_expansion)) {
+            if (!$success) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Aún no es tiempo de expandir este reporte',
-                    'proxima_expansion' => $reporte->proxima_expansion
+                    'message' => 'No se pudo expandir el reporte en este momento. Verifique que el reporte esté activo y no haya alcanzado el nivel máximo.'
                 ], 400);
             }
-
-            // Verificar si ya alcanzó el máximo de expansión
-            if ($reporte->nivel_expansion >= $reporte->max_expansion) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'El reporte ya alcanzó su máximo nivel de expansión'
-                ], 400);
-            }
-
-            // Verificar si el reporte está activo
-            if ($reporte->estado !== 'activo') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'El reporte no está activo'
-                ], 400);
-            }
-
-            // Obtener cuadrantes adyacentes
-            $cuadranteOrigen = $reporte->cuadrante;
-            $fila = $cuadranteOrigen->fila;
-            $columna = $cuadranteOrigen->columna;
-
-            $filaAnterior = chr(ord($fila) - 1);
-            $filaSiguiente = chr(ord($fila) + 1);
-            $columnaAnterior = $columna - 1;
-            $columnaSiguiente = $columna + 1;
-
-            $adyacentes = Cuadrante::where('activo', true)
-                ->where(function($query) use ($fila, $filaAnterior, $filaSiguiente, $columna, $columnaAnterior, $columnaSiguiente) {
-                    $query->orWhere(function($q) use ($filaAnterior, $columnaAnterior) {
-                        $q->where('fila', $filaAnterior)->where('columna', $columnaAnterior);
-                    })
-                    ->orWhere(function($q) use ($filaAnterior, $columna) {
-                        $q->where('fila', $filaAnterior)->where('columna', $columna);
-                    })
-                    ->orWhere(function($q) use ($filaAnterior, $columnaSiguiente) {
-                        $q->where('fila', $filaAnterior)->where('columna', $columnaSiguiente);
-                    })
-                    ->orWhere(function($q) use ($fila, $columnaAnterior) {
-                        $q->where('fila', $fila)->where('columna', $columnaAnterior);
-                    })
-                    ->orWhere(function($q) use ($fila, $columnaSiguiente) {
-                        $q->where('fila', $fila)->where('columna', $columnaSiguiente);
-                    })
-                    ->orWhere(function($q) use ($filaSiguiente, $columnaAnterior) {
-                        $q->where('fila', $filaSiguiente)->where('columna', $columnaAnterior);
-                    })
-                    ->orWhere(function($q) use ($filaSiguiente, $columna) {
-                        $q->where('fila', $filaSiguiente)->where('columna', $columna);
-                    })
-                    ->orWhere(function($q) use ($filaSiguiente, $columnaSiguiente) {
-                        $q->where('fila', $filaSiguiente)->where('columna', $columnaSiguiente);
-                    });
-                })
-                ->get();
-
-            $nuevoNivel = $reporte->nivel_expansion + 1;
-            $cuadrantesExpandidos = [];
-
-            // Registrar expansión a cada cuadrante adyacente
-            foreach ($adyacentes as $adyacente) {
-                // Verificar si ya fue expandido a este cuadrante
-                $yaExpandido = ExpansionReporte::where('reporte_id', $reporte->id)
-                    ->where('cuadrante_expandido_id', $adyacente->id)
-                    ->exists();
-
-                if (!$yaExpandido) {
-                    ExpansionReporte::create([
-                        'reporte_id' => $reporte->id,
-                        'cuadrante_expandido_id' => $adyacente->id,
-                        'nivel' => $nuevoNivel,
-                        'fecha_expansion' => now()
-                    ]);
-
-                    $cuadrantesExpandidos[] = $adyacente;
-
-                    // Notificar a miembros del nuevo cuadrante
-                    $this->notificarMiembrosGrupo($adyacente->id, $reporte);
-                }
-            }
-
-            // Actualizar nivel de expansión del reporte
-            $reporte->update([
-                'nivel_expansion' => $nuevoNivel,
-                'proxima_expansion' => null // Ya no se expande más
-            ]);
-
-            DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Reporte expandido exitosamente',
+                'message' => 'Reporte expandido exitosamente al nivel ' . $reporte->nivel_expansion,
                 'data' => [
-                    'reporte' => $reporte,
-                    'nuevo_nivel' => $nuevoNivel,
-                    'cuadrantes_expandidos' => $cuadrantesExpandidos,
-                    'total_expandidos' => count($cuadrantesExpandidos)
+                    'reporte' => $reporte->load('expansiones'),
+                    'nuevo_nivel' => $reporte->nivel_expansion,
+                    'proxima_expansion' => $reporte->proxima_expansion
                 ]
             ], 200);
 
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Error al expandir reporte',
@@ -928,10 +836,18 @@ class ReporteController extends Controller
             $reporte = Reporte::findOrFail($reporteId);
 
             try {
-                $reporte->update([
+                $updateData = [
                     'estado' => 'activo',
                     'justificacion' => null
-                ]);
+                ];
+                
+                // Si la próxima expansión quedó en el pasado mientras estaba pausado,
+                // re-programarla para dentro de 5 minutos para que se procese pronto.
+                if ($reporte->proxima_expansion && $reporte->proxima_expansion->isPast()) {
+                    $updateData['proxima_expansion'] = now()->addMinutes(5);
+                }
+                
+                $reporte->update($updateData);
             } catch (\Exception $saveEx) {
                 $reporte->update([
                     'estado' => 'activo'

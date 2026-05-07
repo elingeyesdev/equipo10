@@ -50,6 +50,7 @@ class _PistaInfo {
   final String hora; // Añadimos la hora
   final String? descripcion;
   final String? cuadranteId;
+  final int nivelExpansion;
   _PistaInfo({
     this.id,
     required this.punto, 
@@ -58,6 +59,7 @@ class _PistaInfo {
     required this.hora,
     this.descripcion,
     this.cuadranteId,
+    this.nivelExpansion = 1,
   });
 }
 
@@ -153,7 +155,6 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
       ];
     }
   }
-
   // ── Algoritmo Ray-Casting para detectar punto en polígono ───────────────
   bool _puntoEnPoligono(LatLng punto, List<LatLng> poligono) {
     if (poligono.isEmpty) return false;
@@ -167,6 +168,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     }
     return inside;
   }
+
+
 
   void _actualizarCachePoligonos() {
     if (_cuadrantes.isEmpty) return;
@@ -191,34 +194,45 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
         ));
       }
 
-      // 2. Dibujar mini-cuadrantes verdes alrededor de CADA punto (LPP, Pistas y Pin Temporal)
-      // Esto es lo único que debe resaltar la zona según el usuario
-      const double radioMini = 0.0008; // Tamaño DOBLE como pidió el usuario
-      final List<LatLng> puntosDeInteres = [];
+      // 2. Dibujar mini-cuadrantes verdes dinámicos con expansión CONTROLADA por la BD
+      const double radioBase = 0.0007; // Reducido un poco para que no sea tan gigante
       
-      if (_lpp != null) puntosDeInteres.add(_lpp!);
-      for (var p in _pistas) {
-        puntosDeInteres.add(p.punto);
-      }
-      
-      // TAMBIÉN dibujamos el verde para el pin que se está moviendo o creando
-      if (_pinTemporal != null) {
-        puntosDeInteres.add(_pinTemporal!);
-      }
-
-      for (var pt in puntosDeInteres) {
+      // 2.1 Dibujar zona del LPP
+      if (_lpp != null) {
+        final int nivelLPP = widget.ficha.nivelExpansion;
+        final double radioLPP = radioBase * nivelLPP;
         finalPolygons.add(Polygon(
           points: [
-            LatLng(pt.latitude - radioMini, pt.longitude - radioMini),
-            LatLng(pt.latitude - radioMini, pt.longitude + radioMini),
-            LatLng(pt.latitude + radioMini, pt.longitude + radioMini),
-            LatLng(pt.latitude + radioMini, pt.longitude - radioMini),
+            LatLng(_lpp!.latitude - radioLPP, _lpp!.longitude - radioLPP),
+            LatLng(_lpp!.latitude - radioLPP, _lpp!.longitude + radioLPP),
+            LatLng(_lpp!.latitude + radioLPP, _lpp!.longitude + radioLPP),
+            LatLng(_lpp!.latitude + radioLPP, _lpp!.longitude - radioLPP),
           ],
-          color: const Color(0xFF10B981).withOpacity(0.4), // Verde sólido
+          color: const Color(0xFF10B981).withOpacity(0.25),
           borderColor: const Color(0xFF059669),
-          borderStrokeWidth: 3.0,
+          borderStrokeWidth: 2.5,
         ));
       }
+
+      // 2.2 Dibujar zonas de cada PISTA
+      for (var p in _pistas) {
+        final int nivelPista = p.nivelExpansion;
+        final double radioPista = radioBase * nivelPista;
+
+        finalPolygons.add(Polygon(
+          points: [
+            LatLng(p.punto.latitude - radioPista, p.punto.longitude - radioPista),
+            LatLng(p.punto.latitude - radioPista, p.punto.longitude + radioPista),
+            LatLng(p.punto.latitude + radioPista, p.punto.longitude + radioPista),
+            LatLng(p.punto.latitude + radioPista, p.punto.longitude - radioPista),
+          ],
+          color: const Color(0xFF10B981).withOpacity(0.25),
+          borderColor: const Color(0xFF059669),
+          borderStrokeWidth: 2.5,
+        ));
+      }
+
+
 
       _cachedPolygons = finalPolygons;
     });
@@ -321,6 +335,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               hora: timeOnly,
               descripcion: p['direccion_referencia']?.toString(),
               cuadranteId: p['cuadrante_id']?.toString(),
+              nivelExpansion: int.tryParse(p['nivel_expansion']?.toString() ?? '1') ?? 1,
             );
           }).where((p) => p.punto.latitude != 0).toList(); // Filtrar puntos inválidos
           
@@ -788,6 +803,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
       hora: '', // Opcional
       descripcion: 'Punto de inicio de la búsqueda (LPP)',
       cuadranteId: null,
+      nivelExpansion: widget.ficha.nivelExpansion,
     );
 
     todosLosMarkers.add(

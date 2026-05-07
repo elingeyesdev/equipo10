@@ -31,6 +31,8 @@ class DetalleFichaView extends StatefulWidget {
 }
 
 class _DetalleFichaViewState extends State<DetalleFichaView> {
+  bool _huboCambios = false;
+
   @override
   void initState() {
     super.initState();
@@ -141,9 +143,19 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
     final esBloqueado = ficha.estado.toLowerCase() != 'activo';
     final estadoText = ficha.estado.toLowerCase();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(ficha.titulo, overflow: TextOverflow.ellipsis),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        Navigator.of(context).pop(_huboCambios);
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(_huboCambios),
+          ),
+          title: Text(ficha.titulo, overflow: TextOverflow.ellipsis),
         actions: esCreador
             ? [
                 IconButton(
@@ -161,6 +173,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                         ),
                       );
                       if (result == true && mounted) {
+                        setState(() => _huboCambios = true);
                         detaVm.cargarFicha(
                           widget.fichaId,
                           widget.currentUserId,
@@ -408,6 +421,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                   ),
                 );
                 if (mounted) {
+                  setState(() => _huboCambios = true);
                   detaVm.cargarFicha(widget.fichaId, widget.currentUserId);
                 }
               },
@@ -551,6 +565,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
       ),
     );
     if (mounted) {
+      setState(() => _huboCambios = true);
       context
           .read<DetalleFichaViewModel>()
           .cargarFicha(widget.fichaId, widget.currentUserId);

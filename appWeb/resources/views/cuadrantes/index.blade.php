@@ -864,7 +864,8 @@
                             lat: r.ubicacion_exacta_lat, 
                             lng: r.ubicacion_exacta_lng, 
                             type: 'reporte',
-                            color: '#dc2626' // Rojo original
+                            color: '#dc2626', // Rojo original
+                            nivel: r.nivel_expansion || 1
                         });
                     }
                     
@@ -883,7 +884,8 @@
                                     lat: resp.ubicacion_lat, 
                                     lng: resp.ubicacion_lng, 
                                     type: resp.tipo_respuesta || 'evidencia',
-                                    color: color
+                                    color: color,
+                                    nivel: resp.nivel_expansion || 1
                                 });
                             }
                         });
@@ -894,15 +896,21 @@
                         
                         // Solo dibujar si el punto está DENTRO de la cuadrícula base original
                         if (gridBounds.contains([lat, lng])) {
-                            const radioGrados = 0.0009; 
-                            const boundsCuadrito = [[lat - radioGrados, lng - radioGrados], [lat + radioGrados, lng + radioGrados]];
+                            const radioBase = 0.0007; // Reducido ligeramente
+                            const nivel = pt.nivel || 1;
+                            const radioDinamico = radioBase * nivel;
+                            
+                            const boundsCuadrito = [
+                                [lat - radioDinamico, lng - radioDinamico], 
+                                [lat + radioDinamico, lng + radioDinamico]
+                            ];
                             
                             // 1. Dibujar el CUADRANTE (Siempre Verde)
                             L.rectangle(boundsCuadrito, {
                                 color: '#10b981', // Verde
                                 weight: 2,
                                 fillColor: '#10b981',
-                                fillOpacity: 0.3
+                                fillOpacity: 0.25 // Un poco más transparente para que no sature si crece mucho
                             }).addTo(capas.cuadricula);
 
                             // 2. Dibujar el PUNTO/MARCADOR (Si es evidencia, porque el reporte ya tiene su marcador pulsante)

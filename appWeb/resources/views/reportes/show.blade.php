@@ -538,15 +538,16 @@
 const LPP_LAT   = {{ (float) $reporte->ubicacion_exacta_lat }};
 const LPP_LNG   = {{ (float) $reporte->ubicacion_exacta_lng }};
 const REPORTE_ID = "{{ $reporte->id }}";
-const FOTO_URL  = @if($reporte->imagenes->count() > 0) "{{ $reporte->imagenes->first()->url }}" @else null @endif;
 const TITULO    = @json($reporte->titulo);
+const NIVEL_EXPAN = {{ (int) $reporte->nivel_expansion }};
+const RADIO_BASE = 0.0008; // El mismo que en móvil
 @php
-    $pistasJs = $pistas->map(function($p) {
         return [
             'lat'      => (float) $p->ubicacion_lat,
             'lng'      => (float) $p->ubicacion_lng,
             'etiqueta' => $p->mensaje,
             'fecha'    => $p->created_at ? $p->created_at->format('d/m/Y H:i') : '',
+            'nivel_expansion' => $p->nivel_expansion ?? 1,
         ];
     });
 @endphp
@@ -631,8 +632,11 @@ document.addEventListener('DOMContentLoaded', function() {
      .bindPopup(`<strong>📍 Última ubicación conocida</strong><br><em>${TITULO}</em>`)
      .addTo(mapPistas);
 
+    // ── Zona de Búsqueda LPP (Desde la BD) ───────────────────────────────
+    dibujarZonaBusqueda(LPP_LAT, LPP_LNG, NIVEL_EXPAN);
+
     // ── Marcadores de pistas existentes (BD) ────────────────────────────────
-    PISTAS_BD.forEach(p => agregarMarcadorPista(p.lat, p.lng, p.etiqueta, p.fecha));
+    PISTAS_BD.forEach(p => agregarMarcadorPista(p.lat, p.lng, p.etiqueta, p.fecha, p.nivel_expansion));
 
     // ── Clic en el mapa para agregar pista ──────────────────────────────────
     mapPistas.on('click', function(e) {
@@ -668,7 +672,7 @@ function buildTooltip(etiqueta, foto, fecha) {
 }
 
 // ─── Agregar marcador de pista al mapa ────────────────────────────────────────
-function agregarMarcadorPista(lat, lng, etiqueta, fecha) {
+function agregarMarcadorPista(lat, lng, etiqueta, fecha, nivel) {
     const tooltipHtml = buildTooltip(etiqueta, FOTO_URL, fecha);
     L.marker([lat, lng], {icon: iconPista})
      .bindTooltip(tooltipHtml, {
@@ -678,6 +682,26 @@ function agregarMarcadorPista(lat, lng, etiqueta, fecha) {
      })
      .bindPopup(`<strong>${etiqueta}</strong><br><small class="text-muted">${fecha}</small>`)
      .addTo(mapPistas);
+     
+    // La pista crece según su nivel guardado en la BD
+    dibujarZonaBusqueda(lat, lng, nivel || 1);
+}
+
+// ─── Dibujar cuadrado verde de búsqueda ──────────────────────────────────────
+function dibujarZonaBusqueda(lat, lng, nivel) {
+    const radio = RADIO_BASE * nivel;
+    const bounds = [
+        [lat - radio, lng - radio],
+        [lat + radio, lng + radio]
+    ];
+    
+    L.rectangle(bounds, {
+        color: "#059669",
+        weight: 2,
+        fillColor: "#10B981",
+        fillOpacity: 0.25,
+        interactive: false
+    }).addTo(mapPistas);
 }
 
 // ─── Activar/Cancelar modo pista ─────────────────────────────────────────────

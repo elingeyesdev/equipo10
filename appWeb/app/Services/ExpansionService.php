@@ -5,275 +5,178 @@ namespace App\Services;
 use App\Models\Reporte;
 use App\Models\Cuadrante;
 use App\Models\ExpansionReporte;
-use App\Models\ConfiguracionSistema;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class ExpansionService
 {
     /**
-     * Verificar y expandir reportes que cumplan las condiciones
+     * Tiempos de expansión por nivel (en minutos desde la creación)
+     * L1: 0m (Inicio)
+     * L2: 30m
+     * L3: 60m (1h)
+     * L4: 180m (3h)
+     * L5: 360m (6h)
+     * L6: 720m (12h)
+     * L7: 1440m (24h)
+     * L8: 2880m (48h)
+     * L9: 4320m (72h)
+     * L10: 5760m (96h / 4 días) - Límite Sugerido
      */
-    public static function verificarYExpandirReportes()
+    protected static $niveles = [
+        1 => 0,
+        2 => 30,
+        3 => 60,
+        4 => 180,
+        5 => 360,
+        6 => 720,
+        7 => 1440,
+        8 => 2880,
+        9 => 4320,
+        10 => 5760
+    ];
+
+    public function procesarExpansiones()
     {
-        // Obtener configuración
-        $tiempoHoras = ConfiguracionSistema::where('clave', 'tiempo_expansion_horas')->first()->valor ?? 24;
-        $tiempoMinutos = ConfiguracionSistema::where('clave', 'tiempo_expansion_minutos')->first()->valor ?? 0;
-        $maxNivelExpansion = ConfiguracionSistema::where('clave', 'max_nivel_expansion')->first()->valor ?? 2;
-
-        // Calcular tiempo total en minutos
-        $tiempoTotalMinutos = ($tiempoHoras * 60) + $tiempoMinutos;
-
-        Log::info("🔍 Verificando reportes para expansión", [
-            'tiempo_horas' => $tiempoHoras,
-            'tiempo_minutos' => $tiempoMinutos,
-            'max_nivel' => $maxNivelExpansion
-        ]);
-
-        // Buscar reportes activos que necesiten expansión
+        // 1. Procesar Reportes
         $reportes = Reporte::where('estado', 'activo')
-            ->where('nivel_expansion', '<', $maxNivelExpansion)
-            ->where(function($query) use ($tiempoTotalMinutos) {
-                // Primera expansión: desde creación
-                $query->where('nivel_expansion', 0)
-                      ->where('created_at', '<=', now()->subMinutes($tiempoTotalMinutos))
-                // O expansiones subsecuentes: desde última expansión
-                ->orWhere(function($q) use ($tiempoTotalMinutos) {
-                    $q->where('nivel_expansion', '>', 0)
-                      ->where('proxima_expansion', '<=', now());
-                });
-            })
+            ->where('nivel_expansion', '<', 10)
+            ->where('proxima_expansion', '<=', now())
             ->get();
 
-        Log::info("📋 Reportes encontrados para expansión: " . $reportes->count());
-
-        $expandidos = 0;
+        $count = 0;
         foreach ($reportes as $reporte) {
-            if (self::expandirReporte($reporte)) {
-                $expandidos++;
+            if ($this->expandir($reporte)) {
+                $count++;
             }
         }
 
-        Log::info("✅ Expansión completada", [
-            'reportes_expandidos' => $expandidos,
-            'total_verificados' => $reportes->count()
-        ]);
+        // 2. Procesar Pistas (Respuestas) de forma independiente
+        // Solo las que tienen ubicación (lat/lng)
+        $pistas = \App\Models\Respuesta::whereNotNull('ubicacion_lat')
+            ->where('nivel_expansion', '<', 10)
+            ->where('proxima_expansion', '<=', now())
+            ->get();
 
-        return [
-            'verificados' => $reportes->count(),
-            'expandidos' => $expandidos
-        ];
+        foreach ($pistas as $pista) {
+            $this->expandirPista($pista);
+            $count++;
+        }
+
+        return $count;
     }
 
-    /**
-     * Expandir un reporte específico
-     */
-    public static function expandirReporte(Reporte $reporte)
+    public function expandirPista($pista)
     {
-        DB::beginTransaction();
+        if ($pista->nivel_expansion >= 10) return false;
+
+        $nuevoNivel = $pista->nivel_expansion + 1;
+        
+        // Calcular próxima expansión para la pista
+        $proximaFecha = null;
+        if ($nuevoNivel < 10) {
+            $minutosParaSiguiente = self::$niveles[$nuevoNivel + 1];
+            $proximaFecha = $pista->created_at->copy()->addMinutes($minutosParaSiguiente);
+            
+            if ($proximaFecha->isPast()) {
+                $proximaFecha = now()->addMinutes(30); // Si ya pasó, programar en 30 min
+            }
+        }
+
+        $pista->update([
+            'nivel_expansion' => $nuevoNivel,
+            'proxima_expansion' => $proximaFecha
+        ]);
+
+        return true;
+    }
+
+    public function expandir(Reporte $reporte)
+    {
+        if ($reporte->estado !== 'activo') return false;
+        if ($reporte->nivel_expansion >= 10) return false;
+
         try {
+            DB::beginTransaction();
+
+            $cuadranteOrigen = $reporte->cuadrante;
+            if (!$cuadranteOrigen) return false;
+
             $nuevoNivel = $reporte->nivel_expansion + 1;
             
-            Log::info("🔄 Expandiendo reporte", [
-                'reporte_id' => $reporte->id,
-                'titulo' => $reporte->titulo,
-                'nivel_actual' => $reporte->nivel_expansion,
-                'nuevo_nivel' => $nuevoNivel
-            ]);
+            // La distancia (anillo) es igual al nivel - 1
+            // L2 = d1 (3x3), L3 = d2 (5x5), etc.
+            $distancia = $nuevoNivel - 1;
 
-            // Obtener cuadrantes adyacentes
-            $cuadrantesAdyacentes = self::obtenerCuadrantesAdyacentes($reporte->cuadrante);
+            $filaCentral = $cuadranteOrigen->fila;
+            $colCentral = $cuadranteOrigen->columna;
 
-            if ($cuadrantesAdyacentes->isEmpty()) {
-                Log::warning("⚠️ No hay cuadrantes adyacentes", [
-                    'reporte_id' => $reporte->id
-                ]);
-                DB::rollBack();
-                return false;
+            // Encontrar todos los cuadrantes dentro de la distancia Chebyshev
+            $filasAfectadas = [];
+            for ($i = -$distancia; $i <= $distancia; $i++) {
+                $filasAfectadas[] = chr(ord($filaCentral) + $i);
             }
 
-            // Crear expansiones
-            $expansionesCreadas = 0;
-            foreach ($cuadrantesAdyacentes as $cuadrante) {
-                // Verificar si ya existe esta expansión
-                $existente = ExpansionReporte::where('reporte_id', $reporte->id)
+            $colMin = $colCentral - $distancia;
+            $colMax = $colCentral + $distancia;
+
+            $cuadrantesNuevos = Cuadrante::whereIn('fila', $filasAfectadas)
+                ->where('columna', '>=', $colMin)
+                ->where('columna', '<=', $colMax)
+                ->where('activo', true)
+                ->get();
+
+            foreach ($cuadrantesNuevos as $cuadrante) {
+                // Registrar solo si no existe ya para este reporte
+                $exists = ExpansionReporte::where('reporte_id', $reporte->id)
                     ->where('cuadrante_expandido_id', $cuadrante->id)
                     ->exists();
 
-                if (!$existente) {
+                if (!$exists) {
                     ExpansionReporte::create([
                         'reporte_id' => $reporte->id,
+                        'cuadrante_original_id' => $reporte->cuadrante_id,
                         'cuadrante_expandido_id' => $cuadrante->id,
                         'nivel' => $nuevoNivel,
                         'fecha_expansion' => now()
                     ]);
-                    $expansionesCreadas++;
-                    
-                    Log::info("➕ Expansión creada", [
-                        'cuadrante' => $cuadrante->codigo,
-                        'nivel' => $nuevoNivel
-                    ]);
+
+                    // Aquí se podrían enviar notificaciones push a los voluntarios de ese cuadrante
                 }
             }
 
-            // Calcular próxima expansión si no es el último nivel
-            $tiempoHoras = ConfiguracionSistema::where('clave', 'tiempo_expansion_horas')->first()->valor ?? 24;
-            $tiempoMinutos = ConfiguracionSistema::where('clave', 'tiempo_expansion_minutos')->first()->valor ?? 0;
-            $proximaExpansion = null;
-            
-            $maxNivel = ConfiguracionSistema::where('clave', 'max_nivel_expansion')->first()->valor ?? 2;
-            if ($nuevoNivel < $maxNivel) {
-                $proximaExpansion = now()->addHours($tiempoHoras)->addMinutes($tiempoMinutos);
+            // Calcular próxima expansión
+            $proximaFecha = null;
+            if ($nuevoNivel < 10) {
+                $minutosParaSiguiente = self::$niveles[$nuevoNivel + 1];
+                $proximaFecha = $reporte->created_at->copy()->addMinutes($minutosParaSiguiente);
+                
+                // Si la fecha calculada ya pasó (ej: estuvo pausado), ponerla para dentro de poco
+                if ($proximaFecha->isPast()) {
+                    $proximaFecha = now()->addMinutes(5);
+                }
             }
 
-            // Actualizar reporte
             $reporte->update([
                 'nivel_expansion' => $nuevoNivel,
-                'proxima_expansion' => $proximaExpansion
+                'proxima_expansion' => $proximaFecha
             ]);
 
             DB::commit();
-            
-            Log::info("✅ Reporte expandido exitosamente", [
-                'reporte_id' => $reporte->id,
-                'nuevo_nivel' => $nuevoNivel,
-                'expansiones_creadas' => $expansionesCreadas,
-                'proxima_expansion' => $proximaExpansion
-            ]);
-
             return true;
+
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("❌ Error expandiendo reporte: " . $e->getMessage(), [
-                'reporte_id' => $reporte->id,
-                'trace' => $e->getTraceAsString()
-            ]);
+            \Log::error("Error expandiendo reporte {$reporte->id}: " . $e->getMessage());
             return false;
         }
     }
 
-    /**
-     * Obtener cuadrantes adyacentes (los 8 alrededor)
-     */
-    private static function obtenerCuadrantesAdyacentes(Cuadrante $cuadrante)
+    public static function getSiguienteExpansion(Carbon $createdAt, int $nivelActual)
     {
-        // Extraer fila y columna del código
-        // Formato esperado: letra(s) + número(s), ej: "A1", "B12", "AA23"
-        preg_match('/^([A-Z]+)(\d+)$/', $cuadrante->codigo, $matches);
-        
-        if (count($matches) !== 3) {
-            Log::error("❌ Formato de código inválido", [
-                'codigo' => $cuadrante->codigo
-            ]);
-            return collect();
-        }
+        $siguienteNivel = $nivelActual + 1;
+        if (!isset(self::$niveles[$siguienteNivel])) return null;
 
-        $filaLetra = $matches[1];
-        $columna = (int) $matches[2];
-
-        // Convertir letra a número (A=1, B=2, etc.)
-        $filaNum = 0;
-        $len = strlen($filaLetra);
-        for ($i = 0; $i < $len; $i++) {
-            $filaNum = $filaNum * 26 + (ord($filaLetra[$i]) - ord('A') + 1);
-        }
-
-        // Generar los 8 códigos adyacentes
-        $codigosAdyacentes = [];
-        for ($f = -1; $f <= 1; $f++) {
-            for ($c = -1; $c <= 1; $c++) {
-                // Saltar el cuadrante actual
-                if ($f === 0 && $c === 0) continue;
-
-                $nuevaFila = $filaNum + $f;
-                $nuevaColumna = $columna + $c;
-
-                // Validar que no sean negativos
-                if ($nuevaFila <= 0 || $nuevaColumna <= 0) continue;
-
-                // Convertir número de fila a letra
-                $letraFila = self::numeroALetra($nuevaFila);
-                $codigosAdyacentes[] = $letraFila . $nuevaColumna;
-            }
-        }
-
-        Log::info("🔍 Buscando cuadrantes adyacentes", [
-            'cuadrante_actual' => $cuadrante->codigo,
-            'codigos_buscados' => $codigosAdyacentes
-        ]);
-
-        // Buscar en la base de datos
-        return Cuadrante::whereIn('codigo', $codigosAdyacentes)
-            ->where('activo', true)
-            ->get();
-    }
-
-    /**
-     * Convertir número a letra (1=A, 2=B, 26=Z, 27=AA, etc.)
-     */
-    private static function numeroALetra($num)
-    {
-        $letra = '';
-        while ($num > 0) {
-            $num--;
-            $letra = chr(65 + ($num % 26)) . $letra;
-            $num = floor($num / 26);
-        }
-        return $letra;
-    }
-
-    /**
-     * Resolver un reporte (marcar como resuelto)
-     */
-    public static function resolverReporte(Reporte $reporte, $usuarioId)
-    {
-        DB::beginTransaction();
-        try {
-            // Verificar que el usuario sea el creador
-            if ($reporte->usuario_id !== $usuarioId) {
-                throw new \Exception('Solo el creador puede resolver el reporte');
-            }
-
-            // Actualizar estado
-            $reporte->update([
-                'estado' => 'resuelto'
-            ]);
-
-            // TODO: Agregar puntos al usuario que encontró
-            // TODO: Enviar notificaciones
-
-            DB::commit();
-            
-            Log::info("✅ Reporte resuelto", [
-                'reporte_id' => $reporte->id,
-                'usuario_id' => $usuarioId
-            ]);
-
-            return true;
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error("❌ Error resolviendo reporte: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Obtener todos los cuadrantes donde está visible un reporte
-     */
-    public static function obtenerCuadrantesVisibles(Reporte $reporte)
-    {
-        $cuadrantes = collect([$reporte->cuadrante]);
-
-        if ($reporte->nivel_expansion > 0) {
-            $expansiones = ExpansionReporte::where('reporte_id', $reporte->id)
-                ->with('cuadranteExpandido')
-                ->get();
-
-            foreach ($expansiones as $expansion) {
-                $cuadrantes->push($expansion->cuadranteExpandido);
-            }
-        }
-
-        return $cuadrantes;
+        return $createdAt->copy()->addMinutes(self::$niveles[$siguienteNivel]);
     }
 }
