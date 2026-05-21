@@ -401,6 +401,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
           ],
         ),
       ),
+    )
     );
   }
 

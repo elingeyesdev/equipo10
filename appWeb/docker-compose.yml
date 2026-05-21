@@ -20,6 +20,29 @@ services:
       - db
     networks:
       - amigate-net
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: amigate-scheduler
+    volumes:
+      - .:/var/www
+      - vendor-data:/var/www/vendor
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: amigate
+      DB_USERNAME: postgres
+      DB_PASSWORD: admin
+    command: php artisan schedule:work
+    depends_on:
+      - laravel
+      - db
+    networks:
+      - amigate-net
+
   nginx:
     image: nginx:latest
     container_name: amigate-web

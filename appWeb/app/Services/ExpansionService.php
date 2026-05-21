@@ -97,72 +97,64 @@ class ExpansionService
         if ($reporte->nivel_expansion >= 10) return false;
 
         try {
-            DB::beginTransaction();
-
-            $cuadranteOrigen = $reporte->cuadrante;
-            if (!$cuadranteOrigen) return false;
-
             $nuevoNivel = $reporte->nivel_expansion + 1;
-            
-            // La distancia (anillo) es igual al nivel - 1
-            // L2 = d1 (3x3), L3 = d2 (5x5), etc.
-            $distancia = $nuevoNivel - 1;
 
-            $filaCentral = $cuadranteOrigen->fila;
-            $colCentral = $cuadranteOrigen->columna;
+            // Registrar en expansiones_reporte si hay cuadrante asignado
+            $cuadranteOrigen = $reporte->cuadrante ?? $reporte->load('cuadrante')->cuadrante;
+            if ($cuadranteOrigen) {
+                DB::beginTransaction();
 
-            // Encontrar todos los cuadrantes dentro de la distancia Chebyshev
-            $filasAfectadas = [];
-            for ($i = -$distancia; $i <= $distancia; $i++) {
-                $filasAfectadas[] = chr(ord($filaCentral) + $i);
-            }
+                $distancia = $nuevoNivel - 1;
+                $filaCentral = $cuadranteOrigen->fila;
+                $colCentral = $cuadranteOrigen->columna;
 
-            $colMin = $colCentral - $distancia;
-            $colMax = $colCentral + $distancia;
-
-            $cuadrantesNuevos = Cuadrante::whereIn('fila', $filasAfectadas)
-                ->where('columna', '>=', $colMin)
-                ->where('columna', '<=', $colMax)
-                ->where('activo', true)
-                ->get();
-
-            foreach ($cuadrantesNuevos as $cuadrante) {
-                // Registrar solo si no existe ya para este reporte
-                $exists = ExpansionReporte::where('reporte_id', $reporte->id)
-                    ->where('cuadrante_expandido_id', $cuadrante->id)
-                    ->exists();
-
-                if (!$exists) {
-                    ExpansionReporte::create([
-                        'reporte_id' => $reporte->id,
-                        'cuadrante_original_id' => $reporte->cuadrante_id,
-                        'cuadrante_expandido_id' => $cuadrante->id,
-                        'nivel' => $nuevoNivel,
-                        'fecha_expansion' => now()
-                    ]);
-
-                    // Aquí se podrían enviar notificaciones push a los voluntarios de ese cuadrante
+                $filasAfectadas = [];
+                for ($i = -$distancia; $i <= $distancia; $i++) {
+                    $filasAfectadas[] = chr(ord($filaCentral) + $i);
                 }
+                $colMin = $colCentral - $distancia;
+                $colMax = $colCentral + $distancia;
+
+                $cuadrantesNuevos = Cuadrante::whereIn('fila', $filasAfectadas)
+                    ->where('columna', '>=', $colMin)
+                    ->where('columna', '<=', $colMax)
+                    ->where('activo', true)
+                    ->get();
+
+                foreach ($cuadrantesNuevos as $cuadrante) {
+                    $exists = ExpansionReporte::where('reporte_id', $reporte->id)
+                        ->where('cuadrante_expandido_id', $cuadrante->id)
+                        ->exists();
+
+                    if (!$exists) {
+                        ExpansionReporte::create([
+                            'reporte_id' => $reporte->id,
+                            'cuadrante_expandido_id' => $cuadrante->id,
+                            'nivel' => $nuevoNivel,
+                            'fecha_expansion' => now()
+                        ]);
+                    }
+                }
+
+                DB::commit();
             }
 
-            // Calcular próxima expansión
+            // Calcular próxima expansión (independiente del cuadrante)
             $proximaFecha = null;
             if ($nuevoNivel < 10) {
                 $minutosParaSiguiente = self::$niveles[$nuevoNivel + 1];
                 $proximaFecha = $reporte->created_at->copy()->addMinutes($minutosParaSiguiente);
-                
-                // Si la fecha calculada ya pasó (ej: estuvo pausado), ponerla para dentro de poco
                 if ($proximaFecha->isPast()) {
                     $proximaFecha = now()->addMinutes(5);
                 }
             }
 
+            // SIEMPRE actualizar el nivel en la tabla reportes
             $reporte->update([
                 'nivel_expansion' => $nuevoNivel,
                 'proxima_expansion' => $proximaFecha
             ]);
 
-            DB::commit();
             return true;
 
         } catch (\Exception $e) {

@@ -85,7 +85,7 @@ Route::get('/', function () {
     });
 
     
-    Route::middleware(['role_or_permission:administrador|editor|crear reportes|editar reportes'])->group(function () {
+    Route::middleware(['auth', 'role_or_permission:administrador|editor|crear reportes|editar reportes'])->group(function () {
     Route::resource('reportes', ReporteWebController::class);
     // Guardar pista de búsqueda en un reporte (solo admin o creador, validado en controller)
     Route::post('/reportes/{reporte}/pistas', [ReporteWebController::class, 'guardarPista'])->name('reportes.pistas.store');
@@ -102,12 +102,12 @@ Route::get('/', function () {
     });
 
     
-    Route::middleware(['role_or_permission:administrador|editor|crear categorias|editar categorias'])->group(function () {
+    Route::middleware(['auth', 'role_or_permission:administrador|editor|crear categorias|editar categorias'])->group(function () {
     Route::resource('categorias', CategoriaWebController::class);
     });
 
     
-    Route::prefix('cuadrantes')->name('cuadrantes.')->middleware(['role:administrador|editor'])->group(function () {
+    Route::prefix('cuadrantes')->name('cuadrantes.')->middleware(['auth', 'role:administrador|editor'])->group(function () {
         Route::get('/', [\App\Http\Controllers\Web\CuadranteWebController::class, 'index'])->name('index');
         Route::post('/', [\App\Http\Controllers\Web\CuadranteWebController::class, 'store'])->name('store');
         
@@ -120,14 +120,14 @@ Route::get('/', function () {
 
 
     
-    Route::middleware(['role:administrador'])->group(function () {
+    Route::middleware(['auth', 'role:administrador'])->group(function () {
         Route::get('/configuracion', [ConfiguracionWebController::class, 'index'])->name('configuracion.index');
         Route::get('/configuracion/editar', [ConfiguracionWebController::class, 'edit'])->name('configuracion.edit');
         Route::put('/configuracion', [ConfiguracionWebController::class, 'update'])->name('configuracion.update');
     });
 
     
-    Route::prefix('users')->name('users.')->middleware(['role:administrador'])->group(function () {
+    Route::prefix('users')->name('users.')->middleware(['auth', 'role:administrador'])->group(function () {
         Route::prefix('roles')->name('roles.')->group(function () {
             Route::get('/', [UserRoleController::class, 'index'])->name('index');
             Route::get('/{id}/edit', [UserRoleController::class, 'edit'])->name('edit');

@@ -2,8 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 
-/// URL base de la API de Laravel (definida en main.dart)
-const String _kApiUrl = 'http://192.168.1.16:8081'; // Host raíz (Wi-Fi local)
+const String _kApiUrl = 'http://10.26.12.209:8081';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -33,7 +32,7 @@ class ApiService {
         }
 
         final fullUrl = '${options.baseUrl}${options.path}';
-        debugPrint('🚀 API Request: [${options.method}] $fullUrl');
+        debugPrint(' API Request: [${options.method}] $fullUrl');
         
         final prefs = await SharedPreferences.getInstance();
         final token = prefs.getString('auth_token');
@@ -44,7 +43,7 @@ class ApiService {
       },
       onError: (DioException e, handler) {
         final fullUrl = '${e.requestOptions.baseUrl}${e.requestOptions.path}';
-        debugPrint('❌ API_ERROR [${e.response?.statusCode}]: $fullUrl');
+        debugPrint(' API_ERROR [${e.response?.statusCode}]: $fullUrl');
         return handler.next(e);
       },
     ));
