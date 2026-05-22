@@ -7,6 +7,13 @@ import '../models/perfil_model.dart';
 import '../services/reporte_service.dart';
 import '../services/vinculacion_service.dart';
 
+class RutaVoluntario {
+  final String nombre;
+  final List<LatLng> puntos;
+  
+  RutaVoluntario({required this.nombre, required this.puntos});
+}
+
 class PanelControlViewModel extends ChangeNotifier {
   final ReporteService _reporteService = ReporteService();
   final VinculacionService _vinculacionService = VinculacionService();
@@ -16,14 +23,18 @@ class PanelControlViewModel extends ChangeNotifier {
   ReporteModel? _ficha;
   List<PerfilModel> _voluntarios = [];
   List<dynamic> _recorridosData = [];
-  List<List<LatLng>> _recorridosMap = [];
+  List<RutaVoluntario> _rutasVoluntarios = [];
   bool _isLoading = false;
   String? _errorMessage;
 
   ReporteModel? get ficha => _ficha;
   List<PerfilModel> get voluntarios => _voluntarios;
   List<dynamic> get recorridosData => _recorridosData;
-  List<List<LatLng>> get recorridosMap => _recorridosMap;
+  List<RutaVoluntario> get rutasVoluntarios => _rutasVoluntarios;
+  
+  // Mantenemos getter recorridosMap por compatibilidad temporal o si se necesita la lista cruda
+  List<List<LatLng>> get recorridosMap => _rutasVoluntarios.map((r) => r.puntos).toList();
+
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -78,31 +89,40 @@ class PanelControlViewModel extends ChangeNotifier {
 
   Future<void> cargarRecorridos(String fichaId) async {
     try {
-      _recorridosData = await _reporteService.obtenerRecorridos(fichaId);
-      _recorridosMap.clear();
-      
-      for (var r in _recorridosData) {
-        if (r['puntos'] != null) {
-          try {
-            final decoded = r['puntos'] is String ? jsonDecode(r['puntos']) : r['puntos'];
-            if (decoded is List) {
-              List<LatLng> points = [];
-              for (var p in decoded) {
-                if (p is Map && p.containsKey('lat') && p.containsKey('lng')) {
-                  points.add(LatLng(p['lat'].toDouble(), p['lng'].toDouble()));
-                }
-              }
-              if (points.isNotEmpty) {
-                _recorridosMap.add(points);
-              }
-            }
-          } catch (e) {
-            // Ignorar parse error para un recorrido específico
-          }
-        }
-      }
+      final newData = await _reporteService.obtenerRecorridos(fichaId);
+      _procesarRecorridos(newData);
     } catch (e) {
       _errorMessage = 'No se pudieron cargar los recorridos: $e';
+    }
+  }
+
+  void _procesarRecorridos(List<dynamic> newData) {
+    _recorridosData = newData;
+    _rutasVoluntarios.clear();
+    
+    for (var r in _recorridosData) {
+      if (r['puntos'] != null) {
+        try {
+          final decoded = r['puntos'] is String ? jsonDecode(r['puntos']) : r['puntos'];
+          if (decoded is List) {
+            List<LatLng> points = [];
+            for (var p in decoded) {
+              if (p is Map && p.containsKey('lat') && p.containsKey('lng')) {
+                points.add(LatLng(p['lat'].toDouble(), p['lng'].toDouble()));
+              }
+            }
+            if (points.isNotEmpty) {
+              String nombreVoluntario = 'Voluntario';
+              if (r['usuario'] != null && r['usuario']['nombre'] != null) {
+                nombreVoluntario = r['usuario']['nombre'];
+              }
+              _rutasVoluntarios.add(RutaVoluntario(nombre: nombreVoluntario, puntos: points));
+            }
+          }
+        } catch (e) {
+          // Ignorar parse error para un recorrido específico
+        }
+      }
     }
   }
 
@@ -136,29 +156,7 @@ class PanelControlViewModel extends ChangeNotifier {
   Future<void> _cargarRecorridosFondo(String fichaId) async {
     try {
       final newData = await _reporteService.obtenerRecorridos(fichaId);
-      _recorridosData = newData;
-      _recorridosMap.clear();
-      
-      for (var r in _recorridosData) {
-        if (r['puntos'] != null) {
-          try {
-            final decoded = r['puntos'] is String ? jsonDecode(r['puntos']) : r['puntos'];
-            if (decoded is List) {
-              List<LatLng> points = [];
-              for (var p in decoded) {
-                if (p is Map && p.containsKey('lat') && p.containsKey('lng')) {
-                  points.add(LatLng(p['lat'].toDouble(), p['lng'].toDouble()));
-                }
-              }
-              if (points.isNotEmpty) {
-                _recorridosMap.add(points);
-              }
-            }
-          } catch (e) {
-            // Ignorar
-          }
-        }
-      }
+      _procesarRecorridos(newData);
       notifyListeners();
     } catch (e) {
       // Ignorar errores en segundo plano para no interrumpir UI

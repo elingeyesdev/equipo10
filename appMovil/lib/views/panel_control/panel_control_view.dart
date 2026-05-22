@@ -435,13 +435,60 @@ class _PanelControlViewState extends State<PanelControlView> {
               ),
             // Recorridos de voluntarios
             PolylineLayer(
-              polylines: List.generate(vm.recorridosMap.length, (index) {
+              polylines: List.generate(vm.rutasVoluntarios.length, (index) {
                 return Polyline(
-                  points: vm.recorridosMap[index],
+                  points: vm.rutasVoluntarios[index].puntos,
                   color: pathColors[index % pathColors.length].withOpacity(0.7),
                   strokeWidth: 4.0,
                 );
               }),
+            ),
+            // Marcadores de posición actual de voluntarios
+            MarkerLayer(
+              markers: List.generate(vm.rutasVoluntarios.length, (index) {
+                final ruta = vm.rutasVoluntarios[index];
+                if (ruta.puntos.isEmpty) return null;
+                final lastPoint = ruta.puntos.last;
+                final markerColor = pathColors[index % pathColors.length];
+                
+                return Marker(
+                  point: lastPoint,
+                  width: 100,
+                  height: 60,
+                  alignment: Alignment.topCenter,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black26, blurRadius: 3, offset: Offset(0, 1))
+                          ],
+                        ),
+                        child: Text(
+                          ruta.nombre,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: markerColor,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                      Icon(
+                        Icons.person_pin_circle,
+                        color: markerColor,
+                        size: 32,
+                        shadows: const [Shadow(color: Colors.white, blurRadius: 2)],
+                      ),
+                    ],
+                  ),
+                );
+              }).whereType<Marker>().toList(),
             ),
           ],
         ),
