@@ -14,6 +14,12 @@ class RutaVoluntario {
   RutaVoluntario({required this.nombre, required this.puntos});
 }
 
+class PistaMapa {
+  final LatLng punto;
+  final String etiqueta;
+  PistaMapa({required this.punto, required this.etiqueta});
+}
+
 class PanelControlViewModel extends ChangeNotifier {
   final ReporteService _reporteService = ReporteService();
   final VinculacionService _vinculacionService = VinculacionService();
@@ -24,6 +30,7 @@ class PanelControlViewModel extends ChangeNotifier {
   List<PerfilModel> _voluntarios = [];
   List<dynamic> _recorridosData = [];
   List<RutaVoluntario> _rutasVoluntarios = [];
+  List<PistaMapa> _pistas = [];
   bool _isLoading = false;
   String? _errorMessage;
   String? _filtroNombreVoluntario;
@@ -31,6 +38,7 @@ class PanelControlViewModel extends ChangeNotifier {
   ReporteModel? get ficha => _ficha;
   List<PerfilModel> get voluntarios => _voluntarios;
   List<dynamic> get recorridosData => _recorridosData;
+  List<PistaMapa> get pistas => _pistas;
   
   List<RutaVoluntario> get rutasVoluntarios {
     if (_filtroNombreVoluntario == null) return _rutasVoluntarios;
@@ -60,7 +68,7 @@ class PanelControlViewModel extends ChangeNotifier {
       _ficha = await _reporteService.obtenerReportePorId(fichaId);
       if (_ficha != null) {
         _voluntarios = await _vinculacionService.obtenerVoluntarios(fichaId);
-        await cargarRecorridos(fichaId);
+        await cargarRecorridosYPistas(fichaId);
       }
     } catch (e) {
       _errorMessage = 'Error al cargar el panel de control: $e';
@@ -100,12 +108,14 @@ class PanelControlViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> cargarRecorridos(String fichaId) async {
+  Future<void> cargarRecorridosYPistas(String fichaId) async {
     try {
       final newData = await _reporteService.obtenerRecorridos(fichaId);
       _procesarRecorridos(newData);
+      final pistasData = await _reporteService.obtenerPistas(fichaId);
+      _procesarPistas(pistasData);
     } catch (e) {
-      _errorMessage = 'No se pudieron cargar los recorridos: $e';
+      _errorMessage = 'Error al cargar datos del mapa: $e';
     }
   }
 
@@ -139,6 +149,20 @@ class PanelControlViewModel extends ChangeNotifier {
     }
   }
 
+  void _procesarPistas(List<dynamic> pistasData) {
+    _pistas.clear();
+    for (var p in pistasData) {
+      double lat = double.tryParse(p['ubicacion_lat']?.toString() ?? '0') ?? 0;
+      double lng = double.tryParse(p['ubicacion_lng']?.toString() ?? '0') ?? 0;
+      if (lat != 0 && lng != 0) {
+        _pistas.add(PistaMapa(
+          punto: LatLng(lat, lng),
+          etiqueta: p['mensaje']?.toString() ?? 'Pista',
+        ));
+      }
+    }
+  }
+
   Future<bool> enviarAlertaMasiva(String fichaId, String mensaje) async {
     _isLoading = true;
     notifyListeners();
@@ -157,7 +181,7 @@ class PanelControlViewModel extends ChangeNotifier {
   void iniciarPolling(String fichaId) {
     detenerPolling();
     _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
-      _cargarRecorridosFondo(fichaId);
+      _cargarDatosFondo(fichaId);
     });
   }
 
@@ -166,10 +190,14 @@ class PanelControlViewModel extends ChangeNotifier {
     _pollingTimer = null;
   }
 
-  Future<void> _cargarRecorridosFondo(String fichaId) async {
+  Future<void> _cargarDatosFondo(String fichaId) async {
     try {
       final newData = await _reporteService.obtenerRecorridos(fichaId);
       _procesarRecorridos(newData);
+      
+      final pistasData = await _reporteService.obtenerPistas(fichaId);
+      _procesarPistas(pistasData);
+      
       notifyListeners();
     } catch (e) {
       // Ignorar errores en segundo plano para no interrumpir UI

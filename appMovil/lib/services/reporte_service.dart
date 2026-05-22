@@ -225,6 +225,18 @@ class ReporteService {
     throw Exception('No se pudieron obtener los recorridos.');
   }
 
+  /// Obtiene las pistas asociadas a un reporte
+  Future<List<dynamic>> obtenerPistas(String reporteId) async {
+    final response = await _api.client.get('/reportes/$reporteId/pistas');
+    if (response.statusCode == 200) {
+      final body = response.data;
+      if (body['success'] == true) {
+        return body['data'] as List<dynamic>;
+      }
+    }
+    return [];
+  }
+
   /// Envía un mensaje masivo (broadcast) a los voluntarios activos
   Future<bool> enviarAlertaMasiva(String reporteId, String mensaje) async {
     try {

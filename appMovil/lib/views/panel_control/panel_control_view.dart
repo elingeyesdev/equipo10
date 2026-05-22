@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../viewmodels/panel_control_viewmodel.dart';
 import '../../widgets/map_tile_layer.dart';
+import '../../widgets/lpp_marker.dart';
 
 class PanelControlView extends StatefulWidget {
   final String fichaId;
@@ -30,9 +31,20 @@ class _PanelControlViewState extends State<PanelControlView> {
 
   @override
   void dispose() {
+    _mapController.dispose();
     // Detener polling si la vista se destruye
     context.read<PanelControlViewModel>().detenerPolling();
     super.dispose();
+  }
+
+  Color _getColorParaEtiqueta(String etiqueta) {
+    switch (etiqueta) {
+      case 'Visto por última vez': return Colors.purple;
+      case 'Nueva pista': return Colors.grey;
+      case 'Última señal': return Colors.white;
+      case 'Zona de interés': return Colors.yellow;
+      default: return const Color(0xFFF59E0B);
+    }
   }
 
   Future<void> _cambiarEstado(BuildContext context, String nuevoEstado) async {
@@ -366,7 +378,22 @@ class _PanelControlViewState extends State<PanelControlView> {
   }
 
   Widget _buildTabMapa(PanelControlViewModel vm, dynamic ficha) {
-    if (vm.recorridosMap.isEmpty) {
+    LatLng? center;
+    
+    // Calcular el centro del mapa (Prioridad: LPP > Cuadrante > Recorridos)
+    if (ficha.latitud != null && ficha.longitud != null) {
+      center = LatLng(ficha.latitud!, ficha.longitud!);
+    } else if (ficha.cuadranteLatMin != null && ficha.cuadranteLatMax != null &&
+        ficha.cuadranteLngMin != null && ficha.cuadranteLngMax != null) {
+      center = LatLng(
+        (ficha.cuadranteLatMin! + ficha.cuadranteLatMax!) / 2,
+        (ficha.cuadranteLngMin! + ficha.cuadranteLngMax!) / 2,
+      );
+    } else if (vm.recorridosMap.isNotEmpty) {
+      center = vm.recorridosMap.first.first;
+    }
+
+    if (center == null) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(24.0),
@@ -376,12 +403,12 @@ class _PanelControlViewState extends State<PanelControlView> {
               Icon(Icons.map_outlined, size: 64, color: Colors.grey),
               SizedBox(height: 16),
               Text(
-                'No hay datos de cobertura aún.',
+                'No hay datos de ubicación.',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey),
               ),
               SizedBox(height: 8),
               Text(
-                'Los trazos de los voluntarios aparecerán aquí una vez que comiencen a realizar la búsqueda en el mapa.',
+                'Asegúrese de que el reporte tenga una ubicación inicial o cuadrante asignado.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey),
               ),
@@ -391,20 +418,45 @@ class _PanelControlViewState extends State<PanelControlView> {
       );
     }
 
-    // Calcular el centro del mapa basado en el primer punto disponible
-    LatLng center = vm.recorridosMap.first.first;
-    if (ficha.cuadranteLatMin != null && ficha.cuadranteLatMax != null &&
-        ficha.cuadranteLngMin != null && ficha.cuadranteLngMax != null) {
-      center = LatLng(
-        (ficha.cuadranteLatMin! + ficha.cuadranteLatMax!) / 2,
-        (ficha.cuadranteLngMin! + ficha.cuadranteLngMax!) / 2,
-      );
-    }
-
     // Colores para diferenciar voluntarios (heat map simple)
     final List<Color> pathColors = [
       Colors.blue, Colors.red, Colors.green, Colors.orange, Colors.purple, Colors.teal
     ];
+
+    // Combinar el LPP original con las pistas adicionales
+    final List<Marker> markersPistas = [];
+    
+    // 1. Agregar el punto original (LPP)
+    if (ficha.latitud != null && ficha.longitud != null) {
+      markersPistas.add(
+        Marker(
+          point: LatLng(ficha.latitud!, ficha.longitud!),
+          width: 80,
+          height: 70,
+          alignment: Alignment.center,
+          child: LppMarker(
+            fotoUrl: ficha.fotoUrl,
+            nombre: 'Visto por última vez',
+            color: const Color(0xFFD32F2F), // Rojo para el LPP
+          ),
+        )
+      );
+    }
+    
+    // 2. Agregar el resto de pistas
+    markersPistas.addAll(vm.pistas.map((pista) {
+      return Marker(
+        point: pista.punto,
+        width: 80,
+        height: 70,
+        alignment: Alignment.center,
+        child: LppMarker(
+          fotoUrl: ficha.fotoUrl,
+          nombre: pista.etiqueta,
+          color: _getColorParaEtiqueta(pista.etiqueta),
+        ),
+      );
+    }));
 
     return Stack(
       children: [
@@ -493,6 +545,10 @@ class _PanelControlViewState extends State<PanelControlView> {
                 );
               }).whereType<Marker>().toList(),
             ),
+            // Marcadores de pistas y LPP
+            MarkerLayer(
+              markers: markersPistas,
+            ),
           ],
         ),
         // Filtro de Voluntarios en la parte superior
@@ -563,7 +619,7 @@ class _PanelControlViewState extends State<PanelControlView> {
             backgroundColor: Colors.white,
             foregroundColor: const Color(0xFF1B5E20),
             onPressed: () {
-              _mapController.move(center, 15.0);
+              _mapController.move(center!, 15.0);
             },
             child: const Icon(Icons.my_location),
           ),

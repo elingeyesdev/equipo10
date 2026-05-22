@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -90,6 +91,9 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   _PistaInfo? _pistaEnEdicion; // Pista que se está moviendo/editando
   bool _editandoPista = false; // Indica si estamos en modo edición
 
+  // Polling
+  Timer? _pollingTimer;
+
   @override
   void initState() {
     super.initState();
@@ -97,10 +101,26 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     _cargarCuadrantes();
     _cargarRecorridos();
     _cargarPistas();
+    
+    // Iniciar Smart Polling cada 15 segundos
+    _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      _recargarDatosSilencioso();
+    });
+  }
+
+  Future<void> _recargarDatosSilencioso() async {
+    // Cargamos pistas y recorridos en segundo plano sin mostrar spinners
+    try {
+      await Future.wait([
+        _cargarPistas(),
+        _cargarRecorridos(),
+      ]);
+    } catch (_) {}
   }
 
   @override
   void dispose() {
+    _pollingTimer?.cancel();
     _descripcionPistaCtrl.dispose();
     super.dispose();
   }
@@ -782,6 +802,82 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
         child: const Icon(Icons.person, color: Colors.grey),
       );
 
+  void _mostrarLeyendaVoluntarios() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.all(20),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const Row(
+                children: [
+                  Icon(Icons.people_alt, color: AppTheme.primary),
+                  SizedBox(width: 10),
+                  Text(
+                    'Voluntarios Activos',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primary),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: _recorridos.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (ctx, i) {
+                    final r = _recorridos[i];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        width: 16,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: r.color,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      title: Text(r.nombre, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      trailing: r.terminado
+                          ? const Icon(Icons.check_circle, color: AppTheme.success, size: 20)
+                          : const Icon(Icons.radio_button_checked, color: Colors.orange, size: 20),
+                      subtitle: Text(
+                        r.terminado ? 'Búsqueda finalizada' : 'Buscando en vivo',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_lpp == null) {
@@ -865,6 +961,51 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
           ),
         ),
       );
+    }
+
+    // 4. Marcadores de posición actual de voluntarios
+    for (var r in _recorridos) {
+      if (r.puntos.isNotEmpty) {
+        todosLosMarkers.add(
+          Marker(
+            point: r.puntos.last,
+            width: 100,
+            height: 60,
+            alignment: Alignment.topCenter,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(4),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black26, blurRadius: 3, offset: Offset(0, 1))
+                    ],
+                  ),
+                  child: Text(
+                    r.nombre,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: r.color,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+                Icon(
+                  Icons.person_pin_circle,
+                  color: r.color,
+                  size: 32,
+                  shadows: const [Shadow(color: Colors.white, blurRadius: 2)],
+                ),
+              ],
+            ),
+          ),
+        );
+      }
     }
 
     return Scaffold(
@@ -957,7 +1098,14 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             Positioned(
               top: _modoPista ? 70 : 12,
               right: 12,
-              child: _LeyendaRecorridos(recorridos: _recorridos),
+              child: FloatingActionButton.extended(
+                heroTag: 'btn_leyenda_voluntarios',
+                backgroundColor: Colors.white,
+                foregroundColor: AppTheme.primary,
+                icon: const Icon(Icons.people_alt, size: 20),
+                label: Text('Voluntarios (${_recorridos.length})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                onPressed: _mostrarLeyendaVoluntarios,
+              ),
             ),
 
           Positioned(
@@ -1210,49 +1358,4 @@ class _VoluntarioRecorrido {
     required this.color,
     required this.terminado,
   });
-}
-
-class _LeyendaRecorridos extends StatelessWidget {
-  final List<_VoluntarioRecorrido> recorridos;
-
-  const _LeyendaRecorridos({required this.recorridos});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.92),
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black26)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('Voluntarios',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1A1A1A))),
-          const SizedBox(height: 6),
-          ...recorridos.map((r) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                        width: 14, height: 4,
-                        decoration: BoxDecoration(color: r.color, borderRadius: BorderRadius.circular(2))),
-                    const SizedBox(width: 6),
-                    Text(r.nombre, style: const TextStyle(fontSize: 11, color: Color(0xFF1A1A1A))),
-                    const SizedBox(width: 4),
-                    if (r.terminado)
-                      const Icon(Icons.check_circle, size: 11, color: AppTheme.success)
-                    else
-                      const Icon(Icons.radio_button_checked, size: 11, color: Colors.orange),
-                  ],
-                ),
-              )),
-        ],
-      ),
-    );
-  }
 }
