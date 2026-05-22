@@ -22,8 +22,17 @@ class _PanelControlViewState extends State<PanelControlView> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PanelControlViewModel>().cargarDatos(widget.fichaId);
+      final vm = context.read<PanelControlViewModel>();
+      vm.cargarDatos(widget.fichaId);
+      vm.iniciarPolling(widget.fichaId);
     });
+  }
+
+  @override
+  void dispose() {
+    // Detener polling si la vista se destruye
+    context.read<PanelControlViewModel>().detenerPolling();
+    super.dispose();
   }
 
   Future<void> _cambiarEstado(BuildContext context, String nuevoEstado) async {

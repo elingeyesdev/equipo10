@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
@@ -9,6 +10,8 @@ import '../services/vinculacion_service.dart';
 class PanelControlViewModel extends ChangeNotifier {
   final ReporteService _reporteService = ReporteService();
   final VinculacionService _vinculacionService = VinculacionService();
+
+  Timer? _pollingTimer;
 
   ReporteModel? _ficha;
   List<PerfilModel> _voluntarios = [];
@@ -115,6 +118,50 @@ class PanelControlViewModel extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  void iniciarPolling(String fichaId) {
+    detenerPolling();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      _cargarRecorridosFondo(fichaId);
+    });
+  }
+
+  void detenerPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
+  }
+
+  Future<void> _cargarRecorridosFondo(String fichaId) async {
+    try {
+      final newData = await _reporteService.obtenerRecorridos(fichaId);
+      _recorridosData = newData;
+      _recorridosMap.clear();
+      
+      for (var r in _recorridosData) {
+        if (r['puntos'] != null) {
+          try {
+            final decoded = r['puntos'] is String ? jsonDecode(r['puntos']) : r['puntos'];
+            if (decoded is List) {
+              List<LatLng> points = [];
+              for (var p in decoded) {
+                if (p is Map && p.containsKey('lat') && p.containsKey('lng')) {
+                  points.add(LatLng(p['lat'].toDouble(), p['lng'].toDouble()));
+                }
+              }
+              if (points.isNotEmpty) {
+                _recorridosMap.add(points);
+              }
+            }
+          } catch (e) {
+            // Ignorar
+          }
+        }
+      }
+      notifyListeners();
+    } catch (e) {
+      // Ignorar errores en segundo plano para no interrumpir UI
     }
   }
 }
