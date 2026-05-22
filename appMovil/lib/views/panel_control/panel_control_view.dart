@@ -436,9 +436,11 @@ class _PanelControlViewState extends State<PanelControlView> {
             // Recorridos de voluntarios
             PolylineLayer(
               polylines: List.generate(vm.rutasVoluntarios.length, (index) {
+                final ruta = vm.rutasVoluntarios[index];
+                final originalIndex = vm.todasLasRutas.indexOf(ruta);
                 return Polyline(
-                  points: vm.rutasVoluntarios[index].puntos,
-                  color: pathColors[index % pathColors.length].withOpacity(0.7),
+                  points: ruta.puntos,
+                  color: pathColors[originalIndex % pathColors.length].withOpacity(0.7),
                   strokeWidth: 4.0,
                 );
               }),
@@ -449,7 +451,8 @@ class _PanelControlViewState extends State<PanelControlView> {
                 final ruta = vm.rutasVoluntarios[index];
                 if (ruta.puntos.isEmpty) return null;
                 final lastPoint = ruta.puntos.last;
-                final markerColor = pathColors[index % pathColors.length];
+                final originalIndex = vm.todasLasRutas.indexOf(ruta);
+                final markerColor = pathColors[originalIndex % pathColors.length];
                 
                 return Marker(
                   point: lastPoint,
@@ -492,6 +495,54 @@ class _PanelControlViewState extends State<PanelControlView> {
             ),
           ],
         ),
+        // Filtro de Voluntarios en la parte superior
+        if (vm.todasLasRutas.isNotEmpty)
+          Positioned(
+            top: 16,
+            left: 16,
+            right: 16,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: ChoiceChip(
+                      label: const Text('Todos'),
+                      selected: vm.filtroNombreVoluntario == null,
+                      onSelected: (selected) {
+                        if (selected) vm.setFiltroVoluntario(null);
+                      },
+                      selectedColor: const Color(0xFF1B5E20).withOpacity(0.2),
+                      checkmarkColor: const Color(0xFF1B5E20),
+                    ),
+                  ),
+                  ...vm.todasLasRutas.map((ruta) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: ChoiceChip(
+                        label: Text(ruta.nombre),
+                        selected: vm.filtroNombreVoluntario == ruta.nombre,
+                        onSelected: (selected) {
+                          if (selected) {
+                            vm.setFiltroVoluntario(ruta.nombre);
+                            // Opcional: Centrar la cámara en el último punto del voluntario seleccionado
+                            if (ruta.puntos.isNotEmpty) {
+                              _mapController.move(ruta.puntos.last, 16.0);
+                            }
+                          } else {
+                            vm.setFiltroVoluntario(null);
+                          }
+                        },
+                        selectedColor: const Color(0xFF1B5E20).withOpacity(0.2),
+                        checkmarkColor: const Color(0xFF1B5E20),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ),
         // Toggle de capas (satelital / callejero)
         Positioned(
           bottom: 56,

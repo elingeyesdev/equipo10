@@ -26,14 +26,27 @@ class PanelControlViewModel extends ChangeNotifier {
   List<RutaVoluntario> _rutasVoluntarios = [];
   bool _isLoading = false;
   String? _errorMessage;
+  String? _filtroNombreVoluntario;
 
   ReporteModel? get ficha => _ficha;
   List<PerfilModel> get voluntarios => _voluntarios;
   List<dynamic> get recorridosData => _recorridosData;
-  List<RutaVoluntario> get rutasVoluntarios => _rutasVoluntarios;
   
+  List<RutaVoluntario> get rutasVoluntarios {
+    if (_filtroNombreVoluntario == null) return _rutasVoluntarios;
+    return _rutasVoluntarios.where((r) => r.nombre == _filtroNombreVoluntario).toList();
+  }
+  
+  List<RutaVoluntario> get todasLasRutas => _rutasVoluntarios;
+  String? get filtroNombreVoluntario => _filtroNombreVoluntario;
+
+  void setFiltroVoluntario(String? nombre) {
+    _filtroNombreVoluntario = nombre;
+    notifyListeners();
+  }
+
   // Mantenemos getter recorridosMap por compatibilidad temporal o si se necesita la lista cruda
-  List<List<LatLng>> get recorridosMap => _rutasVoluntarios.map((r) => r.puntos).toList();
+  List<List<LatLng>> get recorridosMap => rutasVoluntarios.map((r) => r.puntos).toList();
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
