@@ -14,7 +14,7 @@ class AppTheme {
   static const Color info = Color(0xFF06B6D4);          // Cian
   
   // Fondos y texto
-  static const Color background = Color(0xFFF8FAFC);    // Gris azulado muy claro (Slate 50)
+  static const Color background = Colors.white;             // Blanco puro
   static const Color surface = Colors.white;
   static const Color textPrimary = Color(0xFF1E293B);   // Texto principal (Slate 800)
   static const Color textSecondary = Color(0xFF64748B); // Texto secundario (Slate 500)

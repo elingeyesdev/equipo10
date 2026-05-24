@@ -75,15 +75,6 @@ class _HomeViewState extends State<HomeView> {
 
   AppBar _buildAppBar() {
     return AppBar(
-      flexibleSpace: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppTheme.primary, AppTheme.primaryLight],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-      ),
       foregroundColor: Colors.white,
       title: _currentIndex == 0
           ? const Row(
@@ -172,8 +163,10 @@ class _HomeViewState extends State<HomeView> {
               },
               backgroundColor: AppTheme.primary,
               foregroundColor: Colors.white,
+              shape: const StadiumBorder(), // Píldora, igual que la barra de búsqueda
               icon: const Icon(Icons.add),
-              label: const Text('Reportar'),
+              label: const Text('Reportar',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
             )
           : null,
       bottomNavigationBar: Container(

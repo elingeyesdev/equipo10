@@ -65,11 +65,10 @@ class Reporte extends Model
         'max_expansion' => 3,
         'contacto_publico' => true,
         'vistas' => 0,
-        
-        
-        
-        
     ];
+
+    // Incluir primera_imagen en el JSON de todos los endpoints
+    protected $appends = ['primera_imagen'];
 
     
     
@@ -223,11 +222,13 @@ class Reporte extends Model
 
     public function getPrimeraImagenAttribute()
     {
-        $primeraImagen = $this->imagenes()->first();
-        if ($primeraImagen) {
-            return $primeraImagen->url;
+        // Si las imagenes ya están cargadas (eager loaded), úsalas sin otra consulta
+        if ($this->relationLoaded('imagenes')) {
+            $primera = $this->imagenes->first();
+            return $primera ? $primera->url : null;
         }
-        return 'images/placeholder-reporte.png';
+        $primera = $this->imagenes()->first();
+        return $primera ? $primera->url : null;
     }
 
     public function marcarComoResuelto()

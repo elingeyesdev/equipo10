@@ -47,6 +47,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: SimplyRounded
+      fonts:
+        - asset: assets/fonts/SimplyRounded.ttf
+        - asset: assets/fonts/Roundman.ttf
 
   assets:
     - .env

@@ -9,7 +9,7 @@ class ReporteController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Reporte::with(['usuario', 'categoria', 'cuadrante', 'respuestas']);
+        $query = Reporte::with(['usuario', 'categoria', 'cuadrante', 'respuestas', 'imagenes']);
 
         
         if ($request->has('tipo_reporte')) {
