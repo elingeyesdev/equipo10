@@ -9,12 +9,14 @@ import '../../models/campo_categoria_model.dart';
 import '../../viewmodels/detalle_ficha_viewmodel.dart';
 import '../../viewmodels/editar_ficha_viewmodel.dart';
 import '../../viewmodels/tracking_viewmodel.dart';
+import '../../viewmodels/evidencia_viewmodel.dart';
 import '../editar_ficha/editar_ficha_view.dart';
 import '../mapa/mapa_operativo_view.dart';
 import '../panel_control/panel_control_view.dart';
 import '../tracking/tracking_view.dart';
 import '../widgets/full_screen_image_view.dart';
 import '../../theme/app_theme.dart';
+import 'evidencias_section.dart';
 
 class DetalleFichaView extends StatefulWidget {
   final String fichaId;
@@ -143,265 +145,285 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
     final esBloqueado = ficha.estado.toLowerCase() != 'activo';
     final estadoText = ficha.estado.toLowerCase();
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-        Navigator.of(context).pop(_huboCambios);
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.of(context).pop(_huboCambios),
-          ),
-          title: Text(ficha.titulo, overflow: TextOverflow.ellipsis),
-        actions: esCreador
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  tooltip: 'Editar ficha',
-                  onPressed: () async {
-                      final detaVm = context.read<DetalleFichaViewModel>();
-                      final nav = Navigator.of(context);
-                      final result = await nav.push<bool>(
-                        MaterialPageRoute(
-                          builder: (_) => ChangeNotifierProvider(
-                            create: (_) => EditarFichaViewModel(),
-                            child: EditarFichaView(ficha: ficha),
-                          ),
-                        ),
-                      );
-                      if (result == true && mounted) {
-                        setState(() => _huboCambios = true);
-                        detaVm.cargarFicha(
-                          widget.fichaId,
-                          widget.currentUserId,
-                        );
-                      }
-                    },
-                  ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    color: Color(0xFFEF9A9A),
-                  ),
-                  tooltip: 'Eliminar ficha',
-                  onPressed: _onEliminar,
-                ),
-              ]
-            : null,
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _HeroImage(fotoUrl: ficha.fotoUrl),
-
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      _EstadoBadge(estado: ficha.estado),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF3E5F5),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFF8E24AA)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.group, size: 14, color: Color(0xFF8E24AA)),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${vm.voluntariosCount} Voluntarios',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFF8E24AA),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (esCreador)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border:
-                                Border.all(color: AppTheme.primary),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (ficha.avatarUsuario != null && ficha.avatarUsuario!.isNotEmpty) ...[
-                                CircleAvatar(
-                                  radius: 8,
-                                  backgroundImage: CachedNetworkImageProvider(ficha.avatarUsuario!),
-                                  backgroundColor: Colors.transparent,
-                                ),
-                              ] else
-                                const Icon(Icons.person, size: 14, color: AppTheme.primary),
-                              const SizedBox(width: 4),
-                              const Text(
-                                'Tú creaste esta búsqueda',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppTheme.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  Text(
-                    ficha.titulo,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  Container(
-                    height: 3,
-                    width: 40,
-                    decoration: BoxDecoration(
-                      color: AppTheme.info,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  const Text(
-                    'Descripción del caso',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF5F6368),
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    ficha.descripcion,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Color(0xFF1A1A1A),
-                      height: 1.6,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  _InfoSection(ficha: ficha),
-                  const SizedBox(height: 20),
-
-                  if (ficha.latitud != null && ficha.longitud != null)
-                    InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
+    return ChangeNotifierProvider(
+      create: (_) => EvidenciaViewModel(),
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          Navigator.of(context).pop(_huboCambios);
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).pop(_huboCambios),
+            ),
+            title: Text(ficha.titulo, overflow: TextOverflow.ellipsis),
+            actions: esCreador
+                ? [
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      tooltip: 'Editar ficha',
+                      onPressed: () async {
+                        final detaVm = context.read<DetalleFichaViewModel>();
+                        final nav = Navigator.of(context);
+                        final result = await nav.push<bool>(
                           MaterialPageRoute(
-                            builder: (_) => MapaOperativoView(
-                              ficha: ficha,
-                              esCreador: esCreador, // Verificamos que se pase el valor correcto
+                            builder: (_) => ChangeNotifierProvider(
+                              create: (_) => EditarFichaViewModel(),
+                              child: EditarFichaView(ficha: ficha),
                             ),
                           ),
                         );
+                        if (result == true && mounted) {
+                          setState(() => _huboCambios = true);
+                          detaVm.cargarFicha(
+                            widget.fichaId,
+                            widget.currentUserId,
+                          );
+                        }
                       },
-                      child: Container(
-                        width: double.infinity,
-                        height: 160,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE3F2FD),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppTheme.info, width: 1.5),
-                        ),
-                        clipBehavior: Clip.hardEdge,
-                        child: Stack(
-                          children: [
-                            IgnorePointer(
-                              child: FlutterMap(
-                                options: MapOptions(
-                                  initialCenter: LatLng(ficha.latitud!, ficha.longitud!),
-                                  initialZoom: 15.0,
-                                  interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
-                                ),
-                                children: [
-                                  TileLayer(
-                                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                    userAgentPackageName: 'com.amigate.echoes',
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Color(0xFFEF9A9A),
+                      ),
+                      tooltip: 'Eliminar ficha',
+                      onPressed: _onEliminar,
+                    ),
+                  ]
+                : null,
+          ),
+          body: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _HeroImage(fotoUrl: ficha.fotoUrl),
+
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ── Badges de estado y voluntarios ────────────────────
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          _EstadoBadge(estado: ficha.estado),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF3E5F5),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0xFF8E24AA)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.group, size: 14, color: Color(0xFF8E24AA)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${vm.voluntariosCount} Voluntarios',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF8E24AA),
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  MarkerLayer(
-                                    markers: [
-                                      Marker(
-                                        point: LatLng(ficha.latitud!, ficha.longitud!),
-                                        width: 40,
-                                        height: 40,
-                                        child: const Icon(Icons.location_on, color: Colors.red, size: 40),
-                                      ),
-                                    ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (esCreador)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: AppTheme.primary),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (ficha.avatarUsuario != null && ficha.avatarUsuario!.isNotEmpty) ...[
+                                    CircleAvatar(
+                                      radius: 8,
+                                      backgroundImage: CachedNetworkImageProvider(ficha.avatarUsuario!),
+                                      backgroundColor: Colors.transparent,
+                                    ),
+                                  ] else
+                                    const Icon(Icons.person, size: 14, color: AppTheme.primary),
+                                  const SizedBox(width: 4),
+                                  const Text(
+                                    'Tú creaste esta búsqueda',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppTheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                            Container(
-                              color: Colors.black.withValues(alpha: 0.1),
-                            ),
-                            Center(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.map, color: AppTheme.info),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Ver Mapa de Cuadrantes',
-                                      style: TextStyle(
-                                        color: AppTheme.primaryLight,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ── Título ─────────────────────────────────────────────
+                      Text(
+                        ficha.titulo,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1A1A1A),
                         ),
                       ),
-                    ),
-                  const SizedBox(height: 28),
+                      const SizedBox(height: 12),
 
-                  _buildActionArea(vm, esCreador, esBloqueado, estadoText),
-                  const SizedBox(height: 8),
-                ],
-              ),
+                      Container(
+                        height: 3,
+                        width: 40,
+                        decoration: BoxDecoration(
+                          color: AppTheme.info,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ── Descripción ────────────────────────────────────────
+                      const Text(
+                        'Descripción del caso',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF5F6368),
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        ficha.descripcion,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: Color(0xFF1A1A1A),
+                          height: 1.6,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      _InfoSection(ficha: ficha),
+                      const SizedBox(height: 20),
+
+                      // ── Mapa miniatura ─────────────────────────────────────
+                      if (ficha.latitud != null && ficha.longitud != null)
+                        InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => MapaOperativoView(
+                                  ficha: ficha,
+                                  esCreador: esCreador,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            height: 160,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE3F2FD),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppTheme.info, width: 1.5),
+                            ),
+                            clipBehavior: Clip.hardEdge,
+                            child: Stack(
+                              children: [
+                                IgnorePointer(
+                                  child: FlutterMap(
+                                    options: MapOptions(
+                                      initialCenter: LatLng(ficha.latitud!, ficha.longitud!),
+                                      initialZoom: 15.0,
+                                      interactionOptions: const InteractionOptions(
+                                          flags: InteractiveFlag.none),
+                                    ),
+                                    children: [
+                                      TileLayer(
+                                        urlTemplate:
+                                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                        userAgentPackageName: 'com.amigate.echoes',
+                                      ),
+                                      MarkerLayer(
+                                        markers: [
+                                          Marker(
+                                            point: LatLng(ficha.latitud!, ficha.longitud!),
+                                            width: 40,
+                                            height: 40,
+                                            child: const Icon(Icons.location_on,
+                                                color: Colors.red, size: 40),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                ),
+                                Center(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.map, color: AppTheme.info),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Ver Mapa de Cuadrantes',
+                                          style: TextStyle(
+                                            color: AppTheme.primaryLight,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 28),
+
+                      // ── Área de acciones (botones) ─────────────────────────
+                      _buildActionArea(vm, esCreador, esBloqueado, estadoText),
+                      const SizedBox(height: 28),
+
+                      // ── Sección de evidencias fotográficas ─────────────────
+                      const Divider(),
+                      const SizedBox(height: 16),
+                      EvidenciasSection(
+                        reporteId: widget.fichaId,
+                        usuarioId: widget.currentUserId,
+                        puedePublicar: ficha.estado.toLowerCase() == 'activo',
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
-    )
     );
   }
 
@@ -574,6 +596,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
 class _BannerBloqueado extends StatelessWidget {
   final String estado;
 
@@ -608,8 +631,7 @@ class _BannerBloqueado extends StatelessWidget {
                 const SizedBox(height: 2),
                 const Text(
                   'No se admiten nuevos voluntarios.',
-                  style:
-                      TextStyle(color: Color(0xFF5F6368), fontSize: 12),
+                  style: TextStyle(color: Color(0xFF5F6368), fontSize: 12),
                 ),
               ],
             ),
@@ -620,6 +642,7 @@ class _BannerBloqueado extends StatelessWidget {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
 class _HeroImage extends StatelessWidget {
   final String? fotoUrl;
 
@@ -691,6 +714,7 @@ class _HeroImage extends StatelessWidget {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
 class _EstadoBadge extends StatelessWidget {
   final String estado;
 
@@ -746,6 +770,7 @@ class _EstadoBadge extends StatelessWidget {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
 class _InfoSection extends StatelessWidget {
   final dynamic ficha;
 
@@ -765,65 +790,106 @@ class _InfoSection extends StatelessWidget {
           crossAxisSpacing: 10,
           children: [
             if (ficha.nombreCategoria != null && (ficha.nombreCategoria as String).isNotEmpty)
-              _MiniCard(icon: Icons.category_outlined, label: 'Categoría', value: ficha.nombreCategoria),
+              _MiniCard(
+                  icon: Icons.category_outlined,
+                  label: 'Categoría',
+                  value: ficha.nombreCategoria),
             if (ficha.fechaPerdida != null && (ficha.fechaPerdida as String).isNotEmpty)
               _MiniCard(
                   icon: Icons.calendar_today_outlined,
                   label: 'Fecha',
-                  value: (ficha.fechaPerdida as String).length > 10 ? (ficha.fechaPerdida as String).substring(0, 10) : ficha.fechaPerdida),
+                  value: (ficha.fechaPerdida as String).length > 10
+                      ? (ficha.fechaPerdida as String).substring(0, 10)
+                      : ficha.fechaPerdida),
             if (ficha.prioridad != null && (ficha.prioridad as String).isNotEmpty)
-              _MiniCard(icon: Icons.priority_high, label: 'Prioridad', value: (ficha.prioridad as String).toUpperCase(), color: Colors.orange),
+              _MiniCard(
+                  icon: Icons.priority_high,
+                  label: 'Prioridad',
+                  value: (ficha.prioridad as String).toUpperCase(),
+                  color: Colors.orange),
             if (ficha.recompensa != null && (ficha.recompensa as num) > 0)
-              _MiniCard(icon: Icons.monetization_on_outlined, label: 'Recompensa', value: '${ficha.recompensa} BOB', color: Colors.green),
+              _MiniCard(
+                  icon: Icons.monetization_on_outlined,
+                  label: 'Recompensa',
+                  value: '${ficha.recompensa} BOB',
+                  color: Colors.green),
           ],
         ),
         const SizedBox(height: 16),
 
-        if ((ficha.telefonoContacto != null && (ficha.telefonoContacto as String).isNotEmpty) ||
-            (ficha.emailContacto != null && (ficha.emailContacto as String).isNotEmpty) ||
-            (ficha.direccionReferencia != null && (ficha.direccionReferencia as String).isNotEmpty))
+        if ((ficha.telefonoContacto != null &&
+                (ficha.telefonoContacto as String).isNotEmpty) ||
+            (ficha.emailContacto != null &&
+                (ficha.emailContacto as String).isNotEmpty) ||
+            (ficha.direccionReferencia != null &&
+                (ficha.direccionReferencia as String).isNotEmpty))
           Card(
             elevation: 0,
             color: const Color(0xFFF8F9FA),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFFE0E0E0))),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: Color(0xFFE0E0E0))),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('INFORMACIÓN DE CONTACTO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF5F6368), letterSpacing: 1.2)),
+                  const Text('INFORMACIÓN DE CONTACTO',
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF5F6368),
+                          letterSpacing: 1.2)),
                   const SizedBox(height: 12),
-                  if (ficha.telefonoContacto != null && (ficha.telefonoContacto as String).isNotEmpty)
-                    _ContactRow(icon: Icons.phone_outlined, text: ficha.telefonoContacto),
-                  if (ficha.emailContacto != null && (ficha.emailContacto as String).isNotEmpty)
-                    _ContactRow(icon: Icons.email_outlined, text: ficha.emailContacto),
-                  if (ficha.direccionReferencia != null && (ficha.direccionReferencia as String).isNotEmpty)
-                    _ContactRow(icon: Icons.location_on_outlined, text: ficha.direccionReferencia),
+                  if (ficha.telefonoContacto != null &&
+                      (ficha.telefonoContacto as String).isNotEmpty)
+                    _ContactRow(
+                        icon: Icons.phone_outlined, text: ficha.telefonoContacto),
+                  if (ficha.emailContacto != null &&
+                      (ficha.emailContacto as String).isNotEmpty)
+                    _ContactRow(
+                        icon: Icons.email_outlined, text: ficha.emailContacto),
+                  if (ficha.direccionReferencia != null &&
+                      (ficha.direccionReferencia as String).isNotEmpty)
+                    _ContactRow(
+                        icon: Icons.location_on_outlined,
+                        text: ficha.direccionReferencia),
                 ],
               ),
             ),
           ),
         const SizedBox(height: 16),
 
-        if (ficha.caracteristicas != null && (ficha.caracteristicas as Map).isNotEmpty)
+        if (ficha.caracteristicas != null &&
+            (ficha.caracteristicas as Map).isNotEmpty)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('CARACTERÍSTICAS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF5F6368), letterSpacing: 1.2)),
+              const Text('CARACTERÍSTICAS',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF5F6368),
+                      letterSpacing: 1.2)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: (ficha.caracteristicas as Map<String, dynamic>).entries.map((entry) {
+                children:
+                    (ficha.caracteristicas as Map<String, dynamic>).entries.map((entry) {
                   final clave = entry.key;
                   final valor = entry.value;
 
-                  final camposRef = ficha.nombreCategoria != null ? CamposCategoria.paraNombre(ficha.nombreCategoria!) : <CampoCategoria>[];
-                  final campoRef = camposRef.where((c) => c.clave == clave).firstOrNull;
-                  
-                  final etiqueta = campoRef?.etiqueta ?? clave.replaceAll('_', ' ').toUpperCase();
+                  final camposRef = ficha.nombreCategoria != null
+                      ? CamposCategoria.paraNombre(ficha.nombreCategoria!)
+                      : <CampoCategoria>[];
+                  final campoRef =
+                      camposRef.where((c) => c.clave == clave).firstOrNull;
+
+                  final etiqueta =
+                      campoRef?.etiqueta ?? clave.replaceAll('_', ' ').toUpperCase();
                   final icono = campoRef?.icono ?? Icons.info_outline;
-                  
+
                   String valorStr;
                   if (valor is bool) {
                     valorStr = valor ? 'Sí' : 'No';
@@ -840,24 +906,29 @@ class _InfoSection extends StatelessWidget {
                     label: Text('$etiqueta: $valorStr'),
                     backgroundColor: AppTheme.primary.withValues(alpha: 0.06),
                     side: BorderSide.none,
-                    labelStyle: const TextStyle(fontSize: 13, color: Color(0xFF1A1A1A)),
+                    labelStyle:
+                        const TextStyle(fontSize: 13, color: Color(0xFF1A1A1A)),
                   );
                 }).toList(),
               ),
             ],
           ),
-        
+
         const SizedBox(height: 24),
-        
+
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            if (ficha.nombreUsuario != null && (ficha.nombreUsuario as String).isNotEmpty)
+            if (ficha.nombreUsuario != null &&
+                (ficha.nombreUsuario as String).isNotEmpty)
               Expanded(
-                child: Text('Reportado por: ${ficha.nombreUsuario}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                child: Text('Reportado por: ${ficha.nombreUsuario}',
+                    style:
+                        const TextStyle(fontSize: 12, color: Colors.grey)),
               ),
             if (ficha.vistas != null)
-              Text('👁 ${ficha.vistas} vistas', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              Text('👁 ${ficha.vistas} vistas',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
           ],
         ),
       ],
@@ -865,13 +936,18 @@ class _InfoSection extends StatelessWidget {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
 class _MiniCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
   final Color color;
 
-  const _MiniCard({required this.icon, required this.label, required this.value, this.color = AppTheme.primaryLight});
+  const _MiniCard(
+      {required this.icon,
+      required this.label,
+      required this.value,
+      this.color = AppTheme.primaryLight});
 
   @override
   Widget build(BuildContext context) {
@@ -890,17 +966,29 @@ class _MiniCard extends StatelessWidget {
             children: [
               Icon(icon, size: 14, color: color),
               const SizedBox(width: 4),
-              Expanded(child: Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
+              Expanded(
+                  child: Text(label,
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: color,
+                          fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis)),
             ],
           ),
           const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87), overflow: TextOverflow.ellipsis),
+          Text(value,
+              style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87),
+              overflow: TextOverflow.ellipsis),
         ],
       ),
     );
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
 class _ContactRow extends StatelessWidget {
   final IconData icon;
   final String text;
@@ -916,10 +1004,12 @@ class _ContactRow extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: const Color(0xFF5F6368)),
           const SizedBox(width: 8),
-          Expanded(child: Text(text, style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)))),
+          Expanded(
+              child: Text(text,
+                  style: const TextStyle(
+                      fontSize: 14, color: Color(0xFF1A1A1A)))),
         ],
       ),
     );
   }
 }
-
