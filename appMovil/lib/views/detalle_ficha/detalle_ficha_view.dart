@@ -34,15 +34,23 @@ class DetalleFichaView extends StatefulWidget {
 
 class _DetalleFichaViewState extends State<DetalleFichaView> {
   bool _huboCambios = false;
+  late EvidenciaViewModel _evidenciaVm;
 
   @override
   void initState() {
     super.initState();
+    _evidenciaVm = EvidenciaViewModel();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context
           .read<DetalleFichaViewModel>()
           .cargarFicha(widget.fichaId, widget.currentUserId);
     });
+  }
+
+  @override
+  void dispose() {
+    _evidenciaVm.dispose();
+    super.dispose();
   }
 
   Future<void> _onUnirse() async {
@@ -145,8 +153,8 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
     final esBloqueado = ficha.estado.toLowerCase() != 'activo';
     final estadoText = ficha.estado.toLowerCase();
 
-    return ChangeNotifierProvider(
-      create: (_) => EvidenciaViewModel(),
+    return ChangeNotifierProvider.value(
+      value: _evidenciaVm,
       child: PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, result) async {

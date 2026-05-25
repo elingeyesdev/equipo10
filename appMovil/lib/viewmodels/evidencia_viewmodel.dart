@@ -1,15 +1,20 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/evidencia_model.dart';
+import '../models/evidencia_offline_model.dart';
 import '../services/evidencia_service.dart';
 
-enum EvidenciaEstado { idle, capturando, subiendo, guardando, listo, error }
+enum EvidenciaEstado { idle, capturando, subiendo, guardando, listo, listoOffline, error }
 
 class EvidenciaViewModel extends ChangeNotifier {
   final EvidenciaService _service = EvidenciaService();
+  StreamSubscription? _colaSub;
 
   List<EvidenciaModel> _evidencias = [];
+  List<EvidenciaOfflineModel> _pendientes = [];
+  
   EvidenciaEstado _estado = EvidenciaEstado.idle;
   String? _errorMessage;
   bool _cargando = false;
@@ -19,7 +24,24 @@ class EvidenciaViewModel extends ChangeNotifier {
   Position? _posicionTemporal;
   List<int>? _bytesPreview;
 
+  EvidenciaViewModel() {
+    _pendientes = _service.colaOffline;
+    _colaSub = _service.colaStream.listen((cola) {
+      _pendientes = cola;
+      notifyListeners();
+      // Si la cola se vacía y estábamos en idle o listo, podríamos querer recargar las evidencias online
+      // pero por ahora solo actualizamos la UI para quitar las pendientes.
+    });
+  }
+
+  @override
+  void dispose() {
+    _colaSub?.cancel();
+    super.dispose();
+  }
+
   List<EvidenciaModel> get evidencias => _evidencias;
+  List<EvidenciaOfflineModel> get pendientes => _pendientes;
   EvidenciaEstado get estado => _estado;
   String? get errorMessage => _errorMessage;
   bool get cargando => _cargando;
@@ -99,7 +121,7 @@ class EvidenciaViewModel extends ChangeNotifier {
     _setState(EvidenciaEstado.idle);
   }
 
-  /// Sube la foto y crea la evidencia en el servidor.
+  /// Sube la foto y crea la evidencia en el servidor, o la encola si hay fallo de red.
   Future<bool> publicarEvidencia({
     required String reporteId,
     required String usuarioId,
@@ -134,16 +156,34 @@ class EvidenciaViewModel extends ChangeNotifier {
       _setState(EvidenciaEstado.listo);
       return true;
     } catch (e) {
-      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      final msg = e.toString();
+      
+      // Si el error parece ser de red (lo asumimos si falla la subida o la conexión)
+      if (msg.contains('Error de conexión') || msg.contains('Error al subir')) {
+        await _service.encolarEvidencia(
+          reporteId: reporteId,
+          usuarioId: usuarioId,
+          descripcion: descripcion,
+          xFile: _fotoTemporal!,
+          lat: _posicionTemporal?.latitude,
+          lng: _posicionTemporal?.longitude,
+        );
+
+        _fotoTemporal = null;
+        _bytesPreview = null;
+        _posicionTemporal = null;
+        
+        _setState(EvidenciaEstado.listoOffline);
+        return true;
+      }
+
+      _errorMessage = msg.replaceFirst('Exception: ', '');
       _setState(EvidenciaEstado.error);
       return false;
     }
   }
 
-  /// Indica si se capturó GPS junto a la foto.
   bool get tienePosicion => _posicionTemporal != null;
-
-  /// Coordenadas de la foto temporal (para mostrar en UI).
   double? get latTemporal => _posicionTemporal?.latitude;
   double? get lngTemporal => _posicionTemporal?.longitude;
 }
