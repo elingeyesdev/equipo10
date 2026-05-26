@@ -18,6 +18,8 @@ class EvidenciaViewModel extends ChangeNotifier {
   EvidenciaEstado _estado = EvidenciaEstado.idle;
   String? _errorMessage;
   bool _cargando = false;
+  bool _esCreador = false;
+  bool get esCreador => _esCreador;
 
   // Datos de la captura en progreso
   XFile? _fotoTemporal;
@@ -53,13 +55,20 @@ class EvidenciaViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Carga las evidencias existentes de un reporte.
-  Future<void> cargarEvidencias(String reporteId) async {
+  /// Carga las evidencias. Si esCreador=true carga todas (incluyendo pending);
+  /// si es voluntario carga solo las approved para no mostrar las rechazadas.
+  Future<void> cargarEvidencias(String reporteId, {bool esCreador = false}) async {
+    _esCreador = esCreador;
     _cargando = true;
     _errorMessage = null;
     notifyListeners();
     try {
-      _evidencias = await _service.obtenerEvidencias(reporteId);
+      final todas = await _service.obtenerEvidencias(reporteId);
+      if (esCreador) {
+        _evidencias = todas;
+      } else {
+        _evidencias = todas.where((e) => e.estado == 'approved').toList();
+      }
     } catch (e) {
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
     } finally {
@@ -147,8 +156,10 @@ class EvidenciaViewModel extends ChangeNotifier {
         lng: _posicionTemporal?.longitude,
       );
 
-      // 3. Insertar al inicio de la lista local
-      _evidencias = [nueva, ..._evidencias];
+      // 3. Insertar al inicio de la lista local (solo si es creador o está aprobada)
+      if (_esCreador || nueva.estado == 'approved') {
+        _evidencias = [nueva, ..._evidencias];
+      }
       _fotoTemporal = null;
       _bytesPreview = null;
       _posicionTemporal = null;
@@ -193,4 +204,35 @@ class EvidenciaViewModel extends ChangeNotifier {
   bool get tienePosicion => _posicionTemporal != null;
   double? get latTemporal => _posicionTemporal?.latitude;
   double? get lngTemporal => _posicionTemporal?.longitude;
+
+  /// Aprobar una evidencia: cambia su estado localmente y llama al backend.
+  Future<bool> aprobarEvidencia(String evidenciaId, String reporteId) async {
+    try {
+      await _service.aprobarEvidencia(evidenciaId);
+      // Recargar para reflejar el cambio
+      final todas = await _service.obtenerEvidencias(reporteId);
+      _evidencias = todas;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Rechazar una evidencia: cambia su estado localmente y llama al backend.
+  Future<bool> rechazarEvidencia(String evidenciaId, String reporteId) async {
+    try {
+      await _service.rechazarEvidencia(evidenciaId);
+      final todas = await _service.obtenerEvidencias(reporteId);
+      _evidencias = todas;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
 }

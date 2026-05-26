@@ -277,4 +277,27 @@ class EvidenciaService {
     }
     return [];
   }
+
+  // Obtiene todas las evidencias (para el dueno del reporte, sin filtrar por estado)
+  Future<List<EvidenciaModel>> obtenerEvidenciasAdmin(String reporteId) async {
+    return obtenerEvidencias(reporteId);
+  }
+
+  // Aprobar una evidencia por su ID de respuesta
+  Future<void> aprobarEvidencia(String respuestaId) async {
+    final response = await _api.client
+        .post('/evidencias/$respuestaId/aprobar');
+    if (response.statusCode != 200 || response.data['success'] != true) {
+      throw Exception(response.data['message'] ?? 'Error al aprobar evidencia.');
+    }
+  }
+
+  // Rechazar una evidencia por su ID de respuesta
+  Future<void> rechazarEvidencia(String respuestaId) async {
+    final response = await _api.client
+        .post('/evidencias/$respuestaId/rechazar');
+    if (response.statusCode != 200 || response.data['success'] != true) {
+      throw Exception(response.data['message'] ?? 'Error al rechazar evidencia.');
+    }
+  }
 }

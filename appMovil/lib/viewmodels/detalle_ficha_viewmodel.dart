@@ -74,7 +74,7 @@ class DetalleFichaViewModel extends ChangeNotifier {
       await NotificationService().show(
         AppNotification(
           type: NotificationType.joinSearchConfirmation,
-          title: '¡Excelente! Te uniste a la búsqueda 🔍',
+          title: 'Te uniste a la busqueda',
           body: 'Ahora eres voluntario en "$nombreOperativo". ¡Buena suerte en la misión!',
           payload: {'fichaId': fichaId},
         ),

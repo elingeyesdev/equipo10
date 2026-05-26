@@ -22,7 +22,8 @@ class Notificacion extends Model
         'datos',
         'leida',
         'enviada_push',
-        'enviada_email'
+        'enviada_email',
+        'datos_json',
     ];
 
     protected $casts = [
@@ -30,8 +31,11 @@ class Notificacion extends Model
         'leida' => 'boolean',
         'enviada_push' => 'boolean',
         'enviada_email' => 'boolean',
-        'created_at' => 'datetime'
+        'created_at' => 'datetime',
+        'datos_json' => 'array',
     ];
+
+    protected $appends = ['datos_json'];
 
     public function usuario()
     {
@@ -40,5 +44,22 @@ class Notificacion extends Model
     public function datos()
     {
         return $this->hasMany(NotificacionDato::class, 'notificacion_id');
+    }
+
+    public function getDatosJsonAttribute()
+    {
+        $map = [];
+        $datos = $this->relationLoaded('datos') ? $this->datos : null;
+        if ($datos === null) {
+            $datos = $this->datos()->get();
+        }
+        if ($datos !== null) {
+            foreach ($datos as $dato) {
+                if (isset($dato->clave)) {
+                    $map[$dato->clave] = $dato->valor;
+                }
+            }
+        }
+        return $map;
     }
 }

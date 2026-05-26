@@ -434,8 +434,8 @@ class _LPPPickerViewState extends State<LPPPickerView> {
                         const SizedBox(width: 6),
                         Text(
                           _cuadranteSeleccionado != null 
-                              ? 'Ubicado en: ${_cuadranteSeleccionado!.nombre}. Toca ✓ para confirmar.'
-                              : 'LPP y cuadrantes trazados. Toca ✓ para confirmar.',
+                              ? 'Ubicado en: ${_cuadranteSeleccionado!.nombre}. Toca el check para confirmar.'
+                              : 'LPP y cuadrantes trazados. Toca el check para confirmar.',
                           style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),
                         ),
                       ],

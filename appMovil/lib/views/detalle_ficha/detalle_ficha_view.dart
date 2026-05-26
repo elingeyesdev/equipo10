@@ -375,7 +375,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                                                 child: const Icon(Icons.location_on,
                                                     color: Colors.red, size: 40),
                                               ),
-                                              ...evidenciaVm.evidencias.where((e) => e.lat != null && e.lng != null).map((evidencia) {
+                                              ...evidenciaVm.evidencias.where((e) => (esCreador || e.estado == 'approved') && e.lat != null && e.lng != null).map((evidencia) {
                                                 return Marker(
                                                   point: LatLng(evidencia.lat!, evidencia.lng!),
                                                   width: 30,
@@ -434,6 +434,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                         reporteId: widget.fichaId,
                         usuarioId: widget.currentUserId,
                         puedePublicar: ficha.estado.toLowerCase() == 'activo',
+                        esCreador: esCreador,
                       ),
                       const SizedBox(height: 24),
                     ],
@@ -959,8 +960,15 @@ class _InfoSection extends StatelessWidget {
                         const TextStyle(fontSize: 12, color: Colors.grey)),
               ),
             if (ficha.vistas != null)
-              Text('👁 ${ficha.vistas} vistas',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.remove_red_eye_outlined, size: 14, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Text('${ficha.vistas} vistas',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
           ],
         ),
       ],

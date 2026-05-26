@@ -289,7 +289,7 @@ class _TrackingViewState extends State<TrackingView> {
                     ),
                   ),
                   if (vm.evidencias.isNotEmpty)
-                    ...vm.evidencias.where((e) => e.lat != null && e.lng != null).map((evidencia) {
+                    ...vm.evidencias.where((e) => e.estado == 'approved' && e.lat != null && e.lng != null).map((evidencia) {
                       return Marker(
                         point: LatLng(evidencia.lat!, evidencia.lng!),
                         width: 80,
@@ -297,7 +297,8 @@ class _TrackingViewState extends State<TrackingView> {
                         alignment: Alignment.center,
                         child: GestureDetector(
                           onTap: () {
-                            Future.microtask(() {
+                            Future.delayed(const Duration(milliseconds: 150), () {
+                              if (!mounted) return;
                               showDialog(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
@@ -306,7 +307,7 @@ class _TrackingViewState extends State<TrackingView> {
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        if (evidencia.fotoUrl != null)
+                                        if (evidencia.fotoUrl != null && evidencia.fotoUrl!.isNotEmpty)
                                           ClipRRect(
                                             borderRadius: BorderRadius.circular(8),
                                             child: Image.network(

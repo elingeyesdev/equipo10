@@ -36,10 +36,10 @@ class ProcessExpansionsCommand extends Command
             
             if ($resultado) {
                 $reporte->refresh();
-                $this->line("✅ <info>{$reporte->titulo}</info> expandido: Nivel {$nivelAnterior} -> <comment>{$reporte->nivel_expansion}</comment>");
+                $this->line("<info>{$reporte->titulo}</info> expandido: Nivel {$nivelAnterior} -> <comment>{$reporte->nivel_expansion}</comment>");
                 $expandidos++;
             } else {
-                $this->warn("⚠️ {$reporte->titulo} no pudo expandirse (revisar logs)");
+                $this->warn("{$reporte->titulo} no pudo expandirse (revisar logs)");
             }
         }
         

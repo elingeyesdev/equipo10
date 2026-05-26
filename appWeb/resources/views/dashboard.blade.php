@@ -6,7 +6,7 @@
 @push('styles')
 <style>
     /* ============================================
-       🎨 DISEÑO IMPACTANTE - CENTRO DE RESCATE
+       DISENO IMPACTANTE - CENTRO DE RESCATE
        ============================================ */
     
     /* Aurora Gradient Animation */

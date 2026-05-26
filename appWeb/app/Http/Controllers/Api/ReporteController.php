@@ -108,7 +108,7 @@ class ReporteController extends Controller
             $tiempoExpansion = ConfiguracionSistema::where('clave', 'tiempo_expansion_horas')->first();
             $horasExpansion = $tiempoExpansion ? (float)$tiempoExpansion->valor : 24;
             
-            // 🧪 PARA TESTING: Descomentar la siguiente línea para usar 5 minutos
+            // PARA TESTING: Descomentar la siguiente linea para usar 5 minutos
             // $horasExpansion = 5 / 60; // 5 minutos = 0.083 horas
 
             // Crear reporte con nueva lógica de expansión escalonada (10 niveles)
@@ -156,6 +156,16 @@ class ReporteController extends Controller
                         'orden' => $index + 1
                     ]);
                 }
+                // Notify the report creator about new pending evidences
+                \App\Models\Notificacion::create([
+                    'usuario_id' => $reporte->usuario_id,
+                    'tipo' => 'evidencia_subida',
+                    'titulo' => 'Nueva evidencia pendiente',
+                    'mensaje' => 'Se ha subido una nueva evidencia al reporte que requiere tu aprobación.',
+                    'leida' => false,
+                    'enviada_push' => false,
+                    'datos_json' => json_encode(['reporte_id' => $reporte->id])
+                ]);
             }
 
             // Agregar videos si existen
@@ -522,7 +532,7 @@ class ReporteController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '⚡ Reporte expandido INMEDIATAMENTE (modo testing)',
+                'message' => 'Reporte expandido INMEDIATAMENTE (modo testing)',
                 'data' => [
                     'reporte' => $reporte,
                     'nuevo_nivel' => $nuevoNivel,

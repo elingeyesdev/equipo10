@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../viewmodels/panel_control_viewmodel.dart';
+import '../../viewmodels/evidencia_viewmodel.dart';
 import '../../widgets/map_tile_layer.dart';
 import '../../widgets/lpp_marker.dart';
+import 'revision_evidencias_view.dart';
 
 class PanelControlView extends StatefulWidget {
   final String fichaId;
@@ -26,6 +28,10 @@ class _PanelControlViewState extends State<PanelControlView> {
       final vm = context.read<PanelControlViewModel>();
       vm.cargarDatos(widget.fichaId);
       vm.iniciarPolling(widget.fichaId);
+      // Cargar evidencias (modo creador: ve todas)
+      context
+          .read<EvidenciaViewModel>()
+          .cargarEvidencias(widget.fichaId, esCreador: true);
     });
   }
 
@@ -332,7 +338,14 @@ class _PanelControlViewState extends State<PanelControlView> {
           const SizedBox(height: 32),
           const Divider(),
           const SizedBox(height: 16),
-          
+
+          // Boton de revision de evidencias
+          _buildBotonRevisionEvidencias(context, vm),
+
+          const SizedBox(height: 24),
+          const Divider(),
+          const SizedBox(height: 16),
+
           // Lista de voluntarios
           Row(
             children: [
@@ -373,6 +386,111 @@ class _PanelControlViewState extends State<PanelControlView> {
               },
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBotonRevisionEvidencias(BuildContext context, PanelControlViewModel vm) {
+    final evVm = context.watch<EvidenciaViewModel>();
+    final pendingCount = evVm.evidencias.where((e) => e.estado == 'pending').length;
+    
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => RevisionEvidenciasView(
+                  reporteId: widget.fichaId,
+                  reporteTitulo: vm.ficha?.titulo ?? 'Búsqueda',
+                ),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF3CD),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.rate_review_outlined,
+                    color: Color(0xFFB8860B),
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Revisión de Evidencias',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF202124),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        pendingCount > 0
+                            ? '$pendingCount evidencia(s) esperando revisión'
+                            : 'Ver todas las evidencias enviadas',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: pendingCount > 0 ? const Color(0xFFD32F2F) : const Color(0xFF5F6368),
+                          fontWeight: pendingCount > 0 ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (pendingCount > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD32F2F),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '$pendingCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  )
+                else
+                  const Icon(
+                    Icons.chevron_right,
+                    color: Color(0xFF5F6368),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -443,8 +561,12 @@ class _PanelControlViewState extends State<PanelControlView> {
       );
     }
     
-    // 2. Agregar las evidencias fotográficas capturadas
-    markersPistas.addAll(vm.evidencias.where((e) => e.lat != null && e.lng != null).map((evidencia) {
+    // 2. Agregar las evidencias fotograficas capturadas (solo approved)
+    final evVm = context.read<EvidenciaViewModel>();
+    final evidenciasAprobadas =
+        evVm.evidencias.where((e) => e.estado == 'approved').toList();
+    markersPistas.addAll(
+        evidenciasAprobadas.where((e) => e.lat != null && e.lng != null).map((evidencia) {
       return Marker(
         point: LatLng(evidencia.lat!, evidencia.lng!),
         width: 80,
@@ -452,7 +574,8 @@ class _PanelControlViewState extends State<PanelControlView> {
         alignment: Alignment.center,
         child: GestureDetector(
           onTap: () {
-            Future.microtask(() {
+            Future.delayed(const Duration(milliseconds: 150), () {
+              if (!mounted) return;
               showDialog(
                 context: context,
                 builder: (ctx) => AlertDialog(
@@ -461,10 +584,16 @@ class _PanelControlViewState extends State<PanelControlView> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (evidencia.fotoUrl != null)
+                        if (evidencia.fotoUrl != null && evidencia.fotoUrl!.isNotEmpty)
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: Image.network(evidencia.fotoUrl!, height: 150, width: 300, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 50)),
+                            child: Image.network(
+                              evidencia.fotoUrl!,
+                              height: 150,
+                              width: 300,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 50),
+                            ),
                           ),
                         const SizedBox(height: 12),
                         Text(evidencia.descripcion),

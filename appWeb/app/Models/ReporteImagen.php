@@ -14,18 +14,20 @@ class ReporteImagen extends Model
     protected $primaryKey = 'id';
     public $incrementing = false;
     protected $keyType = 'string';
-    const UPDATED_AT = null;
+    const STATE_PENDING = 'pending';
+    const STATE_APPROVED = 'approved';
+    const STATE_REJECTED = 'rejected';
 
     protected $fillable = [
         'reporte_id',
         'url',
-        'orden' 
-    ];
+        'orden',
+        'estado'    ];
 
         protected $casts = [
         'orden' => 'integer',
-        'created_at' => 'datetime'
-    ];
+        'created_at' => 'datetime',
+        'estado' => 'string'    ];
 
 
     public function reporte()

@@ -104,6 +104,6 @@ class RolePermissionSeeder extends Seeder
             }
         }
 
-        $this->command->info('✅ Roles y permisos creados exitosamente!');
+        $this->command->info('Roles y permisos creados exitosamente!');
     }
 }

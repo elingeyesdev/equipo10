@@ -7,6 +7,7 @@ import '../../models/reporte_model.dart';
 import '../../services/api_service.dart';
 import '../../widgets/map_tile_layer.dart';
 import '../../widgets/lpp_marker.dart';
+import '../../widgets/evidencia_marker.dart';
 import '../../models/cuadrante_model.dart';
 import '../../services/cuadrante_service.dart';
 import '../../services/evidencia_service.dart';
@@ -26,9 +27,9 @@ const List<Color> _coloresVoluntarios = [
 // Etiquetas disponibles para las pistas (NO incluye 'Visto por última vez',
 // esa etiqueta es exclusiva del punto original LPP y no se puede reasignar)
 const List<Map<String, String>> _etiquetasPista = [
-  {'emoji': '🔍', 'label': 'Nueva pista'},
-  {'emoji': '📡', 'label': 'Última señal'},
-  {'emoji': '⚠️', 'label': 'Zona de interés'},
+  {'emoji': '[P]', 'label': 'Nueva pista'},
+  {'emoji': '[S]', 'label': 'Ultima senal'},
+  {'emoji': '[!]', 'label': 'Zona de interes'},
 ];
 
 class MapaOperativoView extends StatefulWidget {
@@ -376,7 +377,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   Future<void> _cargarEvidencias() async {
     try {
       final evi = await _evidenciaService.obtenerEvidencias(widget.ficha.id);
-      if (mounted) setState(() => _evidencias = evi);
+      final approved = evi.where((e) => e.estado == 'approved').toList();
+      if (mounted) setState(() => _evidencias = approved);
     } catch (e) {
       debugPrint('Error cargando evidencias: $e');
     }
@@ -924,7 +926,12 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
         height: 100,
         alignment: Alignment.center,
         child: GestureDetector(
-          onTap: () => setState(() => _pistaTooltip = _pistaTooltip == lppInfo ? null : lppInfo),
+          onTap: () {
+            Future.delayed(const Duration(milliseconds: 150), () {
+              if (!mounted) return;
+              setState(() => _pistaTooltip = _pistaTooltip == lppInfo ? null : lppInfo);
+            });
+          },
           child: MouseRegion(
             cursor: SystemMouseCursors.click,
             child: LppMarker(
@@ -946,7 +953,12 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
           height: 70,
           alignment: Alignment.center,
           child: GestureDetector(
-            onTap: () => setState(() => _pistaTooltip = _pistaTooltip == pista ? null : pista),
+            onTap: () {
+              Future.delayed(const Duration(milliseconds: 150), () {
+                if (!mounted) return;
+                setState(() => _pistaTooltip = _pistaTooltip == pista ? null : pista);
+              });
+            },
             child: MouseRegion(
               cursor: SystemMouseCursors.click,
               child: LppMarker(
@@ -1023,37 +1035,111 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
       }
     }
 
-    // 5. Evidencias
+    // 5. Evidencias fotográficas (ícono personalizado de cámara)
     todosLosMarkers.addAll(_evidencias.where((e) => e.lat != null && e.lng != null).map((evidencia) {
       return Marker(
+        key: ValueKey('evidencia_${evidencia.id}'),
         point: LatLng(evidencia.lat!, evidencia.lng!),
-        width: 80,
-        height: 70,
+        width: 100,
+        height: 100,
         alignment: Alignment.center,
         child: GestureDetector(
           onTap: () {
-            Future.microtask(() {
+            Future.delayed(const Duration(milliseconds: 150), () {
+              if (!mounted) return;
               showDialog(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  title: const Text('Evidencia'),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  titlePadding: EdgeInsets.zero,
+                  title: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFF6F00),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.photo_camera, color: Colors.white, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Evidencia Fotográfica',
+                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   content: SingleChildScrollView(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (evidencia.fotoUrl != null)
+                        if (evidencia.fotoUrl != null && evidencia.fotoUrl!.isNotEmpty)
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(10),
                             child: Image.network(
                               evidencia.fotoUrl!,
-                              height: 150,
-                              width: 300,
+                              height: 200,
+                              width: double.infinity,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 50),
+                              errorBuilder: (_, __, ___) => Container(
+                                height: 120,
+                                color: Colors.grey[200],
+                                child: const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+                              ),
                             ),
                           ),
                         const SizedBox(height: 12),
-                        Text(evidencia.descripcion),
+                        // Info del voluntario
+                        if (evidencia.nombreUsuario != null)
+                          Row(
+                            children: [
+                              const Icon(Icons.person, size: 16, color: Color(0xFFFF6F00)),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  evidencia.nombreUsuario!,
+                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                ),
+                              ),
+                            ],
+                          ),
+                        if (evidencia.creadoEn != null) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(Icons.schedule, size: 16, color: Colors.grey),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${evidencia.creadoEn!.day}/${evidencia.creadoEn!.month}/${evidencia.creadoEn!.year} a las ${evidencia.creadoEn!.hour.toString().padLeft(2, '0')}:${evidencia.creadoEn!.minute.toString().padLeft(2, '0')}',
+                                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                              ),
+                            ],
+                          ),
+                        ],
+                        if (evidencia.descripcion.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          const Divider(height: 1),
+                          const SizedBox(height: 10),
+                          Text(
+                            evidencia.descripcion,
+                            style: const TextStyle(fontSize: 13, height: 1.4),
+                          ),
+                        ],
+                        // Coordenadas GPS
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(Icons.location_on, size: 14, color: Colors.grey),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${evidencia.lat!.toStringAsFixed(5)}, ${evidencia.lng!.toStringAsFixed(5)}',
+                              style: TextStyle(fontSize: 10, color: Colors.grey[500], fontFamily: 'monospace'),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -1067,10 +1153,9 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               );
             });
           },
-          child: LppMarker(
+          child: EvidenciaMarker(
             fotoUrl: evidencia.fotoUrl,
-            nombre: 'Evidencia',
-            color: Colors.blueAccent,
+            nombreVoluntario: evidencia.nombreUsuario,
           ),
         ),
       );
@@ -1177,7 +1262,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             ),
 
           Positioned(
-            bottom: 20,
+            bottom: _modoPista ? 20 : 80,
             left: 20,
             child: MapLayerToggleButton(
               heroTag: null,
@@ -1289,7 +1374,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '📅 ${_pistaTooltip!.fecha}  🕒 ${_pistaTooltip!.hora}',
+                          '${_pistaTooltip!.fecha} a las ${_pistaTooltip!.hora}',
                           style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500),
                         ),
                         if (widget.esCreador)
@@ -1366,7 +1451,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                         children: [
                           Text(
                             (_editandoPista && _pistaEnEdicion?.id == 'LPP')
-                                ? '⚠️ Moviendo punto original'
+                                ? 'Moviendo punto original'
                                 : _cuadranteTemporal != null
                                     ? 'En cuadrante: ${_cuadranteTemporal!.codigo}'
                                     : 'Ubicación seleccionada',

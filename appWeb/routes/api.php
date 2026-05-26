@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\RespuestaController;
 use App\Http\Controllers\Api\NotificacionController;
 use App\Http\Controllers\Api\CategoriaController;
 use App\Http\Controllers\Api\VoluntarioController;
+use App\Http\Controllers\Api\EvidenciaAprobacionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -138,7 +139,7 @@ Route::prefix('reportes')->group(function () {
     // Expandir reporte manualmente
     Route::post('{reporteId}/expandir', [ReporteController::class, 'expandirReporte']);
     
-    // 🧪 TESTING: Expandir reporte inmediatamente (ignora tiempo de espera)
+    // TESTING: Expandir reporte inmediatamente (ignora tiempo de espera)
     Route::post('{reporteId}/expandir-inmediato', [ReporteController::class, 'expandirInmediato']);
 
     // Broadcast a voluntarios
@@ -237,6 +238,15 @@ Route::prefix('reportes/{reporteId}/voluntarios')->group(function () {
     Route::put('pausar/{usuarioId}', [VoluntarioController::class, 'pausarBusqueda']);
     Route::put('terminar/{usuarioId}', [VoluntarioController::class, 'terminarBusqueda']);
     Route::put('sincronizar/{usuarioId}', [VoluntarioController::class, 'sincronizarRecorrido']);
+});
+
+// ============================================
+// EVIDENCIAS - APROBACION
+// ============================================
+Route::prefix('evidencias')->group(function () {
+    Route::get('{reporteId}/pendientes', [EvidenciaAprobacionController::class, 'pending']);
+    Route::post('{id}/aprobar', [EvidenciaAprobacionController::class, 'approve']);
+    Route::post('{id}/rechazar', [EvidenciaAprobacionController::class, 'reject']);
 });
 
 // Fin del archivo

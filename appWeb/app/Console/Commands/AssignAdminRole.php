@@ -32,7 +32,7 @@ class AssignAdminRole extends Command
         
         $user->assignRole('administrador');
         
-        $this->info("✅ Rol 'administrador' asignado correctamente a: {$email}");
+        $this->info("Rol 'administrador' asignado correctamente a: {$email}");
         
         return 0;
     }

@@ -161,10 +161,10 @@ class AuthService {
       }
       return null;
     } on DioException catch (e) {
-      debugPrint('❌ Error subiendo avatar: ${e.response?.statusCode} - ${e.message}');
+      debugPrint('[ERROR] Error subiendo avatar: ${e.response?.statusCode} - ${e.message}');
       return null;
     } catch (e) {
-      debugPrint('❌ Error inesperado: $e');
+      debugPrint('[ERROR] Error inesperado: $e');
       return null;
     }
   }

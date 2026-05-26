@@ -428,10 +428,10 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                               ),
                               const SizedBox(width: 10),
                               Expanded(
-                                child: Text(
-                                  vm.latitudLPP != null
-                                      ? '✓ Ubicación marcada: ${vm.latitudLPP!.toStringAsFixed(4)}, ${vm.longitudLPP!.toStringAsFixed(4)}'
-                                      : 'Toca aquí para marcar la ubicación en el mapa',
+                                  child: Text(
+                                    vm.latitudLPP != null
+                                        ? 'Ubicación marcada: ${vm.latitudLPP!.toStringAsFixed(4)}, ${vm.longitudLPP!.toStringAsFixed(4)}'
+                                        : 'Toca aquí para marcar la ubicación en el mapa',
                                   style: TextStyle(
                                     color: vm.latitudLPP != null
                                         ? AppTheme.primary

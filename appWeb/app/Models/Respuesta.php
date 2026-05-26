@@ -27,7 +27,8 @@ class Respuesta extends Model
         'imagenes',
         'videos',
         'verificada',
-        'util'
+        'util',
+        'estado_evidencia'
     ];
 
     protected $casts = [
@@ -37,7 +38,8 @@ class Respuesta extends Model
         'ubicacion_lng' => 'decimal:8',
         'verificada' => 'boolean',
         'util' => 'boolean',
-        'created_at' => 'datetime'
+        'created_at' => 'datetime',
+        'estado_evidencia' => 'string'
     ];
 
     public function reporte()

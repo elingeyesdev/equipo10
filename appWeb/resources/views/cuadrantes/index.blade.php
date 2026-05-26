@@ -749,7 +749,7 @@
     function getPopupContent(r) {
         let type = (r.tipo_reporte || '').toString().trim().toLowerCase();
         let colorClass = type === 'perdido' ? 'danger' : (type === 'encontrado' ? 'success' : 'info');
-        let badge = r.recompensa > 0 ? `<span class="badge bg-warning text-dark me-1">🏆 Recompensa: ${r.recompensa}</span>` : '';
+        let badge = r.recompensa > 0 ? `<span class="badge bg-warning text-dark me-1">Recompensa: ${r.recompensa}</span>` : '';
         let urgente = r.prioridad === 'urgente' ? '<span class="badge bg-danger animate__animated animate__flash infinite">URGENTE</span>' : '';
         let foto = r.imagenes && r.imagenes.length > 0 ? 
             `<div class="mb-2" style="height: 150px; background-image: url('/storage/${r.imagenes[0].ruta}'); background-size: cover; background-position: center; border-radius: 8px;"></div>` : 

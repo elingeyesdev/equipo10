@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/notificaciones_viewmodel.dart';
+import '../../viewmodels/auth_viewmodel.dart';
 import '../../theme/app_theme.dart';
+import '../detalle_ficha/detalle_ficha_view.dart';
 
 class NotificacionesView extends StatefulWidget {
   const NotificacionesView({super.key});
@@ -135,7 +137,21 @@ class _NotificacionesViewState extends State<NotificacionesView> {
                       if (isUnread) {
                         vm.marcarComoLeida(notif.id);
                       }
-                      // Si en el futuro queremos navegar al reporte, usaríamos notif.datosJson['reporte_id']
+                      final data = notif.datosJson;
+                      if (data != null && data.containsKey('reporte_id')) {
+                        final String reporteId = data['reporte_id'].toString();
+                        final authVm = context.read<AuthViewModel>();
+                        final String userId = authVm.currentUserId ?? '';
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => DetalleFichaView(
+                              fichaId: reporteId,
+                              currentUserId: userId,
+                            ),
+                          ),
+                        );
+                      }
                     },
                   ),
                 );
@@ -149,6 +165,8 @@ class _NotificacionesViewState extends State<NotificacionesView> {
 
   IconData _getIconForType(String tipo) {
     switch (tipo) {
+      case 'respuesta_reporte':
+        return Icons.camera_enhance_outlined;
       case 'actualizacion_reporte':
         return Icons.edit_note;
       case 'alerta_masiva':

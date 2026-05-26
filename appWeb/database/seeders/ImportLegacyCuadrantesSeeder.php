@@ -31,7 +31,7 @@ class ImportLegacyCuadrantesSeeder extends Seeder
             'id', 'cuadrante_id', 'nombre_barrio', 'created_at'
         ]);
         
-        $this->command->info('✅ Sincronización de cuadrantes originales completada!');
+        $this->command->info('Sincronizacion de cuadrantes originales completada!');
     }
 
     private function restoreTable(string $content, string $tableName, array $columns)

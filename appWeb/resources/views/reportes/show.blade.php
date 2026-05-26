@@ -490,11 +490,11 @@
                         <i class="bi bi-tag-fill me-1 text-warning"></i>Tipo de pista
                     </label>
                     <select id="sel-etiqueta" class="form-select form-select-sm" style="border:2px solid #e2e8f0;border-radius:8px;">
-                        <option value="Visto por última vez">📍 Visto por última vez</option>
-                        <option value="Nueva pista">🔍 Nueva pista</option>
-                        <option value="Avistamiento confirmado">✅ Avistamiento confirmado</option>
-                        <option value="Última señal">📡 Última señal</option>
-                        <option value="Zona de interés">⚠️ Zona de interés</option>
+                        <option value="Visto por última vez">Visto por ultima vez</option>
+                        <option value="Nueva pista">Nueva pista</option>
+                        <option value="Avistamiento confirmado">Avistamiento confirmado</option>
+                        <option value="Última señal">Ultima senal</option>
+                        <option value="Zona de interés">Zona de interes</option>
                     </select>
                 </div>
 
@@ -623,13 +623,13 @@ document.addEventListener('DOMContentLoaded', function() {
         { attribution: '© OpenStreetMap' }
     );
     satelital.addTo(mapPistas);
-    L.control.layers({'🛰️ Satelital': satelital, '🗺️ Callejero': callejero}).addTo(mapPistas);
+    L.control.layers({'Satelital': satelital, 'Callejero': callejero}).addTo(mapPistas);
 
     // ── Marcador LPP (punto original, siempre visible) ──────────────────────
-    const tooltipLPP = buildTooltip('📍 Punto de inicio (LPP)', null, '');
+    const tooltipLPP = buildTooltip('Punto de inicio (LPP)', null, '');
     L.marker([LPP_LAT, LPP_LNG], {icon: iconLPP, zIndexOffset: 1000})
      .bindTooltip(tooltipLPP, {permanent: false, direction:'top', offset:[0,-12], className:'leaflet-tooltip-pista'})
-     .bindPopup(`<strong>📍 Última ubicación conocida</strong><br><em>${TITULO}</em>`)
+     .bindPopup(`<strong>Ultima ubicacion conocida</strong><br><em>${TITULO}</em>`)
      .addTo(mapPistas);
 
     // ── Zona de Búsqueda LPP (Desde la BD) ───────────────────────────────
@@ -661,7 +661,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function buildTooltip(etiqueta, foto, fecha) {
     const fotoHtml = foto
         ? `<img src="${foto}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid #f59e0b;flex-shrink:0;">`
-        : `<div style="width:48px;height:48px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid #e2e8f0;"><span style="font-size:1.3rem;">👤</span></div>`;
+        : `<div style="width:48px;height:48px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid #e2e8f0;"><i class="bi bi-person-fill" style="font-size:1.3rem;color:#94a3b8;"></i></div>`;
     return `<div style="display:flex;align-items:center;gap:10px;padding:4px 2px;min-width:180px;max-width:240px;">
         ${fotoHtml}
         <div>

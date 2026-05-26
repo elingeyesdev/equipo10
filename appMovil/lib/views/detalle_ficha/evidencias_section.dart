@@ -16,12 +16,14 @@ class EvidenciasSection extends StatefulWidget {
   final String reporteId;
   final String usuarioId;
   final bool puedePublicar;
+  final bool esCreador;
 
   const EvidenciasSection({
     super.key,
     required this.reporteId,
     required this.usuarioId,
     required this.puedePublicar,
+    this.esCreador = false,
   });
 
   @override
@@ -33,7 +35,9 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<EvidenciaViewModel>().cargarEvidencias(widget.reporteId);
+      context
+          .read<EvidenciaViewModel>()
+          .cargarEvidencias(widget.reporteId, esCreador: widget.esCreador);
     });
   }
 
@@ -153,9 +157,12 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✓ Evidencia publicada exitosamente'),
+          SnackBar(
+            content: Text(widget.esCreador
+                ? 'Evidencia publicada exitosamente'
+                : 'Evidencia subida. El creador de la búsqueda la verificará antes de que aparezca en el mapa.'),
             backgroundColor: AppTheme.success,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -173,12 +180,22 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<EvidenciaViewModel>();
-    final totalEvidencias = vm.evidencias.length + vm.pendientes.length;
+
+    // Para el creador: todas las evidencias separadas por estado
+    final evidenciasPendientes = widget.esCreador
+        ? vm.evidencias.where((e) => e.estado == 'pending').toList()
+        : <EvidenciaModel>[];
+    final evidenciasAprobadas =
+        vm.evidencias.where((e) => e.estado == 'approved').toList();
+
+    final totalVisible = evidenciasAprobadas.length +
+        vm.pendientes.length +
+        evidenciasPendientes.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Encabezado ──────────────────────────────────────────────────
+        // Encabezado
         Row(
           children: [
             const Icon(Icons.camera_enhance, color: AppTheme.primary, size: 20),
@@ -193,7 +210,7 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
                 ),
               ),
             ),
-            if (totalEvidencias > 0)
+            if (totalVisible > 0)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
@@ -201,7 +218,7 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '$totalEvidencias',
+                  '$totalVisible',
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppTheme.primary,
@@ -218,7 +235,7 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
         ),
         const SizedBox(height: 12),
 
-        // ── Botón de captura ─────────────────────────────────────────────
+        // Botón agregar evidencia
         if (widget.puedePublicar)
           SizedBox(
             width: double.infinity,
@@ -239,7 +256,49 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
           ),
         const SizedBox(height: 12),
 
-        // ── Lista / estado vacío ─────────────────────────────────────────
+        // Bandeja de aprobacion: visible solo para el creador
+        if (widget.esCreador && evidenciasPendientes.isNotEmpty) ...([
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF3CD),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFFFD700)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.pending_actions,
+                    color: Color(0xFFB8860B), size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${evidenciasPendientes.length} evidencia(s) esperan tu aprobación',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF856404),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: evidenciasPendientes.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            itemBuilder: (_, i) => _EvidenciaPendienteAdminCard(
+              evidencia: evidenciasPendientes[i],
+              reporteId: widget.reporteId,
+            ),
+          ),
+          const SizedBox(height: 16),
+        ]),
+
+        // Lista principal
         if (vm.cargando)
           const Center(
             child: Padding(
@@ -247,33 +306,32 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
               child: CircularProgressIndicator(),
             ),
           )
-        else if (totalEvidencias == 0)
+        else if (totalVisible == 0)
           _EmptyEvidencias(puedePublicar: widget.puedePublicar)
         else
           Column(
             children: [
-              // Primero mostramos las offline pendientes
+              // Offline pendientes
               if (vm.pendientes.isNotEmpty)
                 ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: vm.pendientes.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (_, i) => _EvidenciaOfflineCard(
-                      offline: vm.pendientes[i]),
+                  itemBuilder: (_, i) =>
+                      _EvidenciaOfflineCard(offline: vm.pendientes[i]),
                 ),
-              
-              if (vm.pendientes.isNotEmpty && vm.evidencias.isNotEmpty)
+              if (vm.pendientes.isNotEmpty && evidenciasAprobadas.isNotEmpty)
                 const SizedBox(height: 10),
-
-              // Luego las evidencias normales publicadas
-              if (vm.evidencias.isNotEmpty)
+              // Evidencias aprobadas
+              if (evidenciasAprobadas.isNotEmpty)
                 ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: vm.evidencias.length,
+                  itemCount: evidenciasAprobadas.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (_, i) => _EvidenciaCard(evidencia: vm.evidencias[i]),
+                  itemBuilder: (_, i) =>
+                      _EvidenciaCard(evidencia: evidenciasAprobadas[i]),
                 ),
             ],
           ),
@@ -643,6 +701,232 @@ class _EvidenciaOfflineCard extends StatelessWidget {
                       Text(
                         '${offline.lat!.toStringAsFixed(5)}, ${offline.lng!.toStringAsFixed(5)}',
                         style: const TextStyle(fontSize: 11, color: AppTheme.success, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Card de evidencia PENDIENTE para el dueno del reporte (con botones aprobar/rechazar)
+// ─────────────────────────────────────────────────────────────────────────────
+class _EvidenciaPendienteAdminCard extends StatefulWidget {
+  final EvidenciaModel evidencia;
+  final String reporteId;
+
+  const _EvidenciaPendienteAdminCard({
+    required this.evidencia,
+    required this.reporteId,
+  });
+
+  @override
+  State<_EvidenciaPendienteAdminCard> createState() =>
+      _EvidenciaPendienteAdminCardState();
+}
+
+class _EvidenciaPendienteAdminCardState
+    extends State<_EvidenciaPendienteAdminCard> {
+  bool _procesando = false;
+
+  Future<void> _accion(bool aprobar) async {
+    setState(() => _procesando = true);
+    final vm = context.read<EvidenciaViewModel>();
+    bool ok;
+    if (aprobar) {
+      ok = await vm.aprobarEvidencia(widget.evidencia.id, widget.reporteId);
+    } else {
+      ok = await vm.rechazarEvidencia(widget.evidencia.id, widget.reporteId);
+    }
+    if (!mounted) return;
+    setState(() => _procesando = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(ok
+            ? (aprobar ? 'Evidencia aprobada' : 'Evidencia rechazada')
+            : 'Error al procesar la evidencia'),
+        backgroundColor: ok
+            ? (aprobar ? AppTheme.success : Colors.red.shade700)
+            : Colors.red.shade700,
+      ),
+    );
+  }
+
+  String _tiempoRelativo(DateTime? dt) {
+    if (dt == null) return '';
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Hace un momento';
+    if (diff.inMinutes < 60) return 'Hace ${diff.inMinutes} min';
+    if (diff.inHours < 24) return 'Hace ${diff.inHours} h';
+    return 'Hace ${diff.inDays} dias';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFFD700), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Etiqueta pendiente
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFC107),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(13)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.hourglass_top, color: Colors.white, size: 14),
+                SizedBox(width: 6),
+                Text(
+                  'PENDIENTE DE APROBACION',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Imagen
+          if (widget.evidencia.fotoUrl != null &&
+              widget.evidencia.fotoUrl!.isNotEmpty)
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => FullScreenImageView(
+                    imageUrl: widget.evidencia.fotoUrl!,
+                    tag: 'admin-evidencia-${widget.evidencia.id}',
+                  ),
+                ),
+              ),
+              child: Hero(
+                tag: 'admin-evidencia-${widget.evidencia.id}',
+                child: ClipRRect(
+                  borderRadius: BorderRadius.zero,
+                  child: CachedNetworkImage(
+                    imageUrl: widget.evidencia.fotoUrl!,
+                    width: double.infinity,
+                    height: 200,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => Container(
+                      height: 200,
+                      color: AppTheme.primary.withValues(alpha: 0.06),
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                    errorWidget: (_, __, ___) => Container(
+                      height: 200,
+                      color: const Color(0xFFF5F5F5),
+                      child: const Center(
+                        child: Icon(Icons.broken_image_outlined,
+                            size: 48, color: Colors.grey),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.evidencia.descripcion,
+                  style: const TextStyle(
+                      fontSize: 14, color: AppTheme.textPrimary, height: 1.5),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    if (widget.evidencia.avatarUsuario != null &&
+                        widget.evidencia.avatarUsuario!.isNotEmpty)
+                      CircleAvatar(
+                        radius: 12,
+                        backgroundImage: CachedNetworkImageProvider(
+                            widget.evidencia.avatarUsuario!),
+                        backgroundColor: Colors.transparent,
+                      )
+                    else
+                      CircleAvatar(
+                        radius: 12,
+                        backgroundColor:
+                            AppTheme.primary.withValues(alpha: 0.1),
+                        child: const Icon(Icons.person,
+                            size: 14, color: AppTheme.primary),
+                      ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        widget.evidencia.nombreUsuario ?? 'Voluntario',
+                        style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textSecondary),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      _tiempoRelativo(widget.evidencia.creadoEn),
+                      style: const TextStyle(
+                          fontSize: 11, color: AppTheme.textSecondary),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Botones aprobar / rechazar
+                if (_procesando)
+                  const Center(child: CircularProgressIndicator())
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _accion(false),
+                          icon: const Icon(Icons.close,
+                              color: Colors.red, size: 18),
+                          label: const Text('Rechazar',
+                              style: TextStyle(color: Colors.red)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.red),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _accion(true),
+                          icon: const Icon(Icons.check, size: 18),
+                          label: const Text('Aprobar'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.success,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
                       ),
                     ],
                   ),

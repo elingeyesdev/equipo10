@@ -16,8 +16,8 @@ import '../models/app_notification.dart';
 /// 4. Llama a `NotificationService().show(AppNotification(...))` desde el ViewModel.
 ///
 /// ## Soporte por plataforma
-/// - **Android**: notificaciones nativas en la barra del sistema ✅
-/// - **iOS**: notificaciones nativas (requiere permisos en Info.plist) ✅
+/// - **Android**: notificaciones nativas en la barra del sistema
+/// - **iOS**: notificaciones nativas (requiere permisos en Info.plist)
 /// - **Web**: fallback silencioso (la UI usa SnackBar) — push web va en Commit 3
 class NotificationService {
   // ── Singleton ─────────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ class NotificationService {
 
     final didInit = await _plugin.initialize(initSettings);
     if (didInit != true) {
-      debugPrint('[NotificationService] ⚠️ El plugin no pudo inicializarse.');
+      debugPrint('[NotificationService] [WARN] El plugin no pudo inicializarse.');
       return;
     }
 
@@ -106,7 +106,7 @@ class NotificationService {
     }
 
     _initialized = true;
-    debugPrint('[NotificationService] ✅ Inicializado correctamente.');
+    debugPrint('[NotificationService] [OK] Inicializado correctamente.');
   }
 
   // ── Mostrar notificación ───────────────────────────────────────────────────
@@ -151,6 +151,6 @@ class NotificationService {
       details,
     );
 
-    debugPrint('[NotificationService] 📬 Notificación mostrada: "${notification.title}"');
+    debugPrint('[NotificationService] Notificacion mostrada: "${notification.title}"');
   }
 }

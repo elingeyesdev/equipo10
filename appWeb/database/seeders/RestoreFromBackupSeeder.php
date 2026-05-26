@@ -41,7 +41,7 @@ class RestoreFromBackupSeeder extends Seeder
             'id', 'nombre', 'icono', 'color', 'descripcion', 'activo', 'created_at'
         ]);
         
-        $this->command->info('✅ Data restoration from backup completed!');
+        $this->command->info('Data restoration from backup completed!');
     }
 
     private function restoreTableFromCopy(string $content, string $tableName, array $columns)
