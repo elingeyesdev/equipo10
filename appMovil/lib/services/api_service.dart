@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 
-const String _kApiUrl = 'http://10.26.4.68:8081';
+const String _kApiUrl = 'http://192.168.0.216:8081';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();

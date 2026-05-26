@@ -1,6 +1,6 @@
 SQLSTATE[42703]: Undefined column: 7 ERROR:  column "primera_imagen" of relation "reportes" does not exist
 LINE 1: update "reportes" set "primera_imagen" = $1, "updated_at" = ...
-                              ^ (Connection: pgsql, SQL: update "reportes" set "primera_imagen" = http://192.168.0.215:8081/storage/reportes/Wi9zRgFp84igVFhJBGmB2X0VNgXviVGdU9nT1xSt.jpg, "updated_at" = 2026-05-24 04:04:42 where "id" = 019e53a8-59dc-71b9-8fee-060d4f2d13a3)
+                              ^ (Connection: pgsql, SQL: update "reportes" set "primera_imagen" = http://192.168.0.216:8081/storage/reportes/p0ty0NTSIJy89XkTQ7DkS2nf5M7bvIHaCIHU1urT.jpg, "updated_at" = 2026-05-26 03:11:50 where "id" = 019e53a8-59dc-71b9-8fee-060d4f2d13a3)
 #0 /var/www/vendor/laravel/framework/src/Illuminate/Database/Connection.php(778): Illuminate\Database\Connection->runQueryCallback('update "reporte...', Array, Object(Closure))
 #1 /var/www/vendor/laravel/framework/src/Illuminate/Database/Connection.php(583): Illuminate\Database\Connection->run('update "reporte...', Array, Object(Closure))
 #2 /var/www/vendor/laravel/framework/src/Illuminate/Database/Connection.php(535): Illuminate\Database\Connection->affectingStatement('update "reporte...', Array)

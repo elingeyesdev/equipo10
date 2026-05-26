@@ -296,7 +296,7 @@ class _LPPPickerViewState extends State<LPPPickerView> {
             bottom: 16,
             right: 16,
             child: MapLayerToggleButton(
-              heroTag: 'btn_toggle_lpp',
+              heroTag: null,
               useSatellite: _useSatellite,
               onToggle: () => setState(() => _useSatellite = !_useSatellite),
             ),

@@ -36,13 +36,13 @@ class MapTileLayer extends StatelessWidget {
 class MapLayerToggleButton extends StatelessWidget {
   final bool useSatellite;
   final VoidCallback onToggle;
-  final String heroTag;
+  final String? heroTag;
 
   const MapLayerToggleButton({
     super.key,
     required this.useSatellite,
     required this.onToggle,
-    required this.heroTag,
+    this.heroTag,
   });
 
   @override

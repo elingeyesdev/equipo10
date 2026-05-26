@@ -6,6 +6,8 @@ import '../models/reporte_model.dart';
 import '../models/perfil_model.dart';
 import '../services/reporte_service.dart';
 import '../services/vinculacion_service.dart';
+import '../services/evidencia_service.dart';
+import '../models/evidencia_model.dart';
 
 class RutaVoluntario {
   final String nombre;
@@ -23,6 +25,7 @@ class PistaMapa {
 class PanelControlViewModel extends ChangeNotifier {
   final ReporteService _reporteService = ReporteService();
   final VinculacionService _vinculacionService = VinculacionService();
+  final EvidenciaService _evidenciaService = EvidenciaService();
 
   Timer? _pollingTimer;
 
@@ -31,6 +34,7 @@ class PanelControlViewModel extends ChangeNotifier {
   List<dynamic> _recorridosData = [];
   List<RutaVoluntario> _rutasVoluntarios = [];
   List<PistaMapa> _pistas = [];
+  List<EvidenciaModel> _evidencias = [];
   bool _isLoading = false;
   String? _errorMessage;
   String? _filtroNombreVoluntario;
@@ -39,6 +43,7 @@ class PanelControlViewModel extends ChangeNotifier {
   List<PerfilModel> get voluntarios => _voluntarios;
   List<dynamic> get recorridosData => _recorridosData;
   List<PistaMapa> get pistas => _pistas;
+  List<EvidenciaModel> get evidencias => _evidencias;
   
   List<RutaVoluntario> get rutasVoluntarios {
     if (_filtroNombreVoluntario == null) return _rutasVoluntarios;
@@ -114,6 +119,7 @@ class PanelControlViewModel extends ChangeNotifier {
       _procesarRecorridos(newData);
       final pistasData = await _reporteService.obtenerPistas(fichaId);
       _procesarPistas(pistasData);
+      _evidencias = await _evidenciaService.obtenerEvidencias(fichaId);
     } catch (e) {
       _errorMessage = 'Error al cargar datos del mapa: $e';
     }
@@ -197,6 +203,8 @@ class PanelControlViewModel extends ChangeNotifier {
       
       final pistasData = await _reporteService.obtenerPistas(fichaId);
       _procesarPistas(pistasData);
+
+      _evidencias = await _evidenciaService.obtenerEvidencias(fichaId);
       
       notifyListeners();
     } catch (e) {

@@ -2,17 +2,21 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/tracking_service.dart';
+import '../services/evidencia_service.dart';
+import '../models/evidencia_model.dart';
 
 enum TrackingEstado { inactivo, activo, pausado, terminado }
 
 class TrackingViewModel extends ChangeNotifier {
   final TrackingService _trackingService = TrackingService();
+  final EvidenciaService _evidenciaService = EvidenciaService();
 
   TrackingEstado _estado = TrackingEstado.inactivo;
   bool _isLoading = false;
   String? _errorMessage;
   Position? _posicionActual;
   Timer? _refreshTimer;
+  List<EvidenciaModel> _evidencias = [];
 
   String? _reporteId;
   String? _usuarioId;
@@ -25,6 +29,7 @@ class TrackingViewModel extends ChangeNotifier {
   Position? get posicionActual => _posicionActual;
   int get totalPuntos => _trackingService.totalPuntos;
   List<PuntoRecorrido> get puntosActuales => _trackingService.puntos;
+  List<EvidenciaModel> get evidencias => _evidencias;
 
   void _setLoading(bool v) { _isLoading = v; notifyListeners(); }
   void _setError(String? msg) { _errorMessage = msg; notifyListeners(); }
@@ -61,6 +66,16 @@ class TrackingViewModel extends ChangeNotifier {
       return null;
     } finally {
       _setLoading(false);
+    }
+  }
+
+  /// Carga las evidencias del reporte.
+  Future<void> cargarEvidencias(String reporteId) async {
+    try {
+      _evidencias = await _evidenciaService.obtenerEvidencias(reporteId);
+      if (hasListeners) notifyListeners();
+    } catch (e) {
+      // Ignorar errores en la carga de evidencias en este mapa
     }
   }
 

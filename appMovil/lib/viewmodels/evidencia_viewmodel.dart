@@ -158,8 +158,15 @@ class EvidenciaViewModel extends ChangeNotifier {
     } catch (e) {
       final msg = e.toString();
       
-      // Si el error parece ser de red (lo asumimos si falla la subida o la conexión)
-      if (msg.contains('Error de conexión') || msg.contains('Error al subir')) {
+      // Si es un error de red (no se pudo subir la foto o guardar la evidencia),
+      // lo encolamos para después
+      final isNetworkError = msg.toLowerCase().contains('error de conexión') || 
+                             msg.toLowerCase().contains('error al subir') || 
+                             msg.toLowerCase().contains('connection error') || 
+                             msg.toLowerCase().contains('network is unreachable') ||
+                             msg.toLowerCase().contains('socket');
+
+      if (isNetworkError) {
         await _service.encolarEvidencia(
           reporteId: reporteId,
           usuarioId: usuarioId,

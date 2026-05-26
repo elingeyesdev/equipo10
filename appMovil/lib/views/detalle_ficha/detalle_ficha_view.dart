@@ -351,31 +351,43 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                             child: Stack(
                               children: [
                                 IgnorePointer(
-                                  child: FlutterMap(
-                                    options: MapOptions(
-                                      initialCenter: LatLng(ficha.latitud!, ficha.longitud!),
-                                      initialZoom: 15.0,
-                                      interactionOptions: const InteractionOptions(
-                                          flags: InteractiveFlag.none),
-                                    ),
-                                    children: [
-                                      TileLayer(
-                                        urlTemplate:
-                                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                        userAgentPackageName: 'com.amigate.echoes',
-                                      ),
-                                      MarkerLayer(
-                                        markers: [
-                                          Marker(
-                                            point: LatLng(ficha.latitud!, ficha.longitud!),
-                                            width: 40,
-                                            height: 40,
-                                            child: const Icon(Icons.location_on,
-                                                color: Colors.red, size: 40),
+                                  child: Consumer<EvidenciaViewModel>(
+                                    builder: (context, evidenciaVm, _) {
+                                      return FlutterMap(
+                                        options: MapOptions(
+                                          initialCenter: LatLng(ficha.latitud!, ficha.longitud!),
+                                          initialZoom: 15.0,
+                                          interactionOptions: const InteractionOptions(
+                                              flags: InteractiveFlag.none),
+                                        ),
+                                        children: [
+                                          TileLayer(
+                                            urlTemplate:
+                                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                            userAgentPackageName: 'com.amigate.echoes',
+                                          ),
+                                          MarkerLayer(
+                                            markers: [
+                                              Marker(
+                                                point: LatLng(ficha.latitud!, ficha.longitud!),
+                                                width: 40,
+                                                height: 40,
+                                                child: const Icon(Icons.location_on,
+                                                    color: Colors.red, size: 40),
+                                              ),
+                                              ...evidenciaVm.evidencias.where((e) => e.lat != null && e.lng != null).map((evidencia) {
+                                                return Marker(
+                                                  point: LatLng(evidencia.lat!, evidencia.lng!),
+                                                  width: 30,
+                                                  height: 30,
+                                                  child: const Icon(Icons.camera_alt, color: Colors.blueAccent, size: 24),
+                                                );
+                                              }),
+                                            ],
                                           ),
                                         ],
-                                      ),
-                                    ],
+                                      );
+                                    }
                                   ),
                                 ),
                                 Container(

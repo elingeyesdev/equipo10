@@ -9,6 +9,8 @@ import '../../widgets/map_tile_layer.dart';
 import '../../widgets/lpp_marker.dart';
 import '../../models/cuadrante_model.dart';
 import '../../services/cuadrante_service.dart';
+import '../../services/evidencia_service.dart';
+import '../../models/evidencia_model.dart';
 import '../../theme/app_theme.dart';
 
 // Paleta de colores para los recorridos de distintos voluntarios
@@ -68,6 +70,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   final MapController _mapController = MapController();
   final ApiService _api = ApiService();
   final CuadranteService _cuadranteService = CuadranteService();
+  final EvidenciaService _evidenciaService = EvidenciaService();
 
   LatLng? _lpp;
   List<_VoluntarioRecorrido> _recorridos = [];
@@ -87,6 +90,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   final TextEditingController _descripcionPistaCtrl = TextEditingController();
   bool _guardandoPista = false;
   List<_PistaInfo> _pistas = [];
+  List<EvidenciaModel> _evidencias = [];
   _PistaInfo? _pistaTooltip; // pista que está mostrando tooltip
   _PistaInfo? _pistaEnEdicion; // Pista que se está moviendo/editando
   bool _editandoPista = false; // Indica si estamos en modo edición
@@ -101,6 +105,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     _cargarCuadrantes();
     _cargarRecorridos();
     _cargarPistas();
+    _cargarEvidencias();
     
     // Iniciar Smart Polling cada 15 segundos
     _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
@@ -114,6 +119,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
       await Future.wait([
         _cargarPistas(),
         _cargarRecorridos(),
+        _cargarEvidencias(),
       ]);
     } catch (_) {}
   }
@@ -364,6 +370,15 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
       }
     } catch (e) {
       debugPrint('Error cargando pistas: $e');
+    }
+  }
+
+  Future<void> _cargarEvidencias() async {
+    try {
+      final evi = await _evidenciaService.obtenerEvidencias(widget.ficha.id);
+      if (mounted) setState(() => _evidencias = evi);
+    } catch (e) {
+      debugPrint('Error cargando evidencias: $e');
     }
   }
 
@@ -1008,6 +1023,59 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
       }
     }
 
+    // 5. Evidencias
+    todosLosMarkers.addAll(_evidencias.where((e) => e.lat != null && e.lng != null).map((evidencia) {
+      return Marker(
+        point: LatLng(evidencia.lat!, evidencia.lng!),
+        width: 80,
+        height: 70,
+        alignment: Alignment.center,
+        child: GestureDetector(
+          onTap: () {
+            Future.microtask(() {
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Evidencia'),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (evidencia.fotoUrl != null)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              evidencia.fotoUrl!,
+                              height: 150,
+                              width: 300,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 50),
+                            ),
+                          ),
+                        const SizedBox(height: 12),
+                        Text(evidencia.descripcion),
+                      ],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Cerrar'),
+                    ),
+                  ],
+                ),
+              );
+            });
+          },
+          child: LppMarker(
+            fotoUrl: evidencia.fotoUrl,
+            nombre: 'Evidencia',
+            color: Colors.blueAccent,
+          ),
+        ),
+      );
+    }));
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mapa Operativo'),
@@ -1112,7 +1180,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             bottom: 20,
             left: 20,
             child: MapLayerToggleButton(
-              heroTag: 'btn_toggle_operativo',
+              heroTag: null,
               useSatellite: _useSatellite,
               onToggle: () => setState(() => _useSatellite = !_useSatellite),
             ),

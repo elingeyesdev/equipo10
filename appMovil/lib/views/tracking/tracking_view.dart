@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../../models/reporte_model.dart';
+import '../../models/evidencia_model.dart';
 import '../../viewmodels/tracking_viewmodel.dart';
 import '../../widgets/map_tile_layer.dart';
 import '../../widgets/lpp_marker.dart';
@@ -30,6 +31,7 @@ class _TrackingViewState extends State<TrackingView> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TrackingViewModel>().cargarEvidencias(widget.ficha.id);
       context.read<TrackingViewModel>().iniciarBusqueda(
             reporteId: widget.ficha.id,
             usuarioId: widget.usuarioId,
@@ -286,6 +288,58 @@ class _TrackingViewState extends State<TrackingView> {
                       nombre: widget.ficha.titulo,
                     ),
                   ),
+                  if (vm.evidencias.isNotEmpty)
+                    ...vm.evidencias.where((e) => e.lat != null && e.lng != null).map((evidencia) {
+                      return Marker(
+                        point: LatLng(evidencia.lat!, evidencia.lng!),
+                        width: 80,
+                        height: 70,
+                        alignment: Alignment.center,
+                        child: GestureDetector(
+                          onTap: () {
+                            Future.microtask(() {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Evidencia'),
+                                  content: SingleChildScrollView(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (evidencia.fotoUrl != null)
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(8),
+                                            child: Image.network(
+                                              evidencia.fotoUrl!,
+                                              height: 150,
+                                              width: 300,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 50),
+                                            ),
+                                          ),
+                                        const SizedBox(height: 12),
+                                        Text(evidencia.descripcion),
+                                      ],
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx),
+                                      child: const Text('Cerrar'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            });
+                          },
+                          child: LppMarker(
+                            fotoUrl: evidencia.fotoUrl,
+                            nombre: 'Evidencia',
+                            color: Colors.blueAccent,
+                          ),
+                        ),
+                      );
+                    }),
                 ]),
               ],
             ),
@@ -295,7 +349,7 @@ class _TrackingViewState extends State<TrackingView> {
               bottom: 210,
               right: 80,
               child: MapLayerToggleButton(
-                heroTag: 'btn_toggle_tracking',
+                heroTag: null,
                 useSatellite: _useSatellite,
                 onToggle: () => setState(() => _useSatellite = !_useSatellite),
               ),

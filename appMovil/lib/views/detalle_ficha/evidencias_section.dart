@@ -117,70 +117,53 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
 
     if (!capturo || !mounted) return;
 
-    await _mostrarDialogoPublicar(vm);
-  }
-
-  Future<void> _mostrarDialogoPublicar(EvidenciaViewModel vm) async {
-    final bytesSnapshot = vm.bytesPreview != null
-        ? Uint8List.fromList(vm.bytesPreview!)
-        : null;
-    final tienePosicion = vm.tienePosicion;
-    final latSnapshot = vm.latTemporal;
-    final lngSnapshot = vm.lngTemporal;
-
-    final descripcionCtrl = TextEditingController();
-
-    final resultado = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => _PublicarEvidenciaSheet(
-        descripcionCtrl: descripcionCtrl,
-        bytesPreview: bytesSnapshot,
-        tienePosicion: tienePosicion,
-        latitud: latSnapshot,
-        longitud: lngSnapshot,
-        onPublicar: (descripcion) async {
-          final ok = await vm.publicarEvidencia(
-            reporteId: widget.reporteId,
-            usuarioId: widget.usuarioId,
-            descripcion: descripcion,
-          );
-          if (ok) {
-            // Retornamos 'offline' si se encoló localmente, o '' si subió online
-            if (vm.estado == EvidenciaEstado.listoOffline) return 'offline';
-            return '';
-          }
-          return null; // Error, lo manejará la UI
-        },
-        onGetErrorMessage: () => vm.errorMessage,
+    // Navigate to the form as a full page route (NOT a bottom sheet).
+    // This completely avoids Overlay entry conflicts because the new route
+    // owns its own isolated Overlay scope.
+    final bytes = vm.bytesPreview != null ? Uint8List.fromList(vm.bytesPreview!) : null;
+    final descripcion = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => _PublicarEvidenciaPage(
+          bytesPreview: bytes,
+          tienePosicion: vm.tienePosicion,
+          latitud: vm.latTemporal,
+          longitud: vm.lngTemporal,
+        ),
       ),
     );
 
-    descripcionCtrl.dispose();
+    if (descripcion == null || descripcion.isEmpty || !mounted) return;
+
+    // The route is now fully gone from the Overlay — safe to call async work.
+    final ok = await vm.publicarEvidencia(
+      reporteId: widget.reporteId,
+      usuarioId: widget.usuarioId,
+      descripcion: descripcion,
+    );
 
     if (!mounted) return;
-
-    if (resultado == '') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✓ Evidencia publicada exitosamente'),
-          backgroundColor: AppTheme.success,
-        ),
-      );
-    } else if (resultado == 'offline') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sin conexión. Evidencia guardada, se subirá automáticamente.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-    } else if (resultado != null) {
+    if (ok) {
+      if (vm.estado == EvidenciaEstado.listoOffline) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sin conexión. Evidencia guardada, se subirá automáticamente.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✓ Evidencia publicada exitosamente'),
+            backgroundColor: AppTheme.success,
+          ),
+        );
+      }
+    } else {
+      final errorMsg = vm.errorMessage ?? 'Error al procesar la evidencia.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(resultado),
+          content: Text(errorMsg),
           backgroundColor: AppTheme.danger,
         ),
       );
@@ -300,189 +283,144 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Formulario de publicación
+// Pantalla de publicación (full-page route para evitar conflictos de Overlay)
 // ─────────────────────────────────────────────────────────────────────────────
-class _PublicarEvidenciaSheet extends StatefulWidget {
-  final TextEditingController descripcionCtrl;
+class _PublicarEvidenciaPage extends StatefulWidget {
   final Uint8List? bytesPreview;
   final bool tienePosicion;
   final double? latitud;
   final double? longitud;
-  final Future<String?> Function(String descripcion) onPublicar;
-  final String? Function() onGetErrorMessage;
 
-  const _PublicarEvidenciaSheet({
-    required this.descripcionCtrl,
+  const _PublicarEvidenciaPage({
     required this.bytesPreview,
     required this.tienePosicion,
     required this.latitud,
     required this.longitud,
-    required this.onPublicar,
-    required this.onGetErrorMessage,
   });
 
   @override
-  State<_PublicarEvidenciaSheet> createState() =>
-      _PublicarEvidenciaSheetState();
+  State<_PublicarEvidenciaPage> createState() => _PublicarEvidenciaPageState();
 }
 
-class _PublicarEvidenciaSheetState extends State<_PublicarEvidenciaSheet> {
-  final _formKey = GlobalKey<FormState>();
-  bool _publicando = false;
-  String _statusTexto = 'Subiendo foto...';
+class _PublicarEvidenciaPageState extends State<_PublicarEvidenciaPage> {
+  // Owned here — created in initState, disposed in dispose.
+  // NEVER passed from parent.
+  late final TextEditingController _ctrl;
 
-  Future<void> _publicar() async {
-    if (!_formKey.currentState!.validate()) return;
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController();
+  }
 
-    setState(() {
-      _publicando = true;
-      _statusTexto = 'Procesando evidencia...';
-    });
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
-    final resultado = await widget.onPublicar(widget.descripcionCtrl.text.trim());
-
-    if (!mounted) return;
-
-    if (resultado != null) {
-      // '' = éxito online, 'offline' = encolado offline
-      Navigator.of(context).pop(resultado);
-    } else {
-      final errorMsg = widget.onGetErrorMessage() ?? 'Error al procesar la evidencia.';
-      Navigator.of(context).pop(errorMsg);
+  void _confirmar() {
+    final text = _ctrl.text.trim();
+    if (text.isEmpty || text.length < 5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La descripción debe tener al menos 5 caracteres'),
+        ),
+      );
+      return;
     }
+    // Pop returns the text. The parent (which is a stable, non-animated route)
+    // will handle calling publicarEvidencia once this route is fully gone.
+    Navigator.of(context).pop(text);
   }
 
   @override
   Widget build(BuildContext context) {
-    final insets = MediaQuery.of(context).viewInsets;
-
-    return Padding(
-      padding: EdgeInsets.only(bottom: insets.bottom),
-      child: SingleChildScrollView(
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Nueva Evidencia'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(null),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          20,
+          20,
+          MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (widget.bytesPreview != null) ...
+              [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Image.memory(
+                    widget.bytesPreview!,
+                    width: double.infinity,
+                    height: 220,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+            Row(
               children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDDDDDD),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
+                Icon(
+                  widget.tienePosicion ? Icons.location_on : Icons.location_off,
+                  size: 14,
+                  color: widget.tienePosicion ? AppTheme.success : AppTheme.textSecondary,
                 ),
-                const Text(
-                  'Publicar evidencia',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (widget.bytesPreview != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.memory(
-                      widget.bytesPreview!,
-                      width: double.infinity,
-                      height: 200,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(
-                      widget.tienePosicion ? Icons.location_on : Icons.location_off,
-                      size: 14,
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    widget.tienePosicion
+                        ? 'GPS: ${widget.latitud!.toStringAsFixed(5)}, ${widget.longitud!.toStringAsFixed(5)}'
+                        : 'Sin ubicación GPS',
+                    style: TextStyle(
+                      fontSize: 11,
                       color: widget.tienePosicion ? AppTheme.success : AppTheme.textSecondary,
                     ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        widget.tienePosicion
-                            ? 'Ubicación: ${widget.latitud!.toStringAsFixed(5)}, ${widget.longitud!.toStringAsFixed(5)}'
-                            : 'Sin ubicación GPS',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: widget.tienePosicion ? AppTheme.success : AppTheme.textSecondary,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: widget.descripcionCtrl,
-                  maxLines: 3,
-                  maxLength: 400,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
-                    labelText: 'Descripción de la evidencia *',
-                    hintText: 'Ej: Encontré el collar...',
-                    prefixIcon: Icon(Icons.description_outlined),
-                    alignLabelWithHint: true,
-                    counterText: '',
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'La descripción es obligatoria';
-                    if (v.trim().length < 5) return 'Descripción muy corta';
-                    return null;
-                  },
                 ),
-                const SizedBox(height: 20),
-                if (_publicando)
-                  Center(
-                    child: Column(
-                      children: [
-                        const CircularProgressIndicator(),
-                        const SizedBox(height: 8),
-                        Text(_statusTexto, style: const TextStyle(color: AppTheme.textSecondary)),
-                      ],
-                    ),
-                  )
-                else
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.of(context).pop(null),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 46),
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: const Text('Cancelar', maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        flex: 1,
-                        child: ElevatedButton.icon(
-                          onPressed: _publicar,
-                          icon: const Icon(Icons.cloud_upload_outlined, size: 18),
-                          label: const Text('Publicar', maxLines: 1, overflow: TextOverflow.ellipsis),
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: const Size(0, 46),
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
               ],
             ),
-          ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _ctrl,
+              maxLines: 4,
+              maxLength: 400,
+              autofocus: false,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Descripción de la evidencia *',
+                hintText: 'Ej: Encontré el collar en la zona noreste...',
+                prefixIcon: Icon(Icons.description_outlined),
+                alignLabelWithHint: true,
+                border: OutlineInputBorder(),
+                counterText: '',
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: _confirmar,
+                icon: const Icon(Icons.cloud_upload_outlined),
+                label: const Text('Confirmar y publicar'),
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

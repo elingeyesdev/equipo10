@@ -443,6 +443,53 @@ class _PanelControlViewState extends State<PanelControlView> {
       );
     }
     
+    // 2. Agregar las evidencias fotográficas capturadas
+    markersPistas.addAll(vm.evidencias.where((e) => e.lat != null && e.lng != null).map((evidencia) {
+      return Marker(
+        point: LatLng(evidencia.lat!, evidencia.lng!),
+        width: 80,
+        height: 70,
+        alignment: Alignment.center,
+        child: GestureDetector(
+          onTap: () {
+            Future.microtask(() {
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Evidencia'),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (evidencia.fotoUrl != null)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(evidencia.fotoUrl!, height: 150, width: 300, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 50)),
+                          ),
+                        const SizedBox(height: 12),
+                        Text(evidencia.descripcion),
+                      ],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Cerrar'),
+                    ),
+                  ],
+                ),
+              );
+            });
+          },
+          child: LppMarker(
+            fotoUrl: evidencia.fotoUrl,
+            nombre: 'Evidencia',
+            color: Colors.blueAccent,
+          ),
+        ),
+      );
+    }));
+    
     // 2. Agregar el resto de pistas
     markersPistas.addAll(vm.pistas.map((pista) {
       return Marker(
@@ -604,7 +651,7 @@ class _PanelControlViewState extends State<PanelControlView> {
           bottom: 56,
           right: 60,
           child: MapLayerToggleButton(
-            heroTag: 'btn_toggle_panel',
+            heroTag: null,
             useSatellite: _useSatellite,
             onToggle: () => setState(() => _useSatellite = !_useSatellite),
           ),
