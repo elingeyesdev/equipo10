@@ -272,9 +272,6 @@ class ReporteController extends Controller
                     ]);
                 }
                 
-                // Fetch the new image locally
-                $primera = ReporteImagen::where('reporte_id', $reporte->id)->orderBy('orden')->first();
-                $reporte->primera_imagen = $primera ? $primera->url : null;
             }
 
             $reporte->save();

@@ -30,6 +30,10 @@ class DetalleFichaViewModel extends ChangeNotifier {
 
   /// Carga la ficha y verifica si el usuario ya está vinculado.
   Future<void> cargarFicha(String fichaId, String usuarioId) async {
+    // Limpiar la ficha anterior ANTES de poner isLoading=true.
+    // Esto evita que la pantalla de detalle muestre brevemente los datos
+    // del reporte anterior mientras carga el nuevo.
+    _ficha = null;
     _setLoading(true);
     _errorMessage = null;
     try {

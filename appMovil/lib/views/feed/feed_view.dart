@@ -543,6 +543,8 @@ class _FichaCercanaCardState extends State<_FichaCercanaCard> {
   Widget build(BuildContext context) {
     final ficha = widget.ficha;
     final distanciaKm = widget.distanciaKm;
+    final esCreador = ficha.creadoPor == widget.currentUserId;
+    final isActive = ficha.estado.toLowerCase() == 'activo';
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
@@ -566,6 +568,20 @@ class _FichaCercanaCardState extends State<_FichaCercanaCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Indicador de estado separado (encima de la tarjeta)
+              Center(
+                child: Container(
+                  width: 28,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 5),
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? const Color(0xFF4CAF82)
+                        : const Color(0xFFF59E0B),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
               Expanded(
                 flex: 7,
                 child: ClipRRect(
@@ -594,6 +610,7 @@ class _FichaCercanaCardState extends State<_FichaCercanaCard> {
                       else
                         _CategoriaPlaceholder(
                             categoria: ficha.nombreCategoria),
+
                       if (distanciaKm != null)
                         Positioned(
                           top: 10,
@@ -603,6 +620,34 @@ class _FichaCercanaCardState extends State<_FichaCercanaCard> {
                             label: distanciaKm < 1
                                 ? '${(distanciaKm * 1000).round()} m'
                                 : '${distanciaKm.toStringAsFixed(1)} km',
+                          ),
+                        ),
+
+                      // Badge "Tu reporte"
+                      if (esCreador)
+                        Positioned(
+                          bottom: 8,
+                          left: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withOpacity(0.85),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.person,
+                                    size: 10, color: Colors.white),
+                                SizedBox(width: 4),
+                                Text('Tu reporte',
+                                    style: TextStyle(
+                                        fontSize: 9,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700)),
+                              ],
+                            ),
                           ),
                         ),
                     ],
@@ -633,23 +678,11 @@ class _FichaCercanaCardState extends State<_FichaCercanaCard> {
                               fontSize: 11,
                               color: Color(0xFF6B7280))),
                       const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          _EstadoTexto(estado: ficha.estado),
-                          if (ficha.createdAt != null) ...[
-                            const SizedBox(width: 6),
-                            const Text('·',
-                                style: TextStyle(
-                                    color: Color(0xFF9E9E9E),
-                                    fontSize: 9)),
-                            const SizedBox(width: 6),
-                            Text(_formatRelativo(ficha.createdAt),
-                                style: const TextStyle(
-                                    fontSize: 9,  // Igualado a _EstadoTexto
-                                    color: Color(0xFF9E9E9E))),
-                          ],
-                        ],
-                      ),
+                      if (ficha.createdAt != null)
+                        Text(_formatRelativo(ficha.createdAt),
+                            style: const TextStyle(
+                                fontSize: 9,
+                                color: Color(0xFF9E9E9E))),
                     ],
                   ),
                 ),
@@ -684,6 +717,7 @@ class _FichaGridCardState extends State<_FichaGridCard> {
     final ficha = widget.ficha;
     final distanciaKm = widget.distanciaKm;
     final esCreador = ficha.creadoPor == widget.currentUserId;
+    final isActive = ficha.estado.toLowerCase() == 'activo';
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
@@ -706,6 +740,20 @@ class _FichaGridCardState extends State<_FichaGridCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Indicador de estado separado (encima de la tarjeta)
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 5),
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? const Color(0xFF4CAF82) // verde suave
+                      : const Color(0xFFF59E0B),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
             // Imagen grande (70%)
             Expanded(
               flex: 10,
@@ -801,29 +849,14 @@ class _FichaGridCardState extends State<_FichaGridCard> {
                       style: const TextStyle(
                           fontSize: 11, color: Color(0xFF6B7280))),
                   const SizedBox(height: 4),
-                  // Estado + fecha relativa en la misma línea
-                  Row(
-                    children: [
-                      _EstadoTexto(estado: ficha.estado),
-                      if (ficha.createdAt != null) ...[
-                        const SizedBox(width: 6),
-                        Text('·',
-                            style: const TextStyle(
-                                color: Color(0xFF9E9E9E),
-                                fontSize: 11)),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            _formatRelativo(ficha.createdAt),
-                            style: const TextStyle(
-                                fontSize: 9,   // Igualado a _EstadoTexto
-                                color: Color(0xFF9E9E9E)),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+                  if (ficha.createdAt != null)
+                    Text(
+                      _formatRelativo(ficha.createdAt),
+                      style: const TextStyle(
+                          fontSize: 9,
+                          color: Color(0xFF9E9E9E)),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                 ],
               ),
             ),

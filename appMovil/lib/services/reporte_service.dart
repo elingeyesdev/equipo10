@@ -187,21 +187,31 @@ class ReporteService {
       'descripcion': descripcion,
     };
 
-    if (fotoUrl != null) {
-      data['imagenes'] = [fotoUrl];
-    } else {
-      data['imagenes'] = [];
-    }
-
     if (telefonoContacto != null) data['telefono_contacto'] = telefonoContacto;
     if (recompensa != null) data['recompensa'] = recompensa;
     if (direccionReferencia != null) data['direccion_referencia'] = direccionReferencia;
     if (fechaPerdida != null) data['fecha_perdida'] = fechaPerdida;
     if (caracteristicasExtra != null) data['caracteristicas'] = caracteristicasExtra;
 
-    final response = await _api.client.put('/reportes/$id', data: data);
-    if (response.statusCode != 200) {
-      throw Exception('Fallo al actualizar el reporte.');
+    // Solo incluir 'imagenes' si hay una URL válida.
+    // Enviar una lista vacía hace que el backend intente borrar todas las
+    // imágenes y lanza un 500. Si el usuario no cambió ni borró la imagen,
+    // simplemente no mandamos el campo y el servidor no toca las imágenes.
+    if (fotoUrl != null && fotoUrl.isNotEmpty) {
+      data['imagenes'] = [fotoUrl];
+    }
+
+    try {
+      final response = await _api.client.put('/reportes/$id', data: data);
+      if (response.statusCode != 200) {
+        throw Exception('Fallo al actualizar el reporte.');
+      }
+    } on DioException catch (e) {
+      final msg = e.response?.data?['error'] ??
+          e.response?.data?['message'] ??
+          e.message ??
+          'Error al actualizar el reporte.';
+      throw Exception(msg);
     }
   }
 

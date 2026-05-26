@@ -208,7 +208,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _HeroImage(fotoUrl: ficha.fotoUrl),
+                _HeroImage(fotoUrl: ficha.fotoUrl, categoria: ficha.nombreCategoria),
 
                 Padding(
                   padding: const EdgeInsets.all(20),
@@ -665,8 +665,20 @@ class _BannerBloqueado extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 class _HeroImage extends StatelessWidget {
   final String? fotoUrl;
+  final String? categoria;
 
-  const _HeroImage({this.fotoUrl});
+  const _HeroImage({this.fotoUrl, this.categoria});
+
+  static IconData _iconoPorCategoria(String? cat) {
+    if (cat == null) return Icons.person_search;
+    final c = cat.toLowerCase().trim();
+    if (c.contains('mascota') || c == 'mascotas') return Icons.pets;
+    if (c.contains('veh') || c == 'vehículos' || c == 'vehiculos') return Icons.directions_car;
+    if (c.contains('document') || c == 'documentos') return Icons.badge;
+    if (c.contains('electr') || c == 'electrónicos' || c == 'electronicos') return Icons.devices;
+    if (c.contains('persona') || c == 'personas') return Icons.person_search;
+    return Icons.search;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -725,8 +737,8 @@ class _HeroImage extends StatelessWidget {
       height: 240,
       color: AppTheme.primary.withValues(alpha: 0.06),
       width: double.infinity,
-      child: const Icon(
-        Icons.person_search,
+      child: Icon(
+        _iconoPorCategoria(categoria),
         size: 80,
         color: AppTheme.primaryLight,
       ),
