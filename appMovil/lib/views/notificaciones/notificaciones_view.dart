@@ -4,6 +4,8 @@ import '../../viewmodels/notificaciones_viewmodel.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../theme/app_theme.dart';
 import '../detalle_ficha/detalle_ficha_view.dart';
+import '../panel_control/revision_evidencias_view.dart';
+
 
 class NotificacionesView extends StatefulWidget {
   const NotificacionesView({super.key});
@@ -142,15 +144,28 @@ class _NotificacionesViewState extends State<NotificacionesView> {
                         final String reporteId = data['reporte_id'].toString();
                         final authVm = context.read<AuthViewModel>();
                         final String userId = authVm.currentUserId ?? '';
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => DetalleFichaView(
-                              fichaId: reporteId,
-                              currentUserId: userId,
+                        
+                        if (notif.tipo == 'respuesta_reporte') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RevisionEvidenciasView(
+                                reporteId: reporteId,
+                                reporteTitulo: 'Revisión de Evidencias',
+                              ),
                             ),
-                          ),
-                        );
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => DetalleFichaView(
+                                fichaId: reporteId,
+                                currentUserId: userId,
+                              ),
+                            ),
+                          );
+                        }
                       }
                     },
                   ),

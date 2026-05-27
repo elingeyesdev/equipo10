@@ -181,10 +181,8 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
   Widget build(BuildContext context) {
     final vm = context.watch<EvidenciaViewModel>();
 
-    // Para el creador: todas las evidencias separadas por estado
-    final evidenciasPendientes = widget.esCreador
-        ? vm.evidencias.where((e) => e.estado == 'pending').toList()
-        : <EvidenciaModel>[];
+    // Las evidencias pendientes no se muestran afuera en la ficha
+    final evidenciasPendientes = <EvidenciaModel>[];
     final evidenciasAprobadas =
         vm.evidencias.where((e) => e.estado == 'approved').toList();
 

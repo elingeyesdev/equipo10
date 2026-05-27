@@ -9,6 +9,7 @@ import '../../widgets/map_tile_layer.dart';
 import '../../widgets/lpp_marker.dart';
 import '../../widgets/evidencia_marker.dart';
 import '../widgets/full_screen_image_view.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/cuadrante_model.dart';
 import '../../services/cuadrante_service.dart';
 import '../../services/evidencia_service.dart';
@@ -896,6 +897,129 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     );
   }
 
+  void _mostrarDetallesEvidencia(EvidenciaModel evidencia) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        titlePadding: EdgeInsets.zero,
+        title: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: const BoxDecoration(
+            color: Color(0xFFFF6F00),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.photo_camera, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Evidencia Fotográfica',
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (evidencia.fotoUrl != null && evidencia.fotoUrl!.isNotEmpty)
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      ctx,
+                      MaterialPageRoute(
+                        builder: (_) => FullScreenImageView(
+                          imageUrl: evidencia.fotoUrl!,
+                          tag: 'map-ev-${evidencia.id}',
+                        ),
+                      ),
+                    );
+                  },
+                  child: Hero(
+                    tag: 'map-ev-${evidencia.id}',
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.network(
+                        evidencia.fotoUrl!,
+                        height: 200,
+                        width: 300,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          height: 120,
+                          color: Colors.grey[200],
+                          child: const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              // Info del voluntario
+              if (evidencia.nombreUsuario != null)
+                Row(
+                  children: [
+                    const Icon(Icons.person, size: 16, color: Color(0xFFFF6F00)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        evidencia.nombreUsuario!,
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              if (evidencia.creadoEn != null) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.schedule, size: 16, color: Colors.grey),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${evidencia.creadoEn!.day}/${evidencia.creadoEn!.month}/${evidencia.creadoEn!.year} a las ${evidencia.creadoEn!.hour.toString().padLeft(2, '0')}:${evidencia.creadoEn!.minute.toString().padLeft(2, '0')}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ],
+              if (evidencia.descripcion.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                const Divider(height: 1),
+                const SizedBox(height: 10),
+                Text(
+                  evidencia.descripcion,
+                  style: const TextStyle(fontSize: 13, height: 1.4),
+                ),
+              ],
+              // Coordenadas GPS
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.location_on, size: 14, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${evidencia.lat!.toStringAsFixed(5)}, ${evidencia.lng!.toStringAsFixed(5)}',
+                    style: TextStyle(fontSize: 10, color: Colors.grey[500], fontFamily: 'monospace'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_lpp == null) {
@@ -1059,129 +1183,10 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               if (!mounted) return;
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (!mounted) return;
-                showDialog(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  titlePadding: EdgeInsets.zero,
-                  title: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFF6F00),
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.photo_camera, color: Colors.white, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Evidencia Fotográfica',
-                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  content: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (evidencia.fotoUrl != null && evidencia.fotoUrl!.isNotEmpty)
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => FullScreenImageView(
-                                    imageUrl: evidencia.fotoUrl!,
-                                    tag: 'map-ev-${evidencia.id}',
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Hero(
-                              tag: 'map-ev-${evidencia.id}',
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: Image.network(
-                                  evidencia.fotoUrl!,
-                                  height: 200,
-                                  width: 300,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Container(
-                                    height: 120,
-                                    color: Colors.grey[200],
-                                    child: const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        const SizedBox(height: 12),
-                        // Info del voluntario
-                        if (evidencia.nombreUsuario != null)
-                          Row(
-                            children: [
-                              const Icon(Icons.person, size: 16, color: Color(0xFFFF6F00)),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  evidencia.nombreUsuario!,
-                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                                ),
-                              ),
-                            ],
-                          ),
-                        if (evidencia.creadoEn != null) ...[
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              const Icon(Icons.schedule, size: 16, color: Colors.grey),
-                              const SizedBox(width: 6),
-                              Text(
-                                '${evidencia.creadoEn!.day}/${evidencia.creadoEn!.month}/${evidencia.creadoEn!.year} a las ${evidencia.creadoEn!.hour.toString().padLeft(2, '0')}:${evidencia.creadoEn!.minute.toString().padLeft(2, '0')}',
-                                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                              ),
-                            ],
-                          ),
-                        ],
-                        if (evidencia.descripcion.isNotEmpty) ...[
-                          const SizedBox(height: 10),
-                          const Divider(height: 1),
-                          const SizedBox(height: 10),
-                          Text(
-                            evidencia.descripcion,
-                            style: const TextStyle(fontSize: 13, height: 1.4),
-                          ),
-                        ],
-                        // Coordenadas GPS
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            const Icon(Icons.location_on, size: 14, color: Colors.grey),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${evidencia.lat!.toStringAsFixed(5)}, ${evidencia.lng!.toStringAsFixed(5)}',
-                              style: TextStyle(fontSize: 10, color: Colors.grey[500], fontFamily: 'monospace'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Cerrar'),
-                    ),
-                  ],
-                ),
-              );
+                _mostrarDetallesEvidencia(evidencia);
+              });
             });
-          });
-        },
+          },
           child: EvidenciaMarker(
             fotoUrl: evidencia.fotoUrl,
             nombreVoluntario: evidencia.nombreUsuario,
@@ -1204,6 +1209,20 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             },
           ),
           if (widget.esCreador)
+            Builder(
+              builder: (context) => IconButton(
+                icon: _evidencias.isNotEmpty
+                    ? Badge(
+                        label: Text('${_evidencias.length}'),
+                        backgroundColor: const Color(0xFFFF6F00),
+                        child: const Icon(Icons.photo_library_outlined, size: 24),
+                      )
+                    : const Icon(Icons.photo_library_outlined, size: 24),
+                tooltip: 'Galería de evidencias',
+                onPressed: () => Scaffold.of(context).openEndDrawer(),
+              ),
+            ),
+          if (widget.esCreador)
             TextButton.icon(
               onPressed: () => setState(() {
                 _modoPista = !_modoPista;
@@ -1220,6 +1239,151 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             ),
         ],
       ),
+      endDrawer: widget.esCreador
+          ? Drawer(
+              width: 320,
+              child: SafeArea(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      color: AppTheme.primary.withOpacity(0.08),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.photo_library, color: AppTheme.primary),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Galería de Evidencias',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.primary),
+                                ),
+                                Text(
+                                  'Orden cronológico (más reciente primero)',
+                                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, size: 20),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    Expanded(
+                      child: _evidencias.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'Aún no hay evidencias aprobadas.',
+                                style: TextStyle(color: Colors.grey, fontSize: 13),
+                              ),
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.all(12),
+                              itemCount: _evidencias.length,
+                              separatorBuilder: (_, __) => const SizedBox(height: 10),
+                              itemBuilder: (ctx, i) {
+                                final listaOrdenada = _evidencias.toList()
+                                  ..sort((a, b) => (b.creadoEn ?? DateTime.now()).compareTo(a.creadoEn ?? DateTime.now()));
+                                final evidencia = listaOrdenada[i];
+                                return InkWell(
+                                  onTap: () {
+                                    Navigator.pop(context);
+                                    if (evidencia.lat != null && evidencia.lng != null) {
+                                      _mapController.move(LatLng(evidencia.lat!, evidencia.lng!), 16.5);
+                                      Future.delayed(const Duration(milliseconds: 250), () {
+                                        if (!mounted) return;
+                                        _mostrarDetallesEvidencia(evidencia);
+                                      });
+                                    }
+                                  },
+                                  child: Card(
+                                    elevation: 2,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Row(
+                                        children: [
+                                          if (evidencia.fotoUrl != null && evidencia.fotoUrl!.isNotEmpty)
+                                            ClipRRect(
+                                              borderRadius: BorderRadius.circular(8),
+                                              child: CachedNetworkImage(
+                                                imageUrl: evidencia.fotoUrl!,
+                                                width: 60,
+                                                height: 60,
+                                                fit: BoxFit.cover,
+                                                placeholder: (_, __) => Container(width: 60, height: 60, color: Colors.grey[100]),
+                                                errorWidget: (_, __, ___) => Container(
+                                                  width: 60,
+                                                  height: 60,
+                                                  color: Colors.grey[200],
+                                                  child: const Icon(Icons.broken_image, size: 20, color: Colors.grey),
+                                                ),
+                                              ),
+                                            )
+                                          else
+                                            Container(
+                                              width: 60,
+                                              height: 60,
+                                              decoration: BoxDecoration(
+                                                color: Colors.orange.withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: const Icon(Icons.photo_camera, color: Colors.orange, size: 24),
+                                            ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  evidencia.nombreUsuario ?? 'Voluntario',
+                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  evidencia.descripcion.isNotEmpty ? evidencia.descripcion : 'Sin descripción.',
+                                                  style: TextStyle(fontSize: 11, color: Colors.grey[700]),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Row(
+                                                  children: [
+                                                    const Icon(Icons.access_time, size: 10, color: Colors.grey),
+                                                    const SizedBox(width: 3),
+                                                    Text(
+                                                      evidencia.creadoEn != null
+                                                          ? '${evidencia.creadoEn!.day}/${evidencia.creadoEn!.month} a las ${evidencia.creadoEn!.hour.toString().padLeft(2, '0')}:${evidencia.creadoEn!.minute.toString().padLeft(2, '0')}'
+                                                          : 'Hace un momento',
+                                                      style: const TextStyle(fontSize: 9, color: Colors.grey),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : null,
       body: Stack(
         children: [
           FlutterMap(
