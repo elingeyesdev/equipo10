@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/evidencia_model.dart';
 import '../../viewmodels/evidencia_viewmodel.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/descarga/descargador.dart';
 import '../widgets/full_screen_image_view.dart';
 
 class RevisionEvidenciasView extends StatefulWidget {
@@ -55,6 +56,24 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Revision de Evidencias'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.download_for_offline_outlined, color: Colors.white),
+            tooltip: 'Descargar Evidencias',
+            onPressed: () {
+              if (vm.evidencias.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('No hay evidencias disponibles en este operativo para descargar.'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+              _mostrarDialogoDescarga(context, vm.evidencias);
+            },
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
@@ -120,6 +139,381 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
               ],
             ),
     );
+  }
+
+  void _mostrarDialogoDescarga(BuildContext context, List<EvidenciaModel> evidencias) {
+    String filtro = 'approved';
+    String formato = 'dossier';
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: AppTheme.background,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Row(
+                children: [
+                  Icon(Icons.download_for_offline, color: AppTheme.primary, size: 28),
+                  SizedBox(width: 10),
+                  Text(
+                    'Descarga de Evidencias',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Filtro de Evidencias:',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 8),
+                    RadioListTile<String>(
+                      title: const Text('Solo Aprobadas (Recomendado)', style: TextStyle(fontSize: 13)),
+                      value: 'approved',
+                      groupValue: filtro,
+                      activeColor: AppTheme.primary,
+                      onChanged: (val) {
+                        setState(() => filtro = val!);
+                      },
+                    ),
+                    RadioListTile<String>(
+                      title: const Text('Todas (Aprobadas, Pendientes y Rechazadas)', style: TextStyle(fontSize: 13)),
+                      value: 'all',
+                      groupValue: filtro,
+                      activeColor: AppTheme.primary,
+                      onChanged: (val) {
+                        setState(() => filtro = val!);
+                      },
+                    ),
+                    const Divider(),
+                    const Text(
+                      'Formato de Descarga:',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 8),
+                    RadioListTile<String>(
+                      title: const Text('Ficha de Evidencias (HTML imprimible)', style: TextStyle(fontSize: 13)),
+                      value: 'dossier',
+                      groupValue: formato,
+                      activeColor: AppTheme.primary,
+                      onChanged: (val) {
+                        setState(() => formato = val!);
+                      },
+                    ),
+                    RadioListTile<String>(
+                      title: const Text('Fotos individuales (.jpg)', style: TextStyle(fontSize: 13)),
+                      value: 'photos',
+                      groupValue: formato,
+                      activeColor: AppTheme.primary,
+                      onChanged: (val) {
+                        setState(() => formato = val!);
+                      },
+                    ),
+                    RadioListTile<String>(
+                      title: const Text('Ficha + Fotos individuales', style: TextStyle(fontSize: 13)),
+                      value: 'both',
+                      groupValue: formato,
+                      activeColor: AppTheme.primary,
+                      onChanged: (val) {
+                        setState(() => formato = val!);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _procesarDescarga(context, evidencias, filtro, formato);
+                  },
+                  child: const Text('Descargar', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _procesarDescarga(
+    BuildContext context,
+    List<EvidenciaModel> evidencias,
+    String filtro,
+    String formato,
+  ) async {
+    final filtradas = filtro == 'approved'
+        ? evidencias.where((e) => e.estado == 'approved').toList()
+        : evidencias;
+
+    if (filtradas.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No hay evidencias disponibles para descargar con el filtro seleccionado.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(color: AppTheme.primary),
+              SizedBox(width: 20),
+              Expanded(
+                child: Text(
+                  'Generando y descargando evidencias. Por favor, espere...',
+                  style: TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    int exitosas = 0;
+    int fallidas = 0;
+
+    try {
+      if (formato == 'dossier' || formato == 'both') {
+        final String htmlContent = _generarHtmlDossier(filtradas);
+        await Descargador.descargarTexto(
+          htmlContent,
+          'ficha_evidencias_${widget.reporteId}.html',
+          'text/html',
+        );
+        exitosas++;
+      }
+
+      if (formato == 'photos' || formato == 'both') {
+        for (int i = 0; i < filtradas.length; i++) {
+          final e = filtradas[i];
+          if (e.fotoUrl != null && e.fotoUrl!.isNotEmpty) {
+            try {
+              final String cleanName = (e.nombreUsuario ?? 'voluntario')
+                  .replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
+              final String fileName =
+                  'evidencia_${widget.reporteId}_${e.id}_$cleanName.jpg';
+              await Descargador.descargarArchivo(e.fotoUrl!, fileName);
+              exitosas++;
+            } catch (err) {
+              fallidas++;
+            }
+          }
+        }
+      }
+
+      if (!context.mounted) return;
+      Navigator.pop(context);
+      _mostrarDialogoExito(context, exitosas, fallidas, formato);
+    } catch (err) {
+      if (!context.mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al realizar la descarga masiva: $err'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _mostrarDialogoExito(BuildContext context, int exitosas, int fallidas, String formato) {
+    String mensaje = '';
+    if (formato == 'dossier') {
+      mensaje = 'La ficha de evidencias HTML del operativo ha sido generada y descargada correctamente.';
+    } else if (formato == 'photos') {
+      mensaje = 'Se completó la descarga de imágenes individuales.\n\n• Descargas exitosas: $exitosas\n• Errores: $fallidas';
+    } else {
+      mensaje = 'Se descargaron exitosamente tanto la ficha de evidencias HTML como las fotos individuales.\n\n• Descargas exitosas: $exitosas\n• Errores: $fallidas';
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: AppTheme.background,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green, size: 28),
+              SizedBox(width: 10),
+              Text(
+                'Descarga Completada',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ],
+          ),
+          content: Text(
+            mensaje,
+            style: const TextStyle(fontSize: 14, color: Colors.black87),
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Entendido', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _generarHtmlDossier(List<EvidenciaModel> evidencias) {
+    final String fechaGen = DateTime.now().toLocal().toString().split('.')[0];
+    final StringBuffer tableRows = StringBuffer();
+    final StringBuffer cards = StringBuffer();
+
+    for (final e in evidencias) {
+      final String fecha = e.creadoEn != null
+          ? '${e.creadoEn!.day}/${e.creadoEn!.month}/${e.creadoEn!.year} ${e.creadoEn!.hour.toString().padLeft(2, '0')}:${e.creadoEn!.minute.toString().padLeft(2, '0')}'
+          : 'N/A';
+      final String coords = e.lat != null && e.lng != null
+          ? '${e.lat!.toStringAsFixed(6)}, ${e.lng!.toStringAsFixed(6)}'
+          : 'Sin coordenadas';
+      
+      String badgeClass = 'badge-pending';
+      String estadoText = 'Pendiente';
+      if (e.estado == 'approved') {
+        badgeClass = 'badge-approved';
+        estadoText = 'Aprobada';
+      } else if (e.estado == 'rejected') {
+        badgeClass = 'badge-rejected';
+        estadoText = 'Rechazada';
+      }
+
+      tableRows.write('''
+        <tr>
+          <td><strong>${e.nombreUsuario ?? 'Voluntario'}</strong></td>
+          <td>${e.descripcion.isNotEmpty ? e.descripcion : 'Sin descripción'}</td>
+          <td><code>$coords</code></td>
+          <td>$fecha</td>
+          <td><span class="badge $badgeClass">$estadoText</span></td>
+        </tr>
+      ''');
+
+      cards.write('''
+        <div class="evidence-card">
+          ${e.fotoUrl != null ? '<img class="evidence-image" src="${e.fotoUrl}" alt="Evidencia">' : '<div class="evidence-image" style="display:flex;align-items:center;justify-content:center;color:#888;">Sin imagen</div>'}
+          <div class="evidence-content">
+            <h3 class="evidence-title">Evidencia de ${e.nombreUsuario ?? 'Voluntario'}</h3>
+            <p class="evidence-desc">${e.descripcion.isNotEmpty ? e.descripcion : 'Sin descripción registrada por el voluntario.'}</p>
+            <div class="evidence-meta">
+              <div class="meta-row">
+                <span><strong>Fecha:</strong> $fecha</span>
+                <span><strong>Estado:</strong> <span class="badge $badgeClass">$estadoText</span></span>
+              </div>
+              <div class="meta-row" style="margin-top: 6px;">
+                <span><strong>Ubicación:</strong> $coords</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      ''');
+    }
+
+    return '''
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Ficha de Evidencias - ${widget.reporteTitulo}</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; margin: 40px; background-color: #f4f6f9; line-height: 1.6; }
+        .header { text-align: center; margin-bottom: 40px; border-bottom: 3px solid #0056b3; padding-bottom: 20px; }
+        .header h1 { margin: 0; color: #0056b3; font-size: 32px; font-weight: 700; }
+        .header p { margin: 5px 0 0 0; color: #555; font-size: 14px; }
+        .summary-table { width: 100%; border-collapse: collapse; margin-bottom: 40px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 10px; overflow: hidden; }
+        .summary-table th, .summary-table td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
+        .summary-table th { background-color: #0056b3; color: white; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .summary-table tr:last-child td { border-bottom: none; }
+        .badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; text-align: center; }
+        .badge-approved { background-color: #e2f0d9; color: #385723; }
+        .badge-pending { background-color: #fff2cc; color: #7f6000; }
+        .badge-rejected { background-color: #fce4d6; color: #c65911; }
+        .evidence-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; margin-top: 20px; }
+        .evidence-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 6px 12px rgba(0,0,0,0.05); border: 1px solid #eef; display: flex; flex-direction: column; transition: transform 0.2s; }
+        .evidence-image { width: 100%; height: 240px; object-fit: cover; background-color: #e9ecef; }
+        .evidence-content { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; }
+        .evidence-title { font-weight: bold; font-size: 18px; margin: 0 0 10px 0; color: #222; }
+        .evidence-desc { font-size: 14px; color: #555; margin-bottom: 20px; flex-grow: 1; }
+        .evidence-meta { font-size: 12px; color: #777; border-top: 1px solid #f0f0f0; padding-top: 15px; margin-top: auto; }
+        .meta-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+        code { font-family: 'Courier New', Courier, monospace; background-color: #f8f9fa; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+        @media print {
+            body { background: white; margin: 0; }
+            .evidence-card { break-inside: avoid; box-shadow: none; border: 1px solid #ccc; }
+            .summary-table { box-shadow: none; border: 1px solid #ccc; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Ficha de Evidencias del Operativo</h1>
+        <p>Generado por Echoes el $fechaGen</p>
+        <p><strong>Búsqueda:</strong> ${widget.reporteTitulo} | <strong>ID de Operativo:</strong> ${widget.reporteId}</p>
+    </div>
+    
+    <h2 style="color: #333; border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-bottom: 20px;">Resumen del Operativo</h2>
+    <table class="summary-table">
+        <thead>
+            <tr>
+                <th>Voluntario</th>
+                <th>Descripción</th>
+                <th>Coordenadas</th>
+                <th>Fecha y Hora</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${tableRows.toString()}
+        </tbody>
+    </table>
+    
+    <h2 style="color: #333; border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-top: 40px; margin-bottom: 20px;">Detalle de Evidencias Fotográficas</h2>
+    <div class="evidence-grid">
+        ${cards.toString()}
+    </div>
+</body>
+</html>
+''';
   }
 }
 
