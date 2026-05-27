@@ -3,8 +3,11 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../viewmodels/perfil_viewmodel.dart';
+import '../../viewmodels/auth_viewmodel.dart';
 import 'tu_cuenta_view.dart';
 import 'tu_actividad_view.dart';
+import '../about/about_view.dart';
+import '../auth/login_view.dart';
 import '../../theme/app_theme.dart';
 
 class PerfilView extends StatefulWidget {
@@ -23,6 +26,37 @@ class _PerfilViewState extends State<PerfilView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PerfilViewModel>().cargarPerfil();
     });
+  }
+
+  void _onLogout() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Cerrar sesión'),
+        content: const Text('¿Estás seguro de que quieres salir?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await context.read<AuthViewModel>().logout();
+              if (!mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginView()),
+                (_) => false,
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.danger,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(0, 42),
+            ),
+            child: const Text('Cerrar sesión'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _pickImage() async {
@@ -164,6 +198,34 @@ class _PerfilViewState extends State<PerfilView> {
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Próximamente')));
                 },
+              ),
+              const Divider(height: 1),
+              _MenuOption(
+                icon: Icons.info_outline,
+                title: 'Sobre Echoes',
+                subtitle: 'Misión, equipo y versión',
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutView()));
+                },
+              ),
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.danger.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.logout, color: AppTheme.danger),
+                  ),
+                  title: const Text('Cerrar sesión',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.danger)),
+                  subtitle: const Text('Salir de tu cuenta', style: TextStyle(fontSize: 13)),
+                  onTap: _onLogout,
+                ),
               ),
             ],
           ),
