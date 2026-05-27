@@ -7,6 +7,7 @@ import '../../viewmodels/evidencia_viewmodel.dart';
 import '../../widgets/map_tile_layer.dart';
 import '../../widgets/lpp_marker.dart';
 import 'revision_evidencias_view.dart';
+import '../widgets/full_screen_image_view.dart';
 
 class PanelControlView extends StatefulWidget {
   final String fichaId;
@@ -573,41 +574,61 @@ class _PanelControlViewState extends State<PanelControlView> {
         height: 70,
         alignment: Alignment.center,
         child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: () {
             Future.delayed(const Duration(milliseconds: 150), () {
               if (!mounted) return;
-              showDialog(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Evidencia'),
-                  content: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (evidencia.fotoUrl != null && evidencia.fotoUrl!.isNotEmpty)
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              evidencia.fotoUrl!,
-                              height: 150,
-                              width: 300,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 50),
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Evidencia'),
+                    content: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (evidencia.fotoUrl != null && evidencia.fotoUrl!.isNotEmpty)
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => FullScreenImageView(
+                                      imageUrl: evidencia.fotoUrl!,
+                                      tag: 'panel-ev-${evidencia.id}',
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Hero(
+                                tag: 'panel-ev-${evidencia.id}',
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    evidencia.fotoUrl!,
+                                    height: 150,
+                                    width: 300,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 50),
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                        const SizedBox(height: 12),
-                        Text(evidencia.descripcion),
-                      ],
+                          const SizedBox(height: 12),
+                          Text(evidencia.descripcion),
+                        ],
+                      ),
                     ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cerrar'),
+                      ),
+                    ],
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Cerrar'),
-                    ),
-                  ],
-                ),
-              );
+                );
+              });
             });
           },
           child: LppMarker(

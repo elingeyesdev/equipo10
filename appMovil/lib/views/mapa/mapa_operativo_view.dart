@@ -8,6 +8,7 @@ import '../../services/api_service.dart';
 import '../../widgets/map_tile_layer.dart';
 import '../../widgets/lpp_marker.dart';
 import '../../widgets/evidencia_marker.dart';
+import '../widgets/full_screen_image_view.dart';
 import '../../models/cuadrante_model.dart';
 import '../../services/cuadrante_service.dart';
 import '../../services/evidencia_service.dart';
@@ -926,10 +927,14 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
         height: 100,
         alignment: Alignment.center,
         child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: () {
             Future.delayed(const Duration(milliseconds: 150), () {
               if (!mounted) return;
-              setState(() => _pistaTooltip = _pistaTooltip == lppInfo ? null : lppInfo);
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                setState(() => _pistaTooltip = _pistaTooltip == lppInfo ? null : lppInfo);
+              });
             });
           },
           child: MouseRegion(
@@ -953,10 +958,14 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
           height: 70,
           alignment: Alignment.center,
           child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: () {
               Future.delayed(const Duration(milliseconds: 150), () {
                 if (!mounted) return;
-                setState(() => _pistaTooltip = _pistaTooltip == pista ? null : pista);
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  setState(() => _pistaTooltip = _pistaTooltip == pista ? null : pista);
+                });
               });
             },
             child: MouseRegion(
@@ -1044,12 +1053,15 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
         height: 100,
         alignment: Alignment.center,
         child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: () {
             Future.delayed(const Duration(milliseconds: 150), () {
               if (!mounted) return;
-              showDialog(
-                context: context,
-                builder: (ctx) => AlertDialog(
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   titlePadding: EdgeInsets.zero,
                   title: Container(
@@ -1077,17 +1089,33 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (evidencia.fotoUrl != null && evidencia.fotoUrl!.isNotEmpty)
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.network(
-                              evidencia.fotoUrl!,
-                              height: 200,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                height: 120,
-                                color: Colors.grey[200],
-                                child: const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => FullScreenImageView(
+                                    imageUrl: evidencia.fotoUrl!,
+                                    tag: 'map-ev-${evidencia.id}',
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Hero(
+                              tag: 'map-ev-${evidencia.id}',
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.network(
+                                  evidencia.fotoUrl!,
+                                  height: 200,
+                                  width: 300,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    height: 120,
+                                    color: Colors.grey[200],
+                                    child: const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1152,7 +1180,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                 ),
               );
             });
-          },
+          });
+        },
           child: EvidenciaMarker(
             fotoUrl: evidencia.fotoUrl,
             nombreVoluntario: evidencia.nombreUsuario,
