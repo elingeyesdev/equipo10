@@ -18,6 +18,7 @@ import 'viewmodels/notificaciones_viewmodel.dart';
 import 'viewmodels/evidencia_viewmodel.dart';
 import 'services/auth_service.dart';
 import 'views/auth/login_view.dart';
+import 'views/auth/onboarding_view.dart';
 import 'views/feed/feed_view.dart';
 import 'views/home/home_view.dart';
 
@@ -39,13 +40,15 @@ Future<void> main() async {
 
   final prefs = await SharedPreferences.getInstance();
   final hasToken = prefs.getString('auth_token') != null;
+  final onboardingDone = prefs.getBool('onboarding_done') ?? false;
 
-  runApp(EchoesApp(hasToken: hasToken));
+  runApp(EchoesApp(hasToken: hasToken, onboardingDone: onboardingDone));
 }
 
 class EchoesApp extends StatelessWidget {
   final bool hasToken;
-  const EchoesApp({super.key, required this.hasToken});
+  final bool onboardingDone;
+  const EchoesApp({super.key, required this.hasToken, required this.onboardingDone});
 
   @override
   Widget build(BuildContext context) {
@@ -66,22 +69,23 @@ class EchoesApp extends StatelessWidget {
         title: 'Echoes',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.theme,
-        home: _AuthGate(hasToken: hasToken),
+        home: _AuthGate(hasToken: hasToken, onboardingDone: onboardingDone),
       ),
     );
   }
 }
 
 /// Determina si el usuario ya tiene sesión activa y redirige.
+/// Si el onboarding no se ha visto, lo muestra primero.
 class _AuthGate extends StatelessWidget {
   final bool hasToken;
-  const _AuthGate({required this.hasToken});
+  final bool onboardingDone;
+  const _AuthGate({required this.hasToken, required this.onboardingDone});
 
   @override
   Widget build(BuildContext context) {
-    if (hasToken) {
-      return const HomeView();
-    }
+    if (hasToken) return const HomeView();
+    if (!onboardingDone) return const OnboardingView();
     return const LoginView();
   }
 }
