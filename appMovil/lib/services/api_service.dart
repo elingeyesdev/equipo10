@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
+import 'connectivity_service.dart';
+import 'offline_interceptor.dart';
 
 const String _kApiUrl = 'http://10.26.10.214:8081';
 
@@ -20,6 +22,9 @@ class ApiService {
         'Content-Type': 'application/json',
       },
     ));
+
+    // E9.1 — Interceptor offline: cancela peticiones sin conexión ANTES del JWT
+    _dio.interceptors.add(OfflineInterceptor(ConnectivityService()));
 
     // Interceptor que inyecta el token JWT en cada petición
     _dio.interceptors.add(InterceptorsWrapper(

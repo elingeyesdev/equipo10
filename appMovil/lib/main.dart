@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'services/api_service.dart';
 import 'services/notification_service.dart';
+import 'services/connectivity_service.dart';
 import 'theme/app_theme.dart';
 import 'viewmodels/auth_viewmodel.dart';
 import 'viewmodels/feed_viewmodel.dart';
@@ -19,7 +20,6 @@ import 'viewmodels/evidencia_viewmodel.dart';
 import 'services/auth_service.dart';
 import 'views/auth/login_view.dart';
 import 'views/auth/onboarding_view.dart';
-import 'views/feed/feed_view.dart';
 import 'views/home/home_view.dart';
 
 Future<void> main() async {
@@ -54,6 +54,10 @@ class EchoesApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        // E9.1 — Módulo Offline: servicio de conectividad disponible globalmente
+        ChangeNotifierProvider<ConnectivityService>(
+          create: (_) => ConnectivityService(),
+        ),
         ChangeNotifierProvider(create: (_) => AuthViewModel()),
         ChangeNotifierProvider(create: (_) => FeedViewModel()),
         ChangeNotifierProvider(create: (_) => CrearFichaViewModel()),

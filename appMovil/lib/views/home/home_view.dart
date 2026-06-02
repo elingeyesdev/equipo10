@@ -8,6 +8,7 @@ import '../notificaciones/notificaciones_view.dart';
 import '../crear_ficha/crear_ficha_view.dart';
 import '../../viewmodels/feed_viewmodel.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/offline_banner.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -166,13 +167,15 @@ class _HomeViewState extends State<HomeView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar(),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          const FeedView(),
-          const MisBusquedasView(),
-          PerfilView(),
-        ],
+      body: OfflineBanner(
+        child: IndexedStack(
+          index: _currentIndex,
+          children: const [
+            FeedView(),
+            MisBusquedasView(),
+            PerfilView(),
+          ],
+        ),
       ),
       floatingActionButton: _currentIndex < 2
           ? FloatingActionButton.extended(
@@ -195,7 +198,7 @@ class _HomeViewState extends State<HomeView> {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 10,
               offset: const Offset(0, -4),
             ),

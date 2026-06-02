@@ -41,6 +41,9 @@ dependencies:
   video_player: ^2.8.2
   path_provider: ^2.1.5
 
+  # Detección de conectividad de red (módulo offline E9.1)
+  connectivity_plus: ^6.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
