@@ -262,4 +262,20 @@ class ReporteService {
       return false;
     }
   }
+
+  /// Envía un mensaje directo a un voluntario específico
+  Future<bool> enviarMensajeDirecto(String reporteId, String usuarioId, String mensaje) async {
+    try {
+      final response = await _api.client.post('/reportes/$reporteId/mensaje/$usuarioId', data: {
+        'mensaje': mensaje,
+      });
+      if (response.statusCode == 200) {
+        final body = response.data;
+        return body['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
 }

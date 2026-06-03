@@ -5,14 +5,39 @@ class VinculacionService {
   final ApiService _api = ApiService();
 
   /// Une al usuario a la búsqueda de una ficha (reporte).
+  /// Acepta campos opcionales de metadata del voluntario que se persisten
+  /// en el backend para que el coordinador los consulte desde el panel.
   Future<void> unirseABusqueda({
     required String fichaId,
     required String usuarioId,
+    List<String>? habilidadesOfrecidas,
+    bool tieneVehiculo = false,
+    String? tipoVehiculo,
+    String? disponibilidadHoras,
   }) async {
-    final response = await _api.client.post('/reportes/$fichaId/voluntarios', data: {
+    final Map<String, dynamic> body = {
       'usuario_id': usuarioId,
-    });
-    
+    };
+
+    // Solo enviamos los campos opcionales si el usuario interactuó con ellos
+    if (habilidadesOfrecidas != null && habilidadesOfrecidas.isNotEmpty) {
+      body['habilidades_ofrecidas'] = habilidadesOfrecidas;
+    }
+    if (tieneVehiculo) {
+      body['tiene_vehiculo'] = true;
+      if (tipoVehiculo != null && tipoVehiculo.isNotEmpty) {
+        body['tipo_vehiculo'] = tipoVehiculo;
+      }
+    }
+    if (disponibilidadHoras != null && disponibilidadHoras.isNotEmpty) {
+      body['disponibilidad_horas'] = disponibilidadHoras;
+    }
+
+    final response = await _api.client.post(
+      '/reportes/$fichaId/voluntarios',
+      data: body,
+    );
+
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Ya estás vinculado a esta búsqueda o hubo un error.');
     }
@@ -28,7 +53,7 @@ class VinculacionService {
       if (response.statusCode == 200 && response.data['success'] == true) {
         final vinculado = response.data['vinculado'];
         final data = response.data['data'];
-        
+
         // Solo consideramos activamente vinculado si el estado es buscando
         return vinculado == true && data != null && data['estado'] == 'buscando';
       }
@@ -44,10 +69,10 @@ class VinculacionService {
       final response = await _api.client.get('/reportes/$fichaId/voluntarios');
       if (response.statusCode == 200 && response.data['success'] == true) {
         final List data = response.data['data'];
-        
+
         // Filtramos solo los que están 'buscando'
         final activos = data.where((v) => v['estado'] == 'buscando').toList();
-        
+
         // Formateamos usando PerfilModel para representar a los usuarios
         return activos.map((v) {
           final u = v['usuario'];

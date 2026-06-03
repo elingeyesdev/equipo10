@@ -29,6 +29,7 @@ Route::prefix('auth')->group(function () {
     Route::put('perfil/{usuarioId}/password', [AuthController::class, 'actualizarContrasena']);
     Route::put('ubicacion/{usuarioId}', [AuthController::class, 'actualizarUbicacion']);
     Route::put('notificaciones/{usuarioId}', [AuthController::class, 'actualizarNotificaciones']);
+    Route::delete('perfil/{usuarioId}', [AuthController::class, 'eliminarCuenta']);
 });
 
 Route::post('subir-avatar-directo', [AuthController::class, 'subirAvatarDirecto']);
@@ -144,6 +145,9 @@ Route::prefix('reportes')->group(function () {
 
     // Broadcast a voluntarios
     Route::post('{reporteId}/broadcast', [ReporteController::class, 'broadcastMensaje']);
+    
+    // Mensaje directo a voluntario
+    Route::post('{reporteId}/mensaje/{usuarioId}', [ReporteController::class, 'enviarMensajeVoluntario']);
     
     // Marcar reporte como resuelto
     Route::put('{reporteId}/resuelto', [ReporteController::class, 'marcarResuelto']);

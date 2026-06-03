@@ -76,4 +76,18 @@ class AuthViewModel extends ChangeNotifier {
       _setLoading(false);
     }
   }
+  /// Elimina la cuenta y cierra sesión.
+  Future<bool> eliminarCuenta() async {
+    _setLoading(true);
+    _setError(null);
+    try {
+      await _authService.eliminarCuenta();
+      return true;
+    } catch (e) {
+      _setError(e.toString());
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
 }

@@ -583,17 +583,25 @@ class ReporteController extends Controller
                 // Evitar notificar al autor si también es voluntario
                 if ($voluntario->usuario_id === $reporte->usuario_id) continue;
                 
-                \App\Models\Notificacion::create([
+                $notif = \App\Models\Notificacion::create([
                     'usuario_id' => $voluntario->usuario_id,
                     'tipo' => 'alerta_operativo',
                     'titulo' => 'Alerta del Coordinador',
                     'mensaje' => $request->mensaje,
                     'leida' => false,
                     'enviada_push' => false,
-                    'datos_json' => json_encode([
-                        'reporte_id' => $reporte->id,
-                        'titulo_reporte' => $reporte->titulo
-                    ])
+                ]);
+                
+                \App\Models\NotificacionDato::create([
+                    'notificacion_id' => $notif->id,
+                    'clave' => 'reporte_id',
+                    'valor' => $reporte->id
+                ]);
+                
+                \App\Models\NotificacionDato::create([
+                    'notificacion_id' => $notif->id,
+                    'clave' => 'titulo_reporte',
+                    'valor' => $reporte->titulo
                 ]);
                 
                 $notificacionesCreadas++;
@@ -612,6 +620,77 @@ class ReporteController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al enviar alerta',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Enviar mensaje directo a un voluntario específico
+     */
+    public function enviarMensajeVoluntario(Request $request, $reporteId, $usuarioId)
+    {
+        $validator = Validator::make($request->all(), [
+            'mensaje' => 'required|string|max:1000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $reporte = Reporte::findOrFail($reporteId);
+            
+            // Verificar que el usuario sea parte del reporte
+            $vinculo = \App\Models\ReporteVoluntario::where('reporte_id', $reporte->id)
+                ->where('usuario_id', $usuarioId)
+                ->first();
+                
+            if (!$vinculo) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El usuario no está vinculado a este operativo'
+                ], 404);
+            }
+
+            $notif = \App\Models\Notificacion::create([
+                'usuario_id' => $usuarioId,
+                'tipo' => 'mensaje_directo',
+                'titulo' => 'Mensaje Directo (Coordinador)',
+                'mensaje' => $request->mensaje,
+                'leida' => false,
+                'enviada_push' => false,
+            ]);
+
+            \App\Models\NotificacionDato::create([
+                'notificacion_id' => $notif->id,
+                'clave' => 'reporte_id',
+                'valor' => $reporte->id
+            ]);
+
+            \App\Models\NotificacionDato::create([
+                'notificacion_id' => $notif->id,
+                'clave' => 'titulo_reporte',
+                'valor' => $reporte->titulo
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Mensaje directo enviado exitosamente'
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al enviar mensaje directo',
                 'error' => $e->getMessage()
             ], 500);
         }

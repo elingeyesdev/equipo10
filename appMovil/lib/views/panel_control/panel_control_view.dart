@@ -213,6 +213,114 @@ class _PanelControlViewState extends State<PanelControlView> {
     );
   }
 
+  Future<void> _mostrarDialogoMensajeDirecto(
+    BuildContext context, 
+    String usuarioId, 
+    String nombreVoluntario,
+    String? estadoBusqueda,
+  ) async {
+    final vm = context.read<PanelControlViewModel>();
+    final TextEditingController ctrl = TextEditingController();
+    
+    String estadoTxt = 'Desconocido';
+    Color estadoColor = Colors.grey;
+    if (estadoBusqueda == 'buscando') {
+      estadoTxt = 'En Búsqueda';
+      estadoColor = Colors.green;
+    } else if (estadoBusqueda == 'esperando') {
+      estadoTxt = 'En Espera';
+      estadoColor = Colors.orange;
+    } else if (estadoBusqueda == 'inactivo') {
+      estadoTxt = 'Inactivo / Finalizado';
+      estadoColor = Colors.grey;
+    }
+    
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.message, color: Color(0xFF1B5E20)),
+            SizedBox(width: 8),
+            Expanded(child: Text('Mensaje Directo', overflow: TextOverflow.ellipsis)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Para: $nombreVoluntario',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Text('Estado: ', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: estadoColor,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    estadoTxt,
+                    style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Este mensaje será enviado únicamente a este voluntario.',
+              style: TextStyle(fontSize: 13, color: Colors.black54),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: ctrl,
+              maxLines: 4,
+              maxLength: 500,
+              decoration: InputDecoration(
+                hintText: 'Escribe el mensaje aquí...',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () async {
+              if (ctrl.text.trim().isEmpty) return;
+              Navigator.pop(ctx);
+              
+              final success = await vm.enviarMensajeDirecto(widget.fichaId, usuarioId, ctrl.text.trim());
+              if (!mounted) return;
+              
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Mensaje enviado con éxito'),
+                    backgroundColor: Color(0xFF1B5E20),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(vm.errorMessage ?? 'Error al enviar mensaje.'),
+                    backgroundColor: Colors.red.shade700,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
+            child: const Text('Enviar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<PanelControlViewModel>();
@@ -383,6 +491,15 @@ class _PanelControlViewState extends State<PanelControlView> {
                   ),
                   title: Text(v.nombreCompleto.isNotEmpty ? v.nombreCompleto : 'Sin Nombre'),
                   subtitle: Text(v.telefono.isNotEmpty ? v.telefono : 'Sin teléfono'),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.message, color: Color(0xFF1B5E20)),
+                    onPressed: () {
+                      // Buscar el estado de este voluntario en las rutas
+                      final ruta = vm.rutasVoluntarios.where((r) => r.usuarioId == v.id).firstOrNull;
+                      _mostrarDialogoMensajeDirecto(context, v.id, v.nombreCompleto, ruta?.estadoBusqueda);
+                    },
+                    tooltip: 'Enviar mensaje directo',
+                  ),
                 );
               },
             ),
@@ -708,36 +825,69 @@ class _PanelControlViewState extends State<PanelControlView> {
                   width: 100,
                   height: 60,
                   alignment: Alignment.topCenter,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                          boxShadow: const [
-                            BoxShadow(color: Colors.black26, blurRadius: 3, offset: Offset(0, 1))
-                          ],
-                        ),
-                        child: Text(
-                          ruta.nombre,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: markerColor,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (ruta.usuarioId != null) {
+                        _mostrarDialogoMensajeDirecto(context, ruta.usuarioId!, ruta.nombre, ruta.estadoBusqueda);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('No se puede enviar mensaje a este voluntario.')),
+                        );
+                      }
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: ruta.estadoBusqueda == 'buscando' ? Colors.green : Colors.grey.shade300,
+                              width: 1.5,
+                            ),
+                            boxShadow: const [
+                              BoxShadow(color: Colors.black26, blurRadius: 3, offset: Offset(0, 1))
+                            ],
                           ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (ruta.estadoBusqueda == 'buscando')
+                                Container(
+                                  margin: const EdgeInsets.only(right: 4),
+                                  width: 6,
+                                  height: 6,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.green,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              Flexible(
+                                child: Text(
+                                  ruta.nombre,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: markerColor,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      Icon(
-                        Icons.person_pin_circle,
-                        color: markerColor,
-                        size: 32,
-                        shadows: const [Shadow(color: Colors.white, blurRadius: 2)],
-                      ),
-                    ],
+                        Icon(
+                          Icons.person_pin_circle,
+                          color: markerColor,
+                          size: 32,
+                          shadows: const [Shadow(color: Colors.white, blurRadius: 2)],
+                        ),
+                      ],
+                    ),
                   ),
                 );
               }).whereType<Marker>().toList(),

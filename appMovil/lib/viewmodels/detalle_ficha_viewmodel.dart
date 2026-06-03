@@ -48,14 +48,22 @@ class DetalleFichaViewModel extends ChangeNotifier {
       _errorMessage = e.toString();
     } finally {
       if (hasListeners) {
-          _setLoading(false);
+        _setLoading(false);
       }
     }
   }
 
-  /// Une el usuario a la búsqueda. Retorna true si fue exitoso.
+  /// Une el usuario a la búsqueda con metadata opcional del formulario.
+  /// Retorna true si fue exitoso.
   /// Tras unirse correctamente, dispara una notificación local de confirmación.
-  Future<bool> unirseABusqueda(String fichaId, String usuarioId) async {
+  Future<bool> unirseABusqueda(
+    String fichaId,
+    String usuarioId, {
+    List<String>? habilidadesOfrecidas,
+    bool tieneVehiculo = false,
+    String? tipoVehiculo,
+    String? disponibilidadHoras,
+  }) async {
     _setLoading(true);
     _errorMessage = null;
     _successMessage = null;
@@ -63,13 +71,15 @@ class DetalleFichaViewModel extends ChangeNotifier {
       await _vinculacionService.unirseABusqueda(
         fichaId: fichaId,
         usuarioId: usuarioId,
+        habilidadesOfrecidas: habilidadesOfrecidas,
+        tieneVehiculo: tieneVehiculo,
+        tipoVehiculo: tipoVehiculo,
+        disponibilidadHoras: disponibilidadHoras,
       );
       _yaVinculado = true;
       _successMessage = '¡Te has unido a la búsqueda exitosamente!';
 
       // ── Notificación de confirmación ───────────────────────────────────────
-      // Usa el título de la ficha ya cargada en memoria para personalizar el
-      // mensaje. Si aún no se cargó (raro), usa un texto genérico.
       final nombreOperativo = _ficha?.titulo ?? 'el operativo';
       await NotificationService().show(
         AppNotification(
@@ -87,7 +97,32 @@ class DetalleFichaViewModel extends ChangeNotifier {
       return false;
     } finally {
       if (hasListeners) {
-          _setLoading(false);
+        _setLoading(false);
+      }
+    }
+  }
+
+  /// Abandona el operativo: marca al voluntario como inactivo en el backend
+  /// y actualiza el estado local para reflejar el cambio en la UI.
+  Future<bool> abandonarBusqueda(String fichaId, String usuarioId) async {
+    _setLoading(true);
+    _errorMessage = null;
+    try {
+      await _vinculacionService.abandonarBusqueda(
+        fichaId: fichaId,
+        usuarioId: usuarioId,
+      );
+      _yaVinculado = false;
+      // Decrementar el contador si es mayor a 0
+      if (_voluntariosCount > 0) _voluntariosCount--;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      return false;
+    } finally {
+      if (hasListeners) {
+        _setLoading(false);
       }
     }
   }
@@ -149,4 +184,3 @@ class DetalleFichaViewModel extends ChangeNotifier {
     }
   }
 }
-

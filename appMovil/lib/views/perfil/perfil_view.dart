@@ -9,6 +9,8 @@ import 'tu_actividad_view.dart';
 import '../about/about_view.dart';
 import '../auth/login_view.dart';
 import '../../theme/app_theme.dart';
+import 'configuracion_view.dart';
+import 'soporte_view.dart';
 
 class PerfilView extends StatefulWidget {
   const PerfilView({super.key});
@@ -187,7 +189,7 @@ class _PerfilViewState extends State<PerfilView> {
                 title: 'Configuración de la App',
                 subtitle: 'Notificaciones, permisos, tracking',
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Próximamente')));
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const ConfiguracionView()));
                 },
               ),
               const Divider(height: 1),
@@ -196,7 +198,7 @@ class _PerfilViewState extends State<PerfilView> {
                 title: 'Soporte y Legal',
                 subtitle: 'Privacidad, eliminar cuenta',
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Próximamente')));
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const SoporteView()));
                 },
               ),
               const Divider(height: 1),

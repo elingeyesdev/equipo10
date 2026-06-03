@@ -12,8 +12,15 @@ import '../models/evidencia_model.dart';
 class RutaVoluntario {
   final String nombre;
   final List<LatLng> puntos;
+  final String? usuarioId;
+  final String? estadoBusqueda;
   
-  RutaVoluntario({required this.nombre, required this.puntos});
+  RutaVoluntario({
+    required this.nombre, 
+    required this.puntos,
+    this.usuarioId,
+    this.estadoBusqueda,
+  });
 }
 
 class PistaMapa {
@@ -142,10 +149,27 @@ class PanelControlViewModel extends ChangeNotifier {
             }
             if (points.isNotEmpty) {
               String nombreVoluntario = 'Voluntario';
-              if (r['usuario'] != null && r['usuario']['nombre'] != null) {
-                nombreVoluntario = r['usuario']['nombre'];
+              String? uId;
+              if (r['usuario'] != null) {
+                if (r['usuario']['nombre'] != null) {
+                  nombreVoluntario = r['usuario']['nombre'];
+                }
+                if (r['usuario']['id'] != null) {
+                  uId = r['usuario']['id'].toString();
+                }
               }
-              _rutasVoluntarios.add(RutaVoluntario(nombre: nombreVoluntario, puntos: points));
+              if (uId == null && r['usuario_id'] != null) {
+                uId = r['usuario_id'].toString();
+              }
+              
+              String? estadoB = r['estado_busqueda']?.toString();
+              
+              _rutasVoluntarios.add(RutaVoluntario(
+                nombre: nombreVoluntario, 
+                puntos: points,
+                usuarioId: uId,
+                estadoBusqueda: estadoB,
+              ));
             }
           }
         } catch (e) {
@@ -176,6 +200,21 @@ class PanelControlViewModel extends ChangeNotifier {
       final success = await _reporteService.enviarAlertaMasiva(fichaId, mensaje);
       if (!success) {
         _errorMessage = 'No se pudo enviar la alerta masiva';
+      }
+      return success;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> enviarMensajeDirecto(String fichaId, String usuarioId, String mensaje) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final success = await _reporteService.enviarMensajeDirecto(fichaId, usuarioId, mensaje);
+      if (!success) {
+        _errorMessage = 'No se pudo enviar el mensaje directo';
       }
       return success;
     } finally {

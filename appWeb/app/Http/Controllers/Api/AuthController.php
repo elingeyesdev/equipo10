@@ -411,5 +411,35 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Eliminar cuenta del usuario
+     */
+    public function eliminarCuenta($usuarioId)
+    {
+        try {
+            $usuario = Usuario::findOrFail($usuarioId);
+            
+            // Eliminar tokens de acceso (Sanctum) si existen
+            if (method_exists($usuario, 'tokens')) {
+                $usuario->tokens()->delete();
+            }
+
+            // Eliminar cuenta
+            $usuario->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cuenta eliminada exitosamente'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar cuenta',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
 

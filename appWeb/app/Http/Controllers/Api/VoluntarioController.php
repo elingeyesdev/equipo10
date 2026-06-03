@@ -17,55 +17,79 @@ class VoluntarioController extends Controller
     public function unirse(Request $request, $reporteId)
     {
         $validator = Validator::make($request->all(), [
-            'usuario_id' => 'required|exists:usuarios,id',
+            'usuario_id'           => 'required|exists:usuarios,id',
+            // Campos opcionales de metadata del voluntario
+            'habilidades_ofrecidas' => 'sometimes|array',
+            'habilidades_ofrecidas.*' => 'string|max:100',
+            'tiene_vehiculo'       => 'sometimes|boolean',
+            'tipo_vehiculo'        => 'sometimes|nullable|string|max:100',
+            'disponibilidad_horas' => 'sometimes|nullable|string|max:20',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors'  => $validator->errors()
             ], 422);
         }
 
         try {
             $reporte = Reporte::findOrFail($reporteId);
-            
+
             // Verificar si ya está vinculado
             $voluntarioExistente = ReporteVoluntario::where('reporte_id', $reporteId)
                 ->where('usuario_id', $request->usuario_id)
                 ->first();
 
             if ($voluntarioExistente) {
-                // Si estaba inactivo temporalmente, lo reactivamos
+                // Si estaba inactivo temporalmente, lo reactivamos y actualizamos metadata
                 if ($voluntarioExistente->estado !== 'buscando') {
                     $voluntarioExistente->estado = 'buscando';
-                    $voluntarioExistente->save();
                 }
+                // Actualizar metadata si se envió
+                if ($request->has('habilidades_ofrecidas')) {
+                    $voluntarioExistente->habilidades_ofrecidas = $request->habilidades_ofrecidas;
+                }
+                if ($request->has('tiene_vehiculo')) {
+                    $voluntarioExistente->tiene_vehiculo = $request->tiene_vehiculo;
+                }
+                if ($request->has('tipo_vehiculo')) {
+                    $voluntarioExistente->tipo_vehiculo = $request->tipo_vehiculo;
+                }
+                if ($request->has('disponibilidad_horas')) {
+                    $voluntarioExistente->disponibilidad_horas = $request->disponibilidad_horas;
+                }
+                $voluntarioExistente->save();
+
                 return response()->json([
                     'success' => true,
                     'message' => 'El usuario ya estaba vinculado, se reactivó su estado',
-                    'data' => $voluntarioExistente
+                    'data'    => $voluntarioExistente
                 ], 200);
             }
 
             $voluntario = ReporteVoluntario::create([
-                'reporte_id' => $reporteId,
-                'usuario_id' => $request->usuario_id,
-                'estado' => 'buscando',
+                'reporte_id'            => $reporteId,
+                'usuario_id'            => $request->usuario_id,
+                'estado'                => 'buscando',
+                'habilidades_ofrecidas' => $request->input('habilidades_ofrecidas'),
+                'tiene_vehiculo'        => $request->input('tiene_vehiculo', false),
+                'tipo_vehiculo'         => $request->input('tipo_vehiculo'),
+                'disponibilidad_horas'  => $request->input('disponibilidad_horas'),
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Te has unido a la búsqueda exitosamente',
-                'data' => $voluntario->load('usuario')
+                'data'    => $voluntario->load('usuario')
             ], 201);
-            
+
         } catch (\Exception $e) {
             Log::error('Error al unirse a búsqueda: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error al unirse a la búsqueda',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage()
             ], 500);
         }
     }

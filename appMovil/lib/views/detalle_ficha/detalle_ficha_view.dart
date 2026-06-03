@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -17,6 +18,8 @@ import '../tracking/tracking_view.dart';
 import '../widgets/full_screen_image_view.dart';
 import '../../theme/app_theme.dart';
 import 'evidencias_section.dart';
+import 'unirse_bottom_sheet.dart';
+import 'geofencing_bloqueado_sheet.dart';
 
 class DetalleFichaView extends StatefulWidget {
   final String fichaId;
@@ -55,22 +58,79 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
 
   Future<void> _onUnirse() async {
     final vm = context.read<DetalleFichaViewModel>();
-    final success = await vm.unirseABusqueda(
+    final ficha = vm.ficha;
+    if (ficha == null) return;
+
+    // Abrir el Bottom Sheet de confirmación con el formulario del voluntario.
+    // El propio sheet llama al API y navega a la pantalla de bienvenida si tiene éxito.
+    await UnirseBottomSheet.show(
+      context,
+      ficha: ficha,
+      usuarioId: widget.currentUserId,
+      voluntariosActivos: vm.voluntariosCount,
+    );
+
+    // Refrescar el detalle al volver (el estado yaVinculado habrá cambiado)
+    if (mounted) {
+      setState(() => _huboCambios = true);
+      context.read<DetalleFichaViewModel>().cargarFicha(
+            widget.fichaId,
+            widget.currentUserId,
+          );
+    }
+  }
+
+  Future<void> _onAbandonar() async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.exit_to_app, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Abandonar operativo'),
+          ],
+        ),
+        content: const Text(
+          '¿Estás seguro de que deseas retirarte de esta búsqueda? '  
+          'Tu recorrido hasta ahora quedará guardado.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Abandonar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true || !mounted) return;
+
+    final vm = context.read<DetalleFichaViewModel>();
+    final success = await vm.abandonarBusqueda(
       widget.fichaId,
       widget.currentUserId,
     );
 
     if (!mounted) return;
-
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(success
-            ? (vm.successMessage ?? '¡Te uniste a la búsqueda!')
-            : (vm.errorMessage ?? 'Error al unirse.')),
-        backgroundColor:
-            success ? AppTheme.primary : Colors.red.shade700,
+            ? 'Has abandonado el operativo.'
+            : (vm.errorMessage ?? 'Error al abandonar.')),
+        backgroundColor: success ? Colors.orange : Colors.red.shade700,
       ),
     );
+    if (success) setState(() => _huboCambios = true);
   }
 
   Future<void> _onEliminar() async {
@@ -494,32 +554,32 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
     if (vm.yaVinculado) {
       return Column(
         children: [
+          // Banner de participación activa
           Container(
             width: double.infinity,
-            height: 50,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: AppTheme.primary.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppTheme.success),
             ),
-            child: const Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.check_circle, color: AppTheme.primary),
-                  SizedBox(width: 8),
-                  Text(
-                    'Ya estás participando en esta búsqueda',
-                    style: TextStyle(
-                      color: AppTheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.check_circle, color: AppTheme.success, size: 20),
+                SizedBox(width: 8),
+                Text(
+                  'Ya estás participando en esta búsqueda',
+                  style: TextStyle(
+                    color: AppTheme.primary,
+                    fontWeight: FontWeight.w600,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
+          // Botón principal: Iniciar búsqueda
           SizedBox(
             width: double.infinity,
             height: 50,
@@ -535,6 +595,26 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
               label: const Text(
                 'Iniciar mi Búsqueda',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Botón secundario: Abandonar operativo
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: OutlinedButton.icon(
+              onPressed: vm.isLoading ? null : _onAbandonar,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.orange.shade700,
+                side: BorderSide(color: Colors.orange.shade300),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: const Icon(Icons.exit_to_app, size: 18),
+              label: const Text(
+                'Abandonar operativo',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
               ),
             ),
           ),
@@ -590,10 +670,23 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
     if (!mounted) return;
 
     if (pos == null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(trackingVm.errorMessage ?? 'No estás en el cuadrante.'),
-        backgroundColor: Colors.red.shade700,
-      ));
+      // Usar getLastKnownPosition() en lugar de getCurrentPosition():
+      // es instantáneo porque no espera señal GPS, solo lee el último
+      // dato en caché del sistema. El sheet muestra el mapa igual sin ella.
+      Position? posActual;
+      try {
+        posActual = await Geolocator.getLastKnownPosition();
+      } catch (_) {
+        // Si tampoco hay posición en caché, el sheet se muestra sin el punto azul
+      }
+
+      if (!mounted) return;
+
+      await GeofencingBloqueadoSheet.show(
+        context,
+        ficha: ficha,
+        posicionActual: posActual,
+      );
       return;
     }
 

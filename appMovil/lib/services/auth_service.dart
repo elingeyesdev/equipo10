@@ -168,4 +168,20 @@ class AuthService {
       return null;
     }
   }
+  /// Elimina la cuenta del usuario en el backend y cierra la sesión local.
+  Future<void> eliminarCuenta() async {
+    final id = currentUserId;
+    if (id == null) throw Exception('No hay sesión activa.');
+
+    try {
+      final response = await _api.client.delete('/auth/perfil/$id');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        await logout();
+      } else {
+        throw Exception(response.data['message'] ?? 'Error al eliminar cuenta');
+      }
+    } on DioException catch (e) {
+      throw Exception(e.response?.data?['message'] ?? 'Error de conexión. Intenta nuevamente.');
+    }
+  }
 }

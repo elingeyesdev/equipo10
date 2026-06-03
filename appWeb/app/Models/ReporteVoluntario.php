@@ -25,6 +25,11 @@ class ReporteVoluntario extends Model
         'inicio_busqueda',
         'fin_busqueda',
         'recorrido_puntos',
+        // Metadata opcional del voluntario al unirse
+        'habilidades_ofrecidas',
+        'tiene_vehiculo',
+        'tipo_vehiculo',
+        'disponibilidad_horas',
     ];
 
     protected $casts = [
@@ -34,6 +39,8 @@ class ReporteVoluntario extends Model
         'inicio_busqueda' => 'datetime',
         'fin_busqueda' => 'datetime',
         'recorrido_puntos' => 'array',
+        'habilidades_ofrecidas' => 'array',
+        'tiene_vehiculo' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
