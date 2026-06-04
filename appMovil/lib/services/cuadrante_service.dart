@@ -21,7 +21,7 @@ class CuadranteService {
   /// Obtiene la lista de cuadrantes.
   /// Cache-first si no hay red, network-first si hay conexión.
   Future<List<CuadranteModel>> getCuadrantes() async {
-    if (!_connectivity.isOnline) {
+    if (_connectivity.shouldUseCache) {
       // Sin red: leer del caché local
       final local = await _db.getCuadrantes();
       if (local.isNotEmpty) {
@@ -59,7 +59,7 @@ class CuadranteService {
   /// Detecta el cuadrante que contiene el punto [lat, lng].
   /// Sin red: busca en los cuadrantes locales por bounding box.
   Future<CuadranteModel?> detectarCuadrante(double lat, double lng) async {
-    if (!_connectivity.isOnline) {
+    if (_connectivity.shouldUseCache) {
       // Búsqueda local por bounding box
       final locales = await _db.getCuadrantes();
       try {

@@ -414,8 +414,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   }
 
   Future<void> _cargarPistas() async {
-    // Sin red: intentar caché local primero
-    if (!ConnectivityService().isOnline) {
+    // Sin red o latencia alta (E9.4): servir del caché local
+    if (ConnectivityService().shouldUseCache) {
       try {
         final pistasLocales = await _localDb.getPistas(widget.ficha.id);
         if (pistasLocales.isNotEmpty && mounted) {

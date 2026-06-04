@@ -2,22 +2,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/connectivity_service.dart';
 
-/// Barra de estado que se muestra en la parte superior de la pantalla cuando
-/// el dispositivo pierde la conexión a internet y desaparece automáticamente
-/// cuando la conexión se restaura.
+/// Barra de estado que se muestra en la parte superior de la pantalla cuando:
+///   - El dispositivo pierde la conexión (rojo), o
+///   - La latencia supera el umbral configurado (amarillo — modo lento).
 ///
-/// Uso recomendado: envolver el [body] del [Scaffold] con este widget.
+/// Desaparece automáticamente al restaurarse una conexión de buena calidad.
 ///
-/// ```dart
-/// Scaffold(
-///   body: OfflineBanner(child: miContenido),
-/// )
-/// ```
-///
-/// E9.1 — Módulo Offline: Indicador visual del estado de red para el usuario.
+/// E9.1 — Módulo Offline: Indicador visual de estado de red.
+/// E9.4 — Módulo Offline: Indicador de latencia alta / señal débil.
 class OfflineBanner extends StatefulWidget {
   final Widget child;
-
   const OfflineBanner({super.key, required this.child});
 
   @override
@@ -27,21 +21,23 @@ class OfflineBanner extends StatefulWidget {
 class _OfflineBannerState extends State<OfflineBanner>
     with SingleTickerProviderStateMixin {
   final ConnectivityService _connectivity = ConnectivityService();
-  StreamSubscription<bool>? _subscription;
+
+  StreamSubscription<bool>? _statusSub;
+  StreamSubscription<int>? _latencySub;
 
   late AnimationController _controller;
   late Animation<Offset> _slideAnimation;
 
   bool _mostrarBanner = false;
-  // Cuánto tiempo mostrar el banner "Conexión restaurada" antes de ocultarlo
-  static const _duracionMensajeOk = Duration(seconds: 2);
+  _BannerEstado _estado = _BannerEstado.sinRed;
   Timer? _ocultarTimer;
+
+  static const _duracionMensajeOk = Duration(seconds: 2);
 
   @override
   void initState() {
     super.initState();
 
-    // Animación de deslizamiento hacia abajo
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 350),
@@ -51,38 +47,51 @@ class _OfflineBannerState extends State<OfflineBanner>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
-    // Estado inicial (sin animación)
-    _mostrarBanner = !_connectivity.isOnline;
-    if (_mostrarBanner) _controller.value = 1.0;
+    // Estado inicial
+    _evaluarEstado();
 
-    // Escuchar cambios futuros
-    _subscription = _connectivity.statusStream.listen(_onStatusChange);
+    // Suscripción a cambios de conectividad
+    _statusSub = _connectivity.statusStream.listen((_) => _evaluarEstado());
+
+    // Suscripción a cambios de latencia
+    _latencySub = _connectivity.latencyStream.listen((_) => _evaluarEstado());
   }
 
-  void _onStatusChange(bool online) {
+  void _evaluarEstado() {
     _ocultarTimer?.cancel();
 
-    if (!online) {
-      // Sin red → mostrar banner rojo inmediatamente
-      setState(() => _mostrarBanner = true);
-      _controller.forward();
+    if (!_connectivity.isOnline) {
+      _mostrar(_BannerEstado.sinRed);
+    } else if (_connectivity.isHighLatency) {
+      _mostrar(_BannerEstado.latenciaAlta);
     } else {
-      // Volvió la red → mostrar brevemente el banner verde y luego ocultar
-      setState(() => _mostrarBanner = true);
-      _controller.forward();
-      _ocultarTimer = Timer(_duracionMensajeOk, () {
-        if (mounted) {
-          _controller.reverse().then((_) {
-            if (mounted) setState(() => _mostrarBanner = false);
-          });
-        }
-      });
+      // Red normal: si había un banner activo, mostramos brevemente "OK"
+      if (_mostrarBanner) {
+        _mostrar(_BannerEstado.restaurada);
+        _ocultarTimer = Timer(_duracionMensajeOk, () {
+          if (mounted) {
+            _controller.reverse().then((_) {
+              if (mounted) setState(() => _mostrarBanner = false);
+            });
+          }
+        });
+      }
     }
+  }
+
+  void _mostrar(_BannerEstado nuevoEstado) {
+    if (!mounted) return;
+    setState(() {
+      _mostrarBanner = true;
+      _estado = nuevoEstado;
+    });
+    _controller.forward();
   }
 
   @override
   void dispose() {
-    _subscription?.cancel();
+    _statusSub?.cancel();
+    _latencySub?.cancel();
     _ocultarTimer?.cancel();
     _controller.dispose();
     super.dispose();
@@ -95,7 +104,10 @@ class _OfflineBannerState extends State<OfflineBanner>
         if (_mostrarBanner)
           SlideTransition(
             position: _slideAnimation,
-            child: _BannerContent(isOnline: _connectivity.isOnline),
+            child: _BannerContent(
+              estado: _estado,
+              latencyMs: _connectivity.latencyMs,
+            ),
           ),
         Expanded(child: widget.child),
       ],
@@ -103,38 +115,56 @@ class _OfflineBannerState extends State<OfflineBanner>
   }
 }
 
-/// Contenido visual del banner. Se renderiza diferente según el estado de red.
+enum _BannerEstado { sinRed, latenciaAlta, restaurada }
+
+/// Contenido visual del banner — tres estados con colores distintos.
 class _BannerContent extends StatelessWidget {
-  final bool isOnline;
-  const _BannerContent({required this.isOnline});
+  final _BannerEstado estado;
+  final int latencyMs;
+  const _BannerContent({required this.estado, required this.latencyMs});
 
   @override
   Widget build(BuildContext context) {
+    final (color, icon, mensaje) = switch (estado) {
+      _BannerEstado.sinRed => (
+          const Color(0xFFDC2626),
+          Icons.wifi_off_rounded,
+          'Sin conexión — datos desde caché local',
+        ),
+      _BannerEstado.latenciaAlta => (
+          const Color(0xFFF59E0B),
+          Icons.signal_wifi_statusbar_connected_no_internet_4_rounded,
+          'Señal débil (${latencyMs}ms) — mostrando datos locales',
+        ),
+      _BannerEstado.restaurada => (
+          const Color(0xFF10B981),
+          Icons.wifi,
+          'Conexión restaurada',
+        ),
+    };
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       width: double.infinity,
-      color: isOnline ? const Color(0xFF10B981) : const Color(0xFFDC2626),
+      color: color,
       padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 16),
       child: SafeArea(
         bottom: false,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              isOnline ? Icons.wifi : Icons.wifi_off_rounded,
-              color: Colors.white,
-              size: 16,
-            ),
+            Icon(icon, color: Colors.white, size: 16),
             const SizedBox(width: 8),
-            Text(
-              isOnline
-                  ? 'Conexión restaurada'
-                  : 'Sin conexión — modo sin red activado',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.2,
+            Flexible(
+              child: Text(
+                mensaje,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

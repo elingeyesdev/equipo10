@@ -104,8 +104,8 @@ class FeedViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      if (_connectivity.isOnline) {
-        // Con red: datos frescos del API
+      if (!_connectivity.shouldUseCache) {
+        // Buena conexion: datos frescos del API
         _reportes = await _reporteService.obtenerReportes();
         _esModoOffline = false;
 
@@ -114,7 +114,7 @@ class FeedViewModel extends ChangeNotifier {
           await _db.upsertReportes(_reportes);
         }
       } else {
-        // Sin red: leer del caché local
+        // Sin red o latencia alta: leer del caché local
         final local = await _db.getReportes();
         if (local.isNotEmpty) {
           _reportes = local;
@@ -122,7 +122,10 @@ class FeedViewModel extends ChangeNotifier {
         } else {
           _reportes = [];
           _esModoOffline = true;
-          _errorMessage = 'Sin conexión y sin datos en caché. Conéctate para cargar los reportes.';
+          final razon = _connectivity.isOnline
+              ? 'Conexión lenta (${_connectivity.latencyMs}ms) y sin datos en caché.'
+              : 'Sin conexión y sin datos en caché. Conéctate para cargar los reportes.';
+          _errorMessage = razon;
         }
       }
       await _obtenerUbicacion();
