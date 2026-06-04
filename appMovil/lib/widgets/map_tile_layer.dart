@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../services/tile_cache_service.dart';
 import '../theme/app_theme.dart';
 
-/// Un widget reutilizable que proporciona la capa base del mapa.
-/// [useSatellite] = true → Mapbox Satellite-Streets (requiere token en .env)
-/// [useSatellite] = false → OpenStreetMap (gratuito, sin token)
+/// Capa base del mapa con estrategia **Cache-First → Network-Fallback**.
+///
+/// - [useSatellite] = true  → Mapbox Satellite-Streets (token en .env).
+/// - [useSatellite] = false → OpenStreetMap (gratuito, sin token).
+///
+/// Ambas fuentes usan [CachingTileProvider] para almacenar tiles en disco y
+/// servirlos sin conexión una vez descargados.
+///
+/// E9.2 — Módulo Offline: Caché de teselas del mapa para el área operativa.
 class MapTileLayer extends StatelessWidget {
   final bool useSatellite;
   const MapTileLayer({super.key, this.useSatellite = true});
@@ -13,21 +20,37 @@ class MapTileLayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mapboxToken = dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '';
+    final useMapbox = useSatellite &&
+        mapboxToken.isNotEmpty &&
+        mapboxToken.startsWith('pk.');
 
-    // Vista satelital (Mapbox) si hay token válido y se solicita
-    if (useSatellite && mapboxToken.isNotEmpty && mapboxToken.startsWith('pk.')) {
+    if (useMapbox) {
       return TileLayer(
         urlTemplate:
             'https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',
         additionalOptions: {'accessToken': mapboxToken},
         userAgentPackageName: 'com.equipo10.echoes',
+        // E9.2: TileProvider con caché local — Cache-First
+        tileProvider: CachingTileProvider(
+          storeName: TileCacheService.defaultStore,
+          additionalOptions: {'accessToken': mapboxToken},
+        ),
+        errorTileCallback: (tile, error, stackTrace) {
+          debugPrint('[MapTileLayer] Tile ${tile.coordinates} no disponible: $error');
+        },
       );
     }
 
-    // Vista callejera (OpenStreetMap) — gratuita y sin token
+    // OpenStreetMap — también con caché
     return TileLayer(
       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       userAgentPackageName: 'com.equipo10.echoes',
+      tileProvider: CachingTileProvider(
+        storeName: '${TileCacheService.defaultStore}_osm',
+      ),
+      errorTileCallback: (tile, error, stackTrace) {
+        debugPrint('[MapTileLayer] Tile OSM ${tile.coordinates} no disponible: $error');
+      },
     );
   }
 }

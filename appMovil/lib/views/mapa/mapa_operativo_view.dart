@@ -5,6 +5,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:dio/dio.dart';
 import '../../models/reporte_model.dart';
 import '../../services/api_service.dart';
+import '../../services/tile_cache_service.dart';
+import '../../services/connectivity_service.dart';
 import '../../widgets/map_tile_layer.dart';
 import '../../widgets/lpp_marker.dart';
 import '../../widgets/evidencia_marker.dart';
@@ -15,6 +17,7 @@ import '../../services/cuadrante_service.dart';
 import '../../services/evidencia_service.dart';
 import '../../models/evidencia_model.dart';
 import '../../theme/app_theme.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // Paleta de colores para los recorridos de distintos voluntarios
 const List<Color> _coloresVoluntarios = [
@@ -101,6 +104,13 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   // Polling
   Timer? _pollingTimer;
 
+  // E9.2 — Caché de tiles: estado de la pre-descarga del área operativa
+  final TileCacheService _tileCache = TileCacheService();
+  bool _descargandoTiles = false;
+  int _tilesCompletados = 0;
+  int _tilesTotal = 0;
+  bool _descargaCompletada = false;
+
   @override
   void initState() {
     super.initState();
@@ -113,6 +123,11 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     // Iniciar Smart Polling cada 15 segundos
     _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       _recargarDatosSilencioso();
+    });
+
+    // E9.2 — Pre-descargar tiles del área operativa cuando haya conexión
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ConnectivityService().isOnline) _preDescargarTiles();
     });
   }
 
@@ -132,6 +147,62 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     _pollingTimer?.cancel();
     _descripcionPistaCtrl.dispose();
     super.dispose();
+  }
+
+  // ── E9.2: Pre-descarga de tiles del cuadrante asignado ──────────────────
+
+  /// Descarga y almacena en disco los tiles del bounding box centrado
+  /// en el LPP con un radio de ~2 km, para los zoom [13..17].
+  Future<void> _preDescargarTiles() async {
+    if (_descargandoTiles || !mounted) return;
+
+    // Radio del bounding box en grados (~2 km latitudinal)
+    const delta = 0.018;
+    final center = _lpp ?? LatLng(widget.ficha.latitud ?? 0, widget.ficha.longitud ?? 0);
+
+    final mapboxToken = dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '';
+    final useMapbox = mapboxToken.isNotEmpty && mapboxToken.startsWith('pk.');
+
+    final urlTemplate = useMapbox
+        ? 'https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}'
+        : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+    if (!mounted) return;
+    setState(() {
+      _descargandoTiles = true;
+      _descargaCompletada = false;
+    });
+
+    try {
+      await _tileCache.preDescargarAreaOperativa(
+        latMin: center.latitude - delta,
+        latMax: center.latitude + delta,
+        lngMin: center.longitude - delta,
+        lngMax: center.longitude + delta,
+        urlTemplate: urlTemplate,
+        additionalOptions: useMapbox ? {'accessToken': mapboxToken} : {},
+        storeName: TileCacheService.defaultStore,
+        onProgress: (completados, total) {
+          if (mounted) {
+            setState(() {
+              _tilesCompletados = completados;
+              _tilesTotal = total;
+            });
+          }
+        },
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _descargandoTiles = false;
+          _descargaCompletada = true;
+        });
+        // Ocultar el indicador de éxito después de 3 segundos
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) setState(() => _descargaCompletada = false);
+        });
+      }
+    }
   }
 
   void _parseData() {
@@ -1463,6 +1534,104 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               onToggle: () => setState(() => _useSatellite = !_useSatellite),
             ),
           ),
+
+          // E9.2 — Indicador de estado del caché de tiles
+          if (_descargandoTiles || _descargaCompletada)
+            Positioned(
+              bottom: _modoPista ? 68 : 128,
+              left: 12,
+              right: 80, // No solapar con los FABs de la derecha
+              child: AnimatedOpacity(
+                opacity: 1.0,
+                duration: const Duration(milliseconds: 300),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2))
+                    ],
+                  ),
+                  child: _descargaCompletada
+                      ? const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.offline_pin, color: Color(0xFF10B981), size: 16),
+                            SizedBox(width: 6),
+                            Text(
+                              'Área guardada offline',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF10B981)),
+                            ),
+                          ],
+                        )
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(
+                                  width: 12,
+                                  height: 12,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 1.5,
+                                    valueColor: AlwaysStoppedAnimation(AppTheme.primary),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Guardando mapa offline... $_tilesCompletados/$_tilesTotal',
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            if (_tilesTotal > 0)
+                              LinearProgressIndicator(
+                                value: _tilesTotal > 0 ? _tilesCompletados / _tilesTotal : 0,
+                                backgroundColor: Colors.grey[200],
+                                valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
+                                minHeight: 3,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                          ],
+                        ),
+                ),
+              ),
+            ),
+
+          // Botón manual de re-descarga (visible cuando no está descargando)
+          if (!_descargandoTiles && !_descargaCompletada && ConnectivityService().isOnline)
+            Positioned(
+              bottom: _modoPista ? 68 : 128,
+              left: 12,
+              child: GestureDetector(
+                onTap: _preDescargarTiles,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.92),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.download_for_offline_outlined, size: 16, color: AppTheme.primary),
+                      SizedBox(width: 5),
+                      Text(
+                        'Guardar offline',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.primary),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
 
           Positioned(
             bottom: (_modoPista && _pinTemporal != null) ? 134 : 90,
