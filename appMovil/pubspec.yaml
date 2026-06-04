@@ -44,6 +44,10 @@ dependencies:
   # Detección de conectividad de red (módulo offline E9.1)
   connectivity_plus: ^6.1.4
 
+  # Base de datos local SQLite — almacenamiento del cuadrante asignado (E9.3)
+  sqflite: ^2.3.3
+  path: ^1.9.0        # Requerido por local_database.dart (join de rutas)
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

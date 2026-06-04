@@ -3,9 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/reporte_model.dart';
 import '../services/reporte_service.dart';
+import '../services/local_database.dart';
+import '../services/connectivity_service.dart';
 
 class FeedViewModel extends ChangeNotifier {
   final ReporteService _reporteService = ReporteService();
+  final LocalDatabase _db = LocalDatabase();
+  final ConnectivityService _connectivity = ConnectivityService();
+
+  /// true cuando los datos provienen del caché local (sin red).
+  bool get esModoOffline => _esModoOffline;
+  bool _esModoOffline = false;
 
   List<ReporteModel> _reportes = [];
   bool _isLoading = false;
@@ -94,11 +102,42 @@ class FeedViewModel extends ChangeNotifier {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
+
     try {
-      _reportes = await _reporteService.obtenerReportes();
+      if (_connectivity.isOnline) {
+        // Con red: datos frescos del API
+        _reportes = await _reporteService.obtenerReportes();
+        _esModoOffline = false;
+
+        // E9.3 — Persistir en SQLite para uso futuro sin red
+        if (_reportes.isNotEmpty) {
+          await _db.upsertReportes(_reportes);
+        }
+      } else {
+        // Sin red: leer del caché local
+        final local = await _db.getReportes();
+        if (local.isNotEmpty) {
+          _reportes = local;
+          _esModoOffline = true;
+        } else {
+          _reportes = [];
+          _esModoOffline = true;
+          _errorMessage = 'Sin conexión y sin datos en caché. Conéctate para cargar los reportes.';
+        }
+      }
       await _obtenerUbicacion();
     } catch (e) {
-      _errorMessage = e.toString();
+      // Si el API falla por cualquier causa, intentar el caché
+      try {
+        final local = await _db.getReportes();
+        _reportes = local;
+        _esModoOffline = true;
+        if (local.isEmpty) {
+          _errorMessage = 'Error al cargar. Sin datos en caché disponibles.';
+        }
+      } catch (_) {
+        _errorMessage = e.toString();
+      }
     } finally {
       _isLoading = false;
       notifyListeners();

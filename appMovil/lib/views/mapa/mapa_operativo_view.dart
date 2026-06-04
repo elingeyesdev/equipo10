@@ -7,6 +7,7 @@ import '../../models/reporte_model.dart';
 import '../../services/api_service.dart';
 import '../../services/tile_cache_service.dart';
 import '../../services/connectivity_service.dart';
+import '../../services/local_database.dart';
 import '../../widgets/map_tile_layer.dart';
 import '../../widgets/lpp_marker.dart';
 import '../../widgets/evidencia_marker.dart';
@@ -77,6 +78,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   final ApiService _api = ApiService();
   final CuadranteService _cuadranteService = CuadranteService();
   final EvidenciaService _evidenciaService = EvidenciaService();
+  final LocalDatabase _localDb = LocalDatabase(); // E9.3
 
   LatLng? _lpp;
   List<_VoluntarioRecorrido> _recorridos = [];
@@ -412,38 +414,109 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   }
 
   Future<void> _cargarPistas() async {
+    // Sin red: intentar caché local primero
+    if (!ConnectivityService().isOnline) {
+      try {
+        final pistasLocales = await _localDb.getPistas(widget.ficha.id);
+        if (pistasLocales.isNotEmpty && mounted) {
+          setState(() {
+            _pistas = pistasLocales.map((p) {
+              return _PistaInfo(
+                id: p['id']?.toString(),
+                punto: LatLng(
+                  (p['lat'] as num).toDouble(),
+                  (p['lng'] as num).toDouble(),
+                ),
+                etiqueta: p['etiqueta']?.toString() ?? 'Pista',
+                fecha: p['fecha']?.toString() ?? '',
+                hora: p['hora']?.toString() ?? '',
+                descripcion: p['descripcion']?.toString(),
+                cuadranteId: p['cuadrante_id']?.toString(),
+                nivelExpansion: widget.ficha.nivelExpansion,
+              );
+            }).where((p) => p.punto.latitude != 0).toList();
+            _actualizarCachePoligonos();
+          });
+        }
+      } catch (e) {
+        debugPrint('Error leyendo pistas locales: $e');
+      }
+      return;
+    }
+
+    // Con red: cargar del API y persistir
     try {
       final response = await _api.client.get('/reportes/${widget.ficha.id}/pistas');
       if (response.statusCode == 200 && response.data['success'] == true) {
         final List<dynamic> raw = response.data['data'] ?? [];
-        setState(() {
-          _pistas = raw.map((p) {
-            // Conversión segura de coordenadas (maneja String o num)
-            double lat = double.tryParse(p['ubicacion_lat']?.toString() ?? '0') ?? 0;
-            double lng = double.tryParse(p['ubicacion_lng']?.toString() ?? '0') ?? 0;
-            
-            // Extraer fecha y hora de created_at (ej: 2026-04-27 14:30:00)
-            String fullDate = p['created_at']?.toString() ?? '';
-            String dateOnly = fullDate.length >= 10 ? fullDate.substring(0, 10) : '';
-            String timeOnly = fullDate.length >= 19 ? fullDate.substring(11, 16) : '';
 
-            return _PistaInfo(
-              id: p['id']?.toString(),
-              punto: LatLng(lat, lng),
-              etiqueta: p['mensaje']?.toString() ?? 'Pista',
-              fecha: dateOnly,
-              hora: timeOnly,
-              descripcion: p['direccion_referencia']?.toString(),
-              cuadranteId: p['cuadrante_id']?.toString(),
-              nivelExpansion: int.tryParse(p['nivel_expansion']?.toString() ?? '1') ?? 1,
-            );
-          }).where((p) => p.punto.latitude != 0).toList(); // Filtrar puntos inválidos
-          
-          _actualizarCachePoligonos();
-        });
+        // E9.3 — Persistir en SQLite para uso offline
+        final pistasMaps = raw.map((p) {
+          final lat = double.tryParse(p['ubicacion_lat']?.toString() ?? '0') ?? 0.0;
+          final lng = double.tryParse(p['ubicacion_lng']?.toString() ?? '0') ?? 0.0;
+          final fullDate = p['created_at']?.toString() ?? '';
+          return {
+            'id': p['id']?.toString(),
+            'cuadrante_id': p['cuadrante_id']?.toString(),
+            'etiqueta': p['mensaje']?.toString() ?? 'Pista',
+            'descripcion': p['direccion_referencia']?.toString(),
+            'lat': lat,
+            'lng': lng,
+            'fecha': fullDate.length >= 10 ? fullDate.substring(0, 10) : '',
+            'hora': fullDate.length >= 19 ? fullDate.substring(11, 16) : '',
+          };
+        }).toList();
+
+        if (pistasMaps.isNotEmpty) {
+          await _localDb.upsertPistas(widget.ficha.id, pistasMaps);
+        }
+
+        if (mounted) {
+          setState(() {
+            _pistas = pistasMaps.map((p) {
+              return _PistaInfo(
+                id: p['id']?.toString(),
+                punto: LatLng(
+                  (p['lat'] as num).toDouble(),
+                  (p['lng'] as num).toDouble(),
+                ),
+                etiqueta: p['etiqueta']?.toString() ?? 'Pista',
+                fecha: p['fecha']?.toString() ?? '',
+                hora: p['hora']?.toString() ?? '',
+                descripcion: p['descripcion']?.toString(),
+                cuadranteId: p['cuadrante_id']?.toString(),
+                nivelExpansion: widget.ficha.nivelExpansion,
+              );
+            }).where((p) => p.punto.latitude != 0).toList();
+            _actualizarCachePoligonos();
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error cargando pistas: $e');
+      // Fallback al caché local si falla la red
+      try {
+        final pistasLocales = await _localDb.getPistas(widget.ficha.id);
+        if (pistasLocales.isNotEmpty && mounted) {
+          setState(() {
+            _pistas = pistasLocales.map((p) {
+              return _PistaInfo(
+                id: p['id']?.toString(),
+                punto: LatLng(
+                  (p['lat'] as num).toDouble(),
+                  (p['lng'] as num).toDouble(),
+                ),
+                etiqueta: p['etiqueta']?.toString() ?? 'Pista',
+                fecha: p['fecha']?.toString() ?? '',
+                hora: p['hora']?.toString() ?? '',
+                descripcion: p['descripcion']?.toString(),
+                cuadranteId: p['cuadrante_id']?.toString(),
+                nivelExpansion: widget.ficha.nivelExpansion,
+              );
+            }).where((p) => p.punto.latitude != 0).toList();
+          });
+        }
+      } catch (_) {}
     }
   }
 
