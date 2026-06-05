@@ -29,9 +29,15 @@ RUN cp -n .env.example .env || true
 # Generar APP_KEY
 RUN php artisan key:generate --force || true
 
-# Permisos
-RUN chmod -R 777 storage bootstrap/cache
-RUN mkdir -p /var/www/storage/app/public
+# Crear directorios excluidos por .dockerignore y dar permisos
+RUN mkdir -p \
+    /var/www/storage/framework/cache/data \
+    /var/www/storage/framework/sessions \
+    /var/www/storage/framework/views \
+    /var/www/storage/logs \
+    /var/www/storage/app/public \
+    && chmod -R 777 /var/www/storage /var/www/bootstrap/cache
+
 RUN sed -i -e 's/\r$//' /var/www/render-build.sh && chmod +x /var/www/render-build.sh
 
 # Configurar Nginx para Render

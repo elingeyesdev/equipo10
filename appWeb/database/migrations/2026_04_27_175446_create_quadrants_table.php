@@ -12,6 +12,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Habilitar extensión PostGIS en PostgreSQL si no está ya activa
+        if (config('database.default') === 'pgsql') {
+            DB::statement('CREATE EXTENSION IF NOT EXISTS postgis;');
+        }
+
         // E7.4. Crear migración para la tabla quadrants con soporte para datos espaciales
         // Nota: Se asume el uso de PostgreSQL con PostGIS o MySQL con soporte espacial.
         Schema::create('quadrants', function (Blueprint $table) {
