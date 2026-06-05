@@ -35,8 +35,8 @@ class ConnectivityService extends ChangeNotifier {
   static const Duration _sondeoTimeout = Duration(seconds: 4);
 
   /// Host que se sondea para medir latencia (el propio backend de la app).
-  static const String _sondeoHost = '192.168.0.215';
-  static const int _sondeoPort = 8081;
+  static const String _sondeoHost = 'echoes-api-wfs1.onrender.com';
+  static const int _sondeoPort = 443;
 
   // ── Estado interno ────────────────────────────────────────────────────────
 

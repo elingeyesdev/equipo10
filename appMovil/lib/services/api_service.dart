@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'connectivity_service.dart';
 import 'offline_interceptor.dart';
 
-const String _kApiUrl = 'http://192.168.0.215:8081';
+const String _kApiUrl = 'https://echoes-api-wfs1.onrender.com';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
