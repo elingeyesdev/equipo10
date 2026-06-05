@@ -8,10 +8,14 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class ReporteImagen extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     protected $table = 'reporte_imagenes';
     protected $primaryKey = 'id';
+    
+    protected $attributes = [
+        'estado' => self::STATE_PENDING
+    ];
     public $incrementing = false;
     protected $keyType = 'string';
     const STATE_PENDING = 'pending';
