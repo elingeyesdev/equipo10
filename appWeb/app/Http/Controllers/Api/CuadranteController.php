@@ -162,6 +162,7 @@ class CuadranteController extends Controller
 
         try {
             $lat = $request->lat;
+            $lng = $request->lng;
             // El método detectByLocation de la clase modelo probablemente hace el query.
             // Necesitamos asegurarnos de que solo agarre los de null geometria.
             $cuadranteEncontrado = Cuadrante::whereNull('geometria')

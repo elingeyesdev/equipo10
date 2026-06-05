@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
     {
         
         if (!User::where('email', 'admin@amigate.com')->exists()) {
-            User::factory()->create([
+            User::create([
                 'name' => 'Administrador',
                 'email' => 'admin@amigate.com',
                 'password' => \Illuminate\Support\Facades\Hash::make('admin123'),

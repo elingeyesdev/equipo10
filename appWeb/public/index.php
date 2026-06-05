@@ -1,5 +1,9 @@
 <?php
 
+putenv('APP_DEBUG=true');
+$_ENV['APP_DEBUG'] = 'true';
+$_SERVER['APP_DEBUG'] = 'true';
+
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 
