@@ -1,0 +1,47 @@
+FROM php:8.4-fpm
+
+# Instalar dependencias del sistema + Nginx + Supervisor
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    libpq-dev \
+    libzip-dev \
+    nginx \
+    supervisor \
+    && docker-php-ext-install pdo pdo_pgsql zip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Instalar Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Configurar directorio de trabajo
+WORKDIR /var/www
+
+# Copiar código fuente
+COPY . .
+
+# Instalar dependencias PHP
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+
+# Crear .env si no existe
+RUN cp -n .env.example .env || true
+
+# Generar APP_KEY
+RUN php artisan key:generate --force || true
+
+# Permisos
+RUN chmod -R 777 storage bootstrap/cache
+RUN mkdir -p /var/www/storage/app/public
+
+# Configurar Nginx para Render
+RUN rm /etc/nginx/sites-enabled/default
+COPY nginx-render.conf /etc/nginx/sites-enabled/default
+
+# Configurar Supervisor (corre Nginx + PHP-FPM juntos)
+COPY supervisord-render.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Render usa la variable PORT (por defecto 10000)
+EXPOSE 10000
+
+# Iniciar con supervisor
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
