@@ -79,13 +79,35 @@ class _PerfilViewState extends State<PerfilView> {
     }
 
     if (vm.perfil == null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('No se pudo cargar el perfil.'),
-            TextButton(onPressed: vm.cargarPerfil, child: const Text('Reintentar'))
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Configuración'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout, color: AppTheme.danger),
+              onPressed: _onLogout,
+            ),
           ],
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('No se pudo cargar el perfil.'),
+              const SizedBox(height: 8),
+              TextButton(onPressed: vm.cargarPerfil, child: const Text('Reintentar')),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.logout),
+                label: const Text('Cerrar sesión'),
+                onPressed: _onLogout,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.danger,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
