@@ -91,6 +91,9 @@ class ReporteController extends Controller
 
             // Detectar cuadrante: priorizar el enviado por la app, sino usar detección precisa
             $cuadranteId = $request->cuadrante_id;
+            if ($cuadranteId === 'null' || $cuadranteId === 'undefined' || trim($cuadranteId) === '') {
+                $cuadranteId = null;
+            }
             
             if (!$cuadranteId) {
                 $cuadrante = Cuadrante::detectByLocation($request->ubicacion_exacta_lat, $request->ubicacion_exacta_lng);
@@ -209,11 +212,12 @@ class ReporteController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            file_put_contents(public_path('last_error.txt'), $e->getMessage() . "\n" . $e->getTraceAsString());
+            \Log::error($e);
             return response()->json([
                 'success' => false,
-                'message' => 'Error al crear reporte',
-                'error' => $e->getMessage()
+                'message' => 'Error al crear reporte: ' . $e->getMessage(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ], 500);
         }
     }
@@ -340,11 +344,12 @@ class ReporteController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            file_put_contents(public_path('last_error_put.txt'), $e->getMessage() . "\n" . $e->getTraceAsString());
+            \Log::error($e);
             return response()->json([
                 'success' => false,
-                'message' => 'Error al actualizar reporte',
-                'error' => $e->getMessage()
+                'message' => 'Error al actualizar reporte: ' . $e->getMessage(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ], 500);
         }
     }

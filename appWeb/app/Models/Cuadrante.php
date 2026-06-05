@@ -161,9 +161,6 @@ class Cuadrante extends Model
         return $this->reportes()->where('estado', 'resuelto')->count();
     }
 
-    /**
-     * Detectar cuadrante preciso para una ubicación (lat, lng)
-     */
     public static function detectByLocation($lat, $lng)
     {
         $candidatos = self::where('activo', true)
@@ -181,7 +178,6 @@ class Cuadrante extends Model
                     $sq->where('lng_min', '>=', $lng)->where('lng_max', '<=', $lng);
                 });
             })
-            ->whereNull('geometria')
             ->get();
 
         if ($candidatos->isEmpty()) {
@@ -207,9 +203,13 @@ class Cuadrante extends Model
             }
         }
 
-        // 3. Fallback: Si no hay geometría o la precisión falló, 
-        // pero estamos dentro del bounding box de un candidato, usar el primero.
-        return $candidatos->first();
+        // 3. Fallback: Si no hay geometría o la precisión falló,
+        // pero estamos dentro del bounding box de un candidato, usar el primero que sea cuadrícula base (sin geometría).
+        $fallback = $candidatos->first(function ($c) {
+            return is_null($c->geometria);
+        });
+
+        return $fallback ?: $candidatos->first();
     }
 
     /**

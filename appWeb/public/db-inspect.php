@@ -2,40 +2,83 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-echo "<h1>Detailed Database Table Inspection</h1>";
-
-$host = getenv('DB_HOST') ?: 'dpg-d8h3r1vlk1mc73e0tacg-a';
-$port = getenv('DB_PORT') ?: '5432';
-$database = getenv('DB_DATABASE') ?: 'amigate';
-$username = getenv('DB_USERNAME') ?: 'amigate_user';
-$password = getenv('DB_PASSWORD') ?: 'OUhpVrbQZAQKvNjh58AEwtxyyjZVVNIh';
+echo "<h1>Diagnostic Laravel DB & Geolocation Inspect</h1>";
 
 try {
-    $dsn = "pgsql:host=$host;port=$port;dbname=$database";
-    $pdo = new PDO($dsn, $username, $password, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-    echo "<p style='color:green;'>Connected successfully.</p>";
+    // Bootstrap Laravel
+    require __DIR__.'/../vendor/autoload.php';
+    $app = require_once __DIR__.'/../bootstrap/app.php';
     
-    // Check tables
-    $stmt = $pdo->query("SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public'");
-    $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
-    echo "<h3>Tables:</h3><ul>";
-    foreach ($tables as $table) {
-        echo "<li><strong>$table</strong>";
-        try {
-            // Get columns and types
-            $q = $pdo->query("SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = '$table'");
-            $cols = $q->fetchAll(PDO::FETCH_ASSOC);
-            echo "<ul>";
-            foreach ($cols as $col) {
-                echo "<li>{$col['column_name']} ({$col['data_type']}) - Nullable: {$col['is_nullable']}</li>";
-            }
-            echo "</ul>";
-        } catch (Exception $eCol) {
-            echo " (Error reading columns: " . htmlspecialchars($eCol->getMessage()) . ")";
-        }
-        echo "</li>";
+    // Boot the application kernel
+    $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+    $kernel->bootstrap();
+
+    use App\Models\Cuadrante;
+
+    $cnt = Cuadrante::count();
+    echo "<p>Total cuadrantes in DB: <strong>$cnt</strong></p>";
+
+    $cntNullGeo = Cuadrante::whereNull('geometria')->count();
+    $cntNotNullGeo = Cuadrante::whereNotNull('geometria')->count();
+    echo "<p>Cuadrantes with null geometry: <strong>$cntNullGeo</strong></p>";
+    echo "<p>Cuadrantes with NOT null geometry: <strong>$cntNotNullGeo</strong></p>";
+
+    // Test detection for Santa Cruz point
+    $lat = -17.7816;
+    $lng = -63.1826;
+    echo "<h3>Testing detection for point: $lat, $lng</h3>";
+
+    // 1. Raw DB query matching bounding box
+    $candidatosRaw = \DB::table('cuadrantes')
+        ->where('activo', true)
+        ->where(function($q) use ($lat) {
+            $q->where(function($sq) use ($lat) {
+                $sq->where('lat_min', '<=', $lat)->where('lat_max', '>=', $lat);
+            })->orWhere(function($sq) use ($lat) {
+                $sq->where('lat_min', '>=', $lat)->where('lat_max', '<=', $lat);
+            });
+        })
+        ->where(function($q) use ($lng) {
+            $q->where(function($sq) use ($lng) {
+                $sq->where('lng_min', '<=', $lng)->where('lng_max', '>=', $lng);
+            })->orWhere(function($sq) use ($lng) {
+                $sq->where('lng_min', '>=', $lng)->where('lng_max', '<=', $lng);
+            });
+        })
+        ->get();
+
+    echo "<p>Raw database candidates count (any geometry): <strong>" . count($candidatosRaw) . "</strong></p>";
+    if (count($candidatosRaw) > 0) {
+        echo "<pre>" . json_encode($candidatosRaw, JSON_PRETTY_PRINT) . "</pre>";
     }
-    echo "</ul>";
+
+    // 2. Bounding box query restricting to null geometry
+    $candidatosNullGeo = \DB::table('cuadrantes')
+        ->where('activo', true)
+        ->whereNull('geometria')
+        ->where(function($q) use ($lat) {
+            $q->where(function($sq) use ($lat) {
+                $sq->where('lat_min', '<=', $lat)->where('lat_max', '>=', $lat);
+            })->orWhere(function($sq) use ($lat) {
+                $sq->where('lat_min', '>=', $lat)->where('lat_max', '<=', $lat);
+            });
+        })
+        ->where(function($q) use ($lng) {
+            $q->where(function($sq) use ($lng) {
+                $sq->where('lng_min', '<=', $lng)->where('lng_max', '>=', $lng);
+            })->orWhere(function($sq) use ($lng) {
+                $sq->where('lng_min', '>=', $lng)->where('lng_max', '<=', $lng);
+            });
+        })
+        ->get();
+
+    echo "<p>Raw database candidates count (geometria IS NULL): <strong>" . count($candidatosNullGeo) . "</strong></p>";
+
+    // 3. Test Cuadrante::detectByLocation
+    $detected = Cuadrante::detectByLocation($lat, $lng);
+    echo "<p>Cuadrante::detectByLocation returned: <strong>" . ($detected ? $detected->codigo . " (id: " . $detected->id . ")" : "NULL") . "</strong></p>";
+
 } catch (Exception $e) {
     echo "<p style='color:red;'>ERROR: " . htmlspecialchars($e->getMessage()) . "</p>";
+    echo "<pre>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
 }
