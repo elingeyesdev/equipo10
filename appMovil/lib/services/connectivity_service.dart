@@ -123,6 +123,12 @@ class ConnectivityService extends ChangeNotifier {
   Future<void> _medirLatencia() async {
     if (!_isOnline) return;
 
+    if (kIsWeb) {
+      // En Web no se puede usar Socket TCP directamente. Asumimos buena latencia.
+      _setLatency(50, highLatency: false);
+      return;
+    }
+
     final stopwatch = Stopwatch()..start();
     bool reached = false;
 

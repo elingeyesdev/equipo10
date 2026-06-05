@@ -47,6 +47,7 @@ dependencies:
   # Base de datos local SQLite — almacenamiento del cuadrante asignado (E9.3)
   sqflite: ^2.3.3
   path: ^1.9.0        # Requerido por local_database.dart (join de rutas)
+  sqflite_common_ffi: ^2.4.0+3
 
 dev_dependencies:
   flutter_test:

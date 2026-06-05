@@ -5,9 +5,23 @@ import '../models/reporte_model.dart';
 class ReporteService {
   final ApiService _api = ApiService();
 
-  /// Obtiene todos los reportes activos o pausados del Feed General.
-  Future<List<ReporteModel>> obtenerReportes() async {
-    final response = await _api.client.get('/reportes');
+  Future<List<ReporteModel>> obtenerReportes({
+    String? tipoReporte,
+    String? estado,
+    double? lat,
+    double? lng,
+    double? radio,
+  }) async {
+    final params = <String, dynamic>{};
+    if (tipoReporte != null && tipoReporte.isNotEmpty) params['tipo_reporte'] = tipoReporte;
+    if (estado != null && estado.isNotEmpty) params['estado'] = estado;
+    if (lat != null && lng != null && radio != null) {
+      params['lat'] = lat;
+      params['lng'] = lng;
+      params['radio'] = radio;
+    }
+
+    final response = await _api.client.get('/reportes', queryParameters: params);
     if (response.statusCode == 200 && response.data['success'] == true) {
       final List data = response.data['data'];
       return data.map((e) => ReporteModel.fromMap(e)).toList();
@@ -32,6 +46,45 @@ class ReporteService {
       return ReporteModel.fromMap(response.data['data']);
     }
     return null;
+  }
+
+  /// Obtiene la galería centralizada del reporte
+  Future<List<Map<String, dynamic>>> obtenerGaleria(String reporteId) async {
+    try {
+      final response = await _api.client.get('/reportes/$reporteId/galeria');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return List<Map<String, dynamic>>.from(response.data['data']);
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Obtiene los comentarios públicos de un reporte
+  Future<List<Map<String, dynamic>>> obtenerComentarios(String reporteId) async {
+    try {
+      final response = await _api.client.get('/reportes/$reporteId/comentarios');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return List<Map<String, dynamic>>.from(response.data['data']);
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Envía un comentario público a un reporte
+  Future<bool> enviarComentario(String reporteId, String texto, String usuarioId) async {
+    try {
+      final response = await _api.client.post('/reportes/$reporteId/comentarios', data: {
+        'texto': texto,
+        'usuario_id': usuarioId,
+      });
+      return response.statusCode == 201 && response.data['success'] == true;
+    } catch (e) {
+      return false;
+    }
   }
 
   /// Marca temporalmente el reporte como Oculto/Cerrado (Resuelto)

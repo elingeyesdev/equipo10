@@ -497,6 +497,12 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                         esCreador: esCreador,
                       ),
                       const SizedBox(height: 24),
+
+                      // ── Comentarios Públicos ───────────────────────────────
+                      const Divider(),
+                      const SizedBox(height: 16),
+                      _buildComentariosSection(vm),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
@@ -708,6 +714,87 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
           .cargarFicha(widget.fichaId, widget.currentUserId);
     }
   }
+
+  Widget _buildComentariosSection(DetalleFichaViewModel vm) {
+    final TextEditingController ctrl = TextEditingController();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Comentarios Ciudadanos',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.primary,
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (vm.comentarios.isEmpty)
+          const Text('No hay comentarios aún. ¡Sé el primero en escribir!',
+              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic))
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: vm.comentarios.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final c = vm.comentarios[index];
+              final autor = c['usuario'] != null ? c['usuario']['nombre'] : 'Anónimo';
+              return Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(autor, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    Text(c['texto'] ?? '', style: const TextStyle(fontSize: 14)),
+                  ],
+                ),
+              );
+            },
+          ),
+        const SizedBox(height: 16),
+        if (vm.ficha?.estado.toLowerCase() == 'activo')
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: ctrl,
+                  decoration: InputDecoration(
+                    hintText: 'Añadir comentario...',
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              CircleAvatar(
+                backgroundColor: AppTheme.primary,
+                child: IconButton(
+                  icon: const Icon(Icons.send, color: Colors.white, size: 18),
+                  onPressed: () async {
+                    if (ctrl.text.trim().isEmpty) return;
+                    await vm.enviarComentario(widget.fichaId, ctrl.text.trim(), widget.currentUserId);
+                    ctrl.clear();
+                  },
+                ),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -895,6 +982,7 @@ class _EstadoBadge extends StatelessWidget {
     );
   }
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 class _InfoSection extends StatelessWidget {

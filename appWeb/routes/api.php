@@ -160,6 +160,13 @@ Route::prefix('reportes')->group(function () {
     Route::put('{id}', [ReporteController::class, 'update']);
     Route::delete('{id}', [ReporteController::class, 'destroy']);
     
+    // Obtener galería centralizada
+    Route::get('{reporteId}/galeria', [ReporteController::class, 'obtenerGaleria']);
+    
+    // Comentarios públicos
+    Route::get('{reporteId}/comentarios', [ReporteController::class, 'listarComentarios']);
+    Route::post('{reporteId}/comentarios', [ReporteController::class, 'agregarComentario']);
+    
     // Obtener reporte específico (SIEMPRE AL FINAL)
     Route::get('{id}', [ReporteController::class, 'show']);
 });

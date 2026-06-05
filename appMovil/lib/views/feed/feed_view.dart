@@ -142,7 +142,7 @@ class _FeedViewState extends State<FeedView> {
                         color: AppTheme.success, shape: BoxShape.circle),
                   ),
                   const SizedBox(width: 6),
-                  Text('${vm.totalActivos} operativos activos',
+                  Text('Se encontraron ${todos.length} operativo${todos.length != 1 ? 's' : ''}',
                       style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFF6B7280),

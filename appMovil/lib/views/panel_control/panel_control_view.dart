@@ -341,7 +341,7 @@ class _PanelControlViewState extends State<PanelControlView> {
     final bool isClosed = ficha.estado == 'cerrado' || ficha.estado == 'resuelto';
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Panel de Comando'),
@@ -349,6 +349,7 @@ class _PanelControlViewState extends State<PanelControlView> {
             tabs: [
               Tab(icon: Icon(Icons.dashboard), text: 'General'),
               Tab(icon: Icon(Icons.map), text: 'Mapa de Cobertura'),
+              Tab(icon: Icon(Icons.photo_library), text: 'Galería'),
             ],
             indicatorColor: Colors.white,
             labelColor: Colors.white,
@@ -360,6 +361,7 @@ class _PanelControlViewState extends State<PanelControlView> {
           children: [
             _buildTabGeneral(context, vm, ficha, isActive),
             _buildTabMapa(vm, ficha),
+            _buildTabGaleria(vm, widget.fichaId),
           ],
         ),
         floatingActionButton: isClosed
@@ -972,6 +974,88 @@ class _PanelControlViewState extends State<PanelControlView> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLeyendaItem(String label, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 8),
+          Text(label, style: const TextStyle(fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabGaleria(PanelControlViewModel vm, String fichaId) {
+    if (vm.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (vm.galeria.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.photo_library_outlined, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text('No hay imágenes en la galería aún.', style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(8),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      itemCount: vm.galeria.length,
+      itemBuilder: (context, index) {
+        final img = vm.galeria[index];
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => FullScreenImageView(
+                  imageUrl: img['url'],
+                  title: img['tipo'] == 'original' ? 'Imagen del Reporte' : 'Evidencia Aprobada',
+                  subtitle: '${img['autor'] ?? ''}',
+                ),
+              ),
+            );
+          },
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  img['url'],
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      Container(color: Colors.grey[300], child: const Icon(Icons.broken_image, color: Colors.grey)),
+                ),
+              ),
+              if (img['tipo'] == 'original')
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                    child: const Icon(Icons.star, color: Colors.amber, size: 12),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

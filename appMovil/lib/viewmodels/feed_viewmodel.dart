@@ -21,12 +21,28 @@ class FeedViewModel extends ChangeNotifier {
   String _query = '';
   Position? _posicionActual;
 
+  // Filtros Avanzados
+  String? _filtroTipo;
+  String? _filtroEstado;
+  double? _filtroDistanciaRadioKm;
+
   List<ReporteModel> get reportes => _reportes;
   List<ReporteModel> get fichas => _reportes; // compatibilidad
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String get query => _query;
   Position? get posicionActual => _posicionActual;
+
+  String? get filtroTipo => _filtroTipo;
+  String? get filtroEstado => _filtroEstado;
+  double? get filtroDistanciaRadioKm => _filtroDistanciaRadioKm;
+
+  void setFiltros({String? tipo, String? estado, double? radio}) {
+    _filtroTipo = tipo;
+    _filtroEstado = estado;
+    _filtroDistanciaRadioKm = radio;
+    cargarFichas();
+  }
 
   // ── Filtrado por búsqueda ───────────────────────────────────────────
   List<ReporteModel> get fichasFiltradas {
@@ -103,10 +119,30 @@ class FeedViewModel extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
+    // Obtener ubicación primero si necesitamos buscar por radio
+    if (_filtroDistanciaRadioKm != null) {
+      await _obtenerUbicacion();
+      if (_posicionActual == null) {
+        _errorMessage = 'No se pudo obtener la ubicación para aplicar el filtro de distancia.';
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+    } else {
+      // Intentar obtenerla igual para mostrar distancia en las cards, pero sin bloquear
+      _obtenerUbicacion();
+    }
+
     try {
       if (!_connectivity.shouldUseCache) {
         // Buena conexion: datos frescos del API
-        _reportes = await _reporteService.obtenerReportes();
+        _reportes = await _reporteService.obtenerReportes(
+          tipoReporte: _filtroTipo,
+          estado: _filtroEstado,
+          radio: _filtroDistanciaRadioKm,
+          lat: _posicionActual?.latitude,
+          lng: _posicionActual?.longitude,
+        );
         _esModoOffline = false;
 
         // E9.3 — Persistir en SQLite para uso futuro sin red
@@ -128,7 +164,6 @@ class FeedViewModel extends ChangeNotifier {
           _errorMessage = razon;
         }
       }
-      await _obtenerUbicacion();
     } catch (e) {
       // Si el API falla por cualquier causa, intentar el caché
       try {

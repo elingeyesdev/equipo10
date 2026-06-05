@@ -24,7 +24,7 @@ class ReporteController extends Controller
     /**
      * Obtener el Feed General (Todos los reportes activos globales)
      */
-    public function index()
+    public function index(Request $request)
     {
         // Auto-create storage symlink if missing so images work
         try {
@@ -34,11 +34,50 @@ class ReporteController extends Controller
         } catch (\Exception $e) {}
 
         try {
-            $reportes = Reporte::where('estado', 'activo')
-                ->orWhere('estado', 'pausado')
-                ->with(['categoria', 'usuario', 'cuadrante'])
-                ->orderBy('created_at', 'desc')
-                ->get();
+            $query = Reporte::with(['categoria', 'usuario', 'cuadrante']);
+
+            if ($request->has('estado') && in_array($request->estado, ['activo', 'pausado', 'resuelto'])) {
+                $query->where('estado', $request->estado);
+            } else {
+                $query->whereIn('estado', ['activo', 'pausado']);
+            }
+
+            if ($request->has('tipo_reporte')) {
+                $tipo = $request->tipo_reporte;
+                if ($tipo == 'desaparicion') {
+                    $query->whereHas('categoria', function($q) { 
+                        $q->where('nombre', 'ilike', '%persona%')
+                          ->orWhere('nombre', 'ilike', '%desaparicion%'); 
+                    });
+                } elseif ($tipo == 'mascota') {
+                    $query->whereHas('categoria', function($q) { 
+                        $q->where('nombre', 'ilike', '%mascota%'); 
+                    });
+                } elseif ($tipo == 'objeto') {
+                    $query->whereHas('categoria', function($q) { 
+                        $q->where('nombre', 'not ilike', '%persona%')
+                          ->where('nombre', 'not ilike', '%desaparicion%')
+                          ->where('nombre', 'not ilike', '%mascota%'); 
+                    });
+                } else {
+                    $query->where('tipo_reporte', $tipo);
+                }
+            }
+
+            if ($request->has('lat') && $request->has('lng') && $request->has('radio')) {
+                $lat = (float) $request->lat;
+                $lng = (float) $request->lng;
+                $radio = (float) $request->radio;
+
+                $query->whereNotNull('ubicacion_exacta_lat')
+                      ->whereNotNull('ubicacion_exacta_lng')
+                      ->whereRaw(
+                          "(6371 * acos(cos(radians(?)) * cos(radians(ubicacion_exacta_lat)) * cos(radians(ubicacion_exacta_lng) - radians(?)) + sin(radians(?)) * sin(radians(ubicacion_exacta_lat)))) <= ?",
+                          [$lat, $lng, $lat, $radio]
+                      );
+            }
+
+            $reportes = $query->orderBy('created_at', 'desc')->get();
 
             return response()->json([
                 'success' => true,
@@ -817,7 +856,151 @@ class ReporteController extends Controller
     }
 
     /**
-     * Obtener un reporte específico
+     * Obtener Galería Centralizada del Reporte
+     */
+    public function obtenerGaleria($reporteId)
+    {
+        try {
+            $reporte = Reporte::findOrFail($reporteId);
+            $galeria = [];
+
+            // 1. Imágenes originales del reporte
+            $imagenesReporte = ReporteImagen::where('reporte_id', $reporteId)
+                ->orderBy('created_at', 'asc')
+                ->get();
+
+            foreach ($imagenesReporte as $img) {
+                $path = parse_url($img->url, PHP_URL_PATH);
+                $fixedUrl = $path ? request()->getSchemeAndHttpHost() . $path : $img->url;
+                
+                $galeria[] = [
+                    'id' => $img->id,
+                    'url' => $fixedUrl,
+                    'tipo' => 'original',
+                    'autor' => 'Reporte original',
+                    'fecha' => $img->created_at,
+                    'aprobado' => true
+                ];
+            }
+
+            // 2. Imágenes de pistas/respuestas aprobadas
+            $respuestas = \App\Models\Respuesta::where('reporte_id', $reporteId)
+                ->where('estado_evidencia', 'approved')
+                ->with(['imagenes', 'usuario'])
+                ->get();
+
+            foreach ($respuestas as $respuesta) {
+                // Si usan tabla RespuestaImagen (usando getRelation para evitar colisión con la columna 'imagenes')
+                $imagenesRelacion = $respuesta->relationLoaded('imagenes') ? $respuesta->getRelation('imagenes') : collect();
+
+                if ($imagenesRelacion instanceof \Illuminate\Database\Eloquent\Collection && $imagenesRelacion->isNotEmpty()) {
+                    foreach ($imagenesRelacion as $img) {
+                        $path = parse_url($img->url, PHP_URL_PATH);
+                        $fixedUrl = $path ? request()->getSchemeAndHttpHost() . $path : $img->url;
+                        
+                        $galeria[] = [
+                            'id' => $img->id,
+                            'url' => $fixedUrl,
+                            'tipo' => 'evidencia',
+                            'autor' => $respuesta->usuario ? $respuesta->usuario->nombre : 'Voluntario',
+                            'fecha' => $img->created_at,
+                            'aprobado' => true
+                        ];
+                    }
+                } else {
+                    // Fallback si usan el array JSON 'imagenes'
+                    $urls = [];
+                    if (is_array($respuesta->imagenes)) {
+                        $urls = $respuesta->imagenes;
+                    } elseif (is_string($respuesta->imagenes)) {
+                        $decoded = json_decode($respuesta->imagenes, true);
+                        if (is_array($decoded)) {
+                            $urls = $decoded;
+                        }
+                    }
+                    foreach ($urls as $idx => $url) {
+                        if (is_string($url)) {
+                            $path = parse_url($url, PHP_URL_PATH);
+                            $fixedUrl = $path ? request()->getSchemeAndHttpHost() . $path : $url;
+                            
+                            $galeria[] = [
+                                'id' => $respuesta->id . '-' . $idx,
+                                'url' => $fixedUrl,
+                                'tipo' => 'evidencia',
+                                'autor' => $respuesta->usuario ? $respuesta->usuario->nombre : 'Voluntario',
+                                'fecha' => $respuesta->created_at,
+                                'aprobado' => true
+                            ];
+                        }
+                    }
+                }
+            }
+
+            // Ordenar por fecha desc
+            usort($galeria, function($a, $b) {
+                $timeA = $a['fecha'] instanceof \Carbon\Carbon ? $a['fecha']->timestamp : strtotime($a['fecha']);
+                $timeB = $b['fecha'] instanceof \Carbon\Carbon ? $b['fecha']->timestamp : strtotime($b['fecha']);
+                return $timeB <=> $timeA;
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $galeria
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar la galería',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Listar Comentarios de un Reporte
+     */
+    public function listarComentarios($reporteId)
+    {
+        try {
+            $comentarios = \App\Models\Comentario::where('reporte_id', $reporteId)
+                ->with('usuario')
+                ->orderBy('created_at', 'asc')
+                ->get();
+            return response()->json(['success' => true, 'data' => $comentarios], 200);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Agregar Comentario a un Reporte
+     */
+    public function agregarComentario(Request $request, $reporteId)
+    {
+        $request->validate([
+            'usuario_id' => 'required|exists:usuarios,id',
+            'texto' => 'required|string'
+        ]);
+
+        try {
+            $comentario = \App\Models\Comentario::create([
+                'reporte_id' => $reporteId,
+                'usuario_id' => $request->usuario_id,
+                'texto' => $request->texto
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $comentario->load('usuario')
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Mostrar reporte específico
      */
     public function show($id)
     {

@@ -15,6 +15,7 @@ class DetalleFichaViewModel extends ChangeNotifier {
   int _voluntariosCount = 0;
   String? _errorMessage;
   String? _successMessage;
+  List<Map<String, dynamic>> _comentarios = [];
 
   ReporteModel? get ficha => _ficha;
   bool get isLoading => _isLoading;
@@ -22,6 +23,7 @@ class DetalleFichaViewModel extends ChangeNotifier {
   int get voluntariosCount => _voluntariosCount;
   String? get errorMessage => _errorMessage;
   String? get successMessage => _successMessage;
+  List<Map<String, dynamic>> get comentarios => _comentarios;
 
   void _setLoading(bool value) {
     _isLoading = value;
@@ -44,6 +46,7 @@ class DetalleFichaViewModel extends ChangeNotifier {
       );
       final voluntarios = await _vinculacionService.obtenerVoluntarios(fichaId);
       _voluntariosCount = voluntarios.length;
+      _comentarios = await _reporteService.obtenerComentarios(fichaId);
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -181,6 +184,17 @@ class DetalleFichaViewModel extends ChangeNotifier {
       return false;
     } finally {
       _setLoading(false);
+    }
+  }
+
+  Future<void> enviarComentario(String reporteId, String texto, String usuarioId) async {
+    final ok = await _reporteService.enviarComentario(reporteId, texto, usuarioId);
+    if (ok) {
+      _comentarios = await _reporteService.obtenerComentarios(reporteId);
+      notifyListeners();
+    } else {
+      _errorMessage = 'Error al enviar el comentario.';
+      notifyListeners();
     }
   }
 }

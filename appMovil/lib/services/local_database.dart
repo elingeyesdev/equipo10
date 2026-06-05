@@ -119,6 +119,7 @@ class LocalDatabase {
 
   /// Guarda una lista de cuadrantes (upsert: reemplaza si ya existe).
   Future<void> upsertCuadrantes(List<CuadranteModel> cuadrantes) async {
+    if (kIsWeb) return;
     final db = await database;
     final now = DateTime.now().toIso8601String();
 
@@ -150,6 +151,7 @@ class LocalDatabase {
 
   /// Lee todos los cuadrantes almacenados localmente.
   Future<List<CuadranteModel>> getCuadrantes() async {
+    if (kIsWeb) return [];
     final db = await database;
     final rows = await db.query('cuadrantes');
     return rows.map((r) {
@@ -181,6 +183,7 @@ class LocalDatabase {
 
   /// Guarda una lista de reportes del feed (upsert).
   Future<void> upsertReportes(List<ReporteModel> reportes) async {
+    if (kIsWeb) return;
     final db = await database;
     final now = DateTime.now().toIso8601String();
 
@@ -219,6 +222,7 @@ class LocalDatabase {
 
   /// Lee todos los reportes almacenados localmente, ordenados por fecha desc.
   Future<List<ReporteModel>> getReportes() async {
+    if (kIsWeb) return [];
     final db = await database;
     final rows =
         await db.query('reportes', orderBy: 'created_at DESC');
@@ -260,6 +264,7 @@ class LocalDatabase {
   /// Guarda una lista de pistas del mapa operativo (upsert).
   Future<void> upsertPistas(
       String reporteId, List<Map<String, dynamic>> pistas) async {
+    if (kIsWeb) return;
     final db = await database;
     final now = DateTime.now().toIso8601String();
 
@@ -288,6 +293,7 @@ class LocalDatabase {
 
   /// Lee las pistas de un reporte específico.
   Future<List<Map<String, dynamic>>> getPistas(String reporteId) async {
+    if (kIsWeb) return [];
     final db = await database;
     return db.query(
       'pistas',
@@ -300,6 +306,7 @@ class LocalDatabase {
 
   /// Elimina todos los datos de la BD (útil al cerrar sesión).
   Future<void> limpiarTodo() async {
+    if (kIsWeb) return;
     final db = await database;
     await db.delete('cuadrantes');
     await db.delete('reportes');
@@ -309,6 +316,7 @@ class LocalDatabase {
 
   /// Retorna estadísticas rápidas del contenido de la BD.
   Future<Map<String, int>> estadisticas() async {
+    if (kIsWeb) return {'cuadrantes': 0, 'reportes': 0, 'pistas': 0};
     final db = await database;
     final c = Sqflite.firstIntValue(
         await db.rawQuery('SELECT COUNT(*) FROM cuadrantes'));
@@ -321,6 +329,7 @@ class LocalDatabase {
 
   /// Cierra la conexión a la BD (normalmente no es necesario en apps Flutter).
   Future<void> close() async {
+    if (kIsWeb) return;
     await _db?.close();
     _db = null;
   }

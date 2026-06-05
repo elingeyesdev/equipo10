@@ -42,6 +42,7 @@ class PanelControlViewModel extends ChangeNotifier {
   List<RutaVoluntario> _rutasVoluntarios = [];
   List<PistaMapa> _pistas = [];
   List<EvidenciaModel> _evidencias = [];
+  List<Map<String, dynamic>> _galeria = [];
   bool _isLoading = false;
   String? _errorMessage;
   String? _filtroNombreVoluntario;
@@ -51,6 +52,7 @@ class PanelControlViewModel extends ChangeNotifier {
   List<dynamic> get recorridosData => _recorridosData;
   List<PistaMapa> get pistas => _pistas;
   List<EvidenciaModel> get evidencias => _evidencias;
+  List<Map<String, dynamic>> get galeria => _galeria;
   
   List<RutaVoluntario> get rutasVoluntarios {
     if (_filtroNombreVoluntario == null) return _rutasVoluntarios;
@@ -127,6 +129,7 @@ class PanelControlViewModel extends ChangeNotifier {
       final pistasData = await _reporteService.obtenerPistas(fichaId);
       _procesarPistas(pistasData);
       _evidencias = await _evidenciaService.obtenerEvidencias(fichaId);
+      _galeria = await _reporteService.obtenerGaleria(fichaId);
     } catch (e) {
       _errorMessage = 'Error al cargar datos del mapa: $e';
     }

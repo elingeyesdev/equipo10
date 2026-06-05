@@ -58,6 +58,11 @@ class _HomeViewState extends State<HomeView> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.filter_list),
+            tooltip: 'Filtros Avanzados',
+            onPressed: () => _mostrarFiltros(context),
+          ),
           Consumer<NotificacionesViewModel>(
             builder: (context, notifVm, _) {
               return Stack(
@@ -222,6 +227,120 @@ class _HomeViewState extends State<HomeView> {
               .toList(),
         ),
       ),
+    );
+  }
+
+  void _mostrarFiltros(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final feedVm = context.read<FeedViewModel>();
+        
+        String? tipoTemp = feedVm.filtroTipo;
+        String? estadoTemp = feedVm.filtroEstado;
+        double radioTemp = feedVm.filtroDistanciaRadioKm ?? 10.0; // por defecto 10 km
+        
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20, right: 20, top: 20, 
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Filtros Avanzados', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  
+                  // Filtro por Estado
+                  const Text('Estado del caso:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  DropdownButton<String>(
+                    isExpanded: true,
+                    value: estadoTemp,
+                    hint: const Text('Cualquier estado'),
+                    items: const [
+                      DropdownMenuItem(value: null, child: Text('Todos')),
+                      DropdownMenuItem(value: 'activo', child: Text('Activo')),
+                      DropdownMenuItem(value: 'pausado', child: Text('Pausado')),
+                      DropdownMenuItem(value: 'resuelto', child: Text('Resuelto')),
+                    ],
+                    onChanged: (val) => setState(() => estadoTemp = val),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Filtro por Tipo de Reporte
+                  const Text('Tipo de caso:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  DropdownButton<String>(
+                    isExpanded: true,
+                    value: tipoTemp,
+                    hint: const Text('Cualquier tipo'),
+                    items: const [
+                      DropdownMenuItem(value: null, child: Text('Todos')),
+                      DropdownMenuItem(value: 'desaparicion', child: Text('Desaparición de Persona')),
+                      DropdownMenuItem(value: 'mascota', child: Text('Mascota Extraviada')),
+                      DropdownMenuItem(value: 'objeto', child: Text('Objeto Perdido')),
+                    ],
+                    onChanged: (val) => setState(() => tipoTemp = val),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Filtro de Radio de búsqueda
+                  const Text('Radio de cercanía (km):', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Slider(
+                    value: radioTemp,
+                    min: 1,
+                    max: 100,
+                    divisions: 99,
+                    label: '${radioTemp.round()} km',
+                    activeColor: AppTheme.primary,
+                    onChanged: (val) => setState(() => radioTemp = val),
+                  ),
+                  Center(child: Text('${radioTemp.round()} km a la redonda', style: const TextStyle(color: Colors.grey))),
+                  const SizedBox(height: 24),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            feedVm.setFiltros(tipo: null, estado: null, radio: null);
+                            Navigator.pop(ctx);
+                          },
+                          child: const Text('Limpiar Filtros'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            feedVm.setFiltros(
+                              tipo: tipoTemp,
+                              estado: estadoTemp,
+                              radio: radioTemp,
+                            );
+                            Navigator.pop(ctx);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Aplicar'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
