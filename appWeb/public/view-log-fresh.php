@@ -4,6 +4,27 @@ ini_set('display_errors', 1);
 
 echo "<h1>Laravel Error Log Reader</h1>";
 
+// Intenta encontrar el archivo temporal de logs que creamos en ReporteController
+$lastErrorFile = __DIR__ . '/last_error.txt';
+if (file_exists($lastErrorFile)) {
+    echo "<h3>Contenido de last_error.txt:</h3>";
+    echo "<pre style='background:#fee; padding:10px; border:1px solid #faa; overflow:auto;'>";
+    echo htmlspecialchars(file_get_contents($lastErrorFile));
+    echo "</pre>";
+} else {
+    echo "<p>No last_error.txt file found.</p>";
+}
+
+$lastErrorPutFile = __DIR__ . '/last_error_put.txt';
+if (file_exists($lastErrorPutFile)) {
+    echo "<h3>Contenido de last_error_put.txt:</h3>";
+    echo "<pre style='background:#efe; padding:10px; border:1px solid #afa; overflow:auto;'>";
+    echo htmlspecialchars(file_get_contents($lastErrorPutFile));
+    echo "</pre>";
+} else {
+    echo "<p>No last_error_put.txt file found.</p>";
+}
+
 $logFile = __DIR__ . '/../storage/logs/laravel.log';
 
 if (!file_exists($logFile)) {
