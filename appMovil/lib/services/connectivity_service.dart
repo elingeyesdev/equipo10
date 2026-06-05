@@ -26,13 +26,13 @@ class ConnectivityService extends ChangeNotifier {
   // ── Configuración ─────────────────────────────────────────────────────────
 
   /// Latencia en ms por encima de la cual se considera conexión "lenta".
-  static const int latencyThresholdMs = 1500;
+  static const int latencyThresholdMs = 8000;
 
   /// Intervalo entre sondeos de latencia (cuando hay conexión).
   static const Duration _sondeoInterval = Duration(seconds: 20);
 
   /// Timeout para el sondeo de latencia.
-  static const Duration _sondeoTimeout = Duration(seconds: 4);
+  static const Duration _sondeoTimeout = Duration(seconds: 10);
 
   /// Host que se sondea para medir latencia (el propio backend de la app).
   static const String _sondeoHost = 'echoes-api-wfs1.onrender.com';
@@ -103,7 +103,7 @@ class ConnectivityService extends ChangeNotifier {
       _statusController.add(_isOnline);
       notifyListeners();
       debugPrint(
-        '[ConnectivityService] Red: ${_isOnline ? "🟢 EN LÍNEA" : "🔴 SIN CONEXIÓN"}',
+        '[ConnectivityService] Red: ${_isOnline ? "EN LÍNEA" : "SIN CONEXIÓN"}',
       );
 
       if (_isOnline) {
@@ -154,7 +154,7 @@ class ConnectivityService extends ChangeNotifier {
       if (_isHighLatency != wasHigh) {
         debugPrint(
           '[ConnectivityService] Latencia: ${ms}ms — '
-          '${_isHighLatency ? "🟡 ALTA" : "🟢 NORMAL"}',
+          '${_isHighLatency ? "ALTA" : "NORMAL"}',
         );
         notifyListeners();
       } else {

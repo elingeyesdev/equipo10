@@ -21,6 +21,7 @@ class ReporteImagen extends Model
     const STATE_PENDING = 'pending';
     const STATE_APPROVED = 'approved';
     const STATE_REJECTED = 'rejected';
+    const UPDATED_AT = null;
 
     protected $fillable = [
         'reporte_id',
