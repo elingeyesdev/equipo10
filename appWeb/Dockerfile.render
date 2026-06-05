@@ -32,6 +32,7 @@ RUN php artisan key:generate --force || true
 # Permisos
 RUN chmod -R 777 storage bootstrap/cache
 RUN mkdir -p /var/www/storage/app/public
+RUN sed -i -e 's/\r$//' /var/www/render-build.sh && chmod +x /var/www/render-build.sh
 
 # Configurar Nginx para Render
 RUN rm /etc/nginx/sites-enabled/default
@@ -43,5 +44,5 @@ COPY supervisord-render.conf /etc/supervisor/conf.d/supervisord.conf
 # Render usa la variable PORT (por defecto 10000)
 EXPOSE 10000
 
-# Iniciar con supervisor
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Iniciar con el script de inicio y luego supervisor
+CMD ["/bin/bash", "-c", "/var/www/render-build.sh && exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf"]
