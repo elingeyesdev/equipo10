@@ -56,27 +56,31 @@ class CuadranteService {
     }
   }
 
+  /// Helper para buscar cuadrante localmente en base de datos.
+  Future<CuadranteModel?> _detectarCuadranteLocal(double lat, double lng) async {
+    final locales = await _db.getCuadrantes();
+    try {
+      return locales.firstWhere(
+        (c) =>
+            c.latMin != null &&
+            c.latMax != null &&
+            c.lngMin != null &&
+            c.lngMax != null &&
+            lat >= c.latMin! &&
+            lat <= c.latMax! &&
+            lng >= c.lngMin! &&
+            lng <= c.lngMax!,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Detecta el cuadrante que contiene el punto [lat, lng].
   /// Sin red: busca en los cuadrantes locales por bounding box.
   Future<CuadranteModel?> detectarCuadrante(double lat, double lng) async {
     if (_connectivity.shouldUseCache) {
-      // Búsqueda local por bounding box
-      final locales = await _db.getCuadrantes();
-      try {
-        return locales.firstWhere(
-          (c) =>
-              c.latMin != null &&
-              c.latMax != null &&
-              c.lngMin != null &&
-              c.lngMax != null &&
-              lat >= c.latMin! &&
-              lat <= c.latMax! &&
-              lng >= c.lngMin! &&
-              lng <= c.lngMax!,
-        );
-      } catch (_) {
-        return null;
-      }
+      return _detectarCuadranteLocal(lat, lng);
     }
 
     try {
@@ -94,8 +98,8 @@ class CuadranteService {
       return null;
     } on DioException catch (e) {
       debugPrint('Error al detectar cuadrante (red): $e');
-      // Intentar detección local como fallback
-      return detectarCuadrante(lat, lng);
+      // Intentar detección local como fallback (sin recursión infinita)
+      return _detectarCuadranteLocal(lat, lng);
     } catch (e) {
       debugPrint('Error al detectar cuadrante: $e');
       return null;
