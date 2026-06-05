@@ -157,14 +157,20 @@ class ReporteController extends Controller
                     ]);
                 }
                 // Notify the report creator about new pending evidences
-                \App\Models\Notificacion::create([
+                $notif = \App\Models\Notificacion::create([
                     'usuario_id' => $reporte->usuario_id,
                     'tipo' => 'evidencia_subida',
                     'titulo' => 'Nueva evidencia pendiente',
                     'mensaje' => 'Se ha subido una nueva evidencia al reporte que requiere tu aprobación.',
                     'leida' => false,
                     'enviada_push' => false,
-                    'datos_json' => json_encode(['reporte_id' => $reporte->id])
+                    'enviada_email' => false,
+                ]);
+
+                \App\Models\NotificacionDato::create([
+                    'notificacion_id' => $notif->id,
+                    'clave' => 'reporte_id',
+                    'valor' => $reporte->id
                 ]);
             }
 
@@ -307,14 +313,20 @@ class ReporteController extends Controller
                 // No notificar al creador del reporte si por casualidad es voluntario
                 if ($voluntario->usuario_id === $reporte->usuario_id) continue;
                 
-                \App\Models\Notificacion::create([
+                $notif = \App\Models\Notificacion::create([
                     'usuario_id' => $voluntario->usuario_id,
                     'tipo' => 'actualizacion_reporte',
                     'titulo' => 'Reporte Actualizado',
                     'mensaje' => "El creador ha modificado los detalles del reporte: {$reporte->titulo}",
                     'leida' => false,
                     'enviada_push' => false,
-                    'datos_json' => json_encode(['reporte_id' => $reporte->id])
+                    'enviada_email' => false,
+                ]);
+
+                \App\Models\NotificacionDato::create([
+                    'notificacion_id' => $notif->id,
+                    'clave' => 'reporte_id',
+                    'valor' => $reporte->id
                 ]);
             }
 
