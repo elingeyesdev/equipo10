@@ -121,9 +121,19 @@ class _PerfilViewState extends State<PerfilView> {
           // CABECERA
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.only(bottom: 24, top: 24),
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 16,
+              bottom: 32,
+            ),
             decoration: const BoxDecoration(
-              color: AppTheme.primary,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppTheme.primary,
+                  AppTheme.primaryBase,
+                ],
+              ),
               borderRadius: BorderRadius.only(
                 bottomLeft: Radius.circular(30),
                 bottomRight: Radius.circular(30),
@@ -131,6 +141,24 @@ class _PerfilViewState extends State<PerfilView> {
             ),
             child: Column(
               children: [
+                // Título de Configuración
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Configuración',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
                 Stack(
                   children: [
                     CircleAvatar(
@@ -157,12 +185,13 @@ class _PerfilViewState extends State<PerfilView> {
                       child: GestureDetector(
                         onTap: _pickImage,
                         child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.accent,
                             shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
                           ),
-                          child: const Icon(Icons.camera_alt, size: 20, color: AppTheme.primary),
+                          child: const Icon(Icons.edit, size: 18, color: AppTheme.darkDark),
                         ),
                       ),
                     ),

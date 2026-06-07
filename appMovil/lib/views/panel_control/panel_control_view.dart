@@ -246,14 +246,15 @@ class _PanelControlViewState extends State<PanelControlView> {
             Expanded(child: Text('Mensaje Directo', overflow: TextOverflow.ellipsis)),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Para: $nombreVoluntario',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Para: $nombreVoluntario',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             const SizedBox(height: 4),
             Row(
               children: [
@@ -287,6 +288,7 @@ class _PanelControlViewState extends State<PanelControlView> {
               ),
             ),
           ],
+        ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),

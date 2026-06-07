@@ -870,7 +870,7 @@ class ReporteController extends Controller
                 ->get();
 
             foreach ($imagenesReporte as $img) {
-                $fixedUrl = $img->url;
+                $fixedUrl = str_replace('http://', 'https://', $img->url);
                 
                 $galeria[] = [
                     'id' => $img->id,
@@ -894,7 +894,7 @@ class ReporteController extends Controller
 
                 if ($imagenesRelacion instanceof \Illuminate\Database\Eloquent\Collection && $imagenesRelacion->isNotEmpty()) {
                     foreach ($imagenesRelacion as $img) {
-                        $fixedUrl = $img->url;
+                        $fixedUrl = str_replace('http://', 'https://', $img->url);
                         
                         $galeria[] = [
                             'id' => $img->id,
@@ -918,7 +918,7 @@ class ReporteController extends Controller
                     }
                     foreach ($urls as $idx => $url) {
                         if (is_string($url)) {
-                            $fixedUrl = $url;
+                            $fixedUrl = str_replace('http://', 'https://', $url);
                             
                             $galeria[] = [
                                 'id' => $respuesta->id . '-' . $idx,

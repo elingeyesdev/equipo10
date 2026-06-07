@@ -126,6 +126,7 @@ class _FeedViewState extends State<FeedView> {
               _searchCtrl.clear();
               vm.actualizarQuery('');
             },
+            onFilter: () => _mostrarFiltros(context),
           ),
         ),
 
@@ -133,19 +134,19 @@ class _FeedViewState extends State<FeedView> {
         if (vm.query.isEmpty)
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
               child: Row(
                 children: [
                   Container(
                     width: 7, height: 7,
                     decoration: const BoxDecoration(
-                        color: AppTheme.success, shape: BoxShape.circle),
+                        color: AppTheme.primaryBase, shape: BoxShape.circle),
                   ),
                   const SizedBox(width: 6),
                   Text('Se encontraron ${todos.length} operativo${todos.length != 1 ? 's' : ''}',
                       style: const TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF6B7280),
+                          color: AppTheme.textSecondary,
                           fontWeight: FontWeight.w500)),
                 ],
               ),
@@ -165,11 +166,11 @@ class _FeedViewState extends State<FeedView> {
                       const Text('Últimas 24 horas', style: _kSectionTitleStyle),
                       const SizedBox(width: 6),
                       const Icon(Icons.campaign,
-                          color: Color(0xFFD32F2F), size: 18),
+                          color: AppTheme.primaryBase, size: 18),
                       const Spacer(),
                       Text('${alertas.length} nuevos',
                           style: const TextStyle(
-                              fontSize: 12, color: Color(0xFF6B7280))),
+                              fontSize: 12, color: AppTheme.textSecondary)),
                     ],
                   ),
                 ),
@@ -206,7 +207,7 @@ class _FeedViewState extends State<FeedView> {
                       const Spacer(),
                       const Text('radio 5 km',
                           style: TextStyle(
-                              fontSize: 12, color: Color(0xFF6B7280))),
+                              fontSize: 12, color: AppTheme.textSecondary)),
                     ],
                   ),
                 ),
@@ -256,13 +257,13 @@ class _FeedViewState extends State<FeedView> {
                         ? 'No se encontraron resultados con estos filtros'
                         : 'No hay reportes que encajen con tu búsqueda',
                     style: const TextStyle(
-                        fontSize: 16, color: Color(0xFF6B7280)),
+                        fontSize: 16, color: AppTheme.textSecondary),
                   ),
                   const SizedBox(height: 6),
                   const Text(
                       'Reporta un desaparecido tocando el botón +',
                       style: TextStyle(
-                          color: Color(0xFF9E9E9E), fontSize: 13)),
+                          color: AppTheme.textSecondary, fontSize: 13)),
                 ],
               ),
             ),
@@ -294,23 +295,139 @@ class _FeedViewState extends State<FeedView> {
 }
 
 // ── Delegate para SliverPersistentHeader con fondo de vidrio ──────────
+void _mostrarFiltros(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final feedVm = context.read<FeedViewModel>();
+        
+        String? tipoTemp = feedVm.filtroTipo;
+        String? estadoTemp = feedVm.filtroEstado;
+        double radioTemp = feedVm.filtroDistanciaRadioKm ?? 10.0; // por defecto 10 km
+        
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20, right: 20, top: 20, 
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Filtros Avanzados', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  
+                  // Filtro por Estado
+                  const Text('Estado del caso:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  DropdownButton<String>(
+                    isExpanded: true,
+                    value: estadoTemp,
+                    hint: const Text('Cualquier estado'),
+                    items: const [
+                      DropdownMenuItem(value: null, child: Text('Todos')),
+                      DropdownMenuItem(value: 'activo', child: Text('Activo')),
+                      DropdownMenuItem(value: 'pausado', child: Text('Pausado')),
+                      DropdownMenuItem(value: 'resuelto', child: Text('Resuelto')),
+                    ],
+                    onChanged: (val) => setState(() => estadoTemp = val),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Filtro por Tipo de Reporte
+                  const Text('Tipo de caso:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  DropdownButton<String>(
+                    isExpanded: true,
+                    value: tipoTemp,
+                    hint: const Text('Cualquier tipo'),
+                    items: const [
+                      DropdownMenuItem(value: null, child: Text('Todos')),
+                      DropdownMenuItem(value: 'desaparicion', child: Text('DesapariciÃ³n de Persona')),
+                      DropdownMenuItem(value: 'mascota', child: Text('Mascota Extraviada')),
+                      DropdownMenuItem(value: 'objeto', child: Text('Objeto Perdido')),
+                    ],
+                    onChanged: (val) => setState(() => tipoTemp = val),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Filtro de Radio de bÃºsqueda
+                  const Text('Radio de cercanÃ­a (km):', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Slider(
+                    value: radioTemp,
+                    min: 1,
+                    max: 100,
+                    divisions: 99,
+                    label: '${radioTemp.round()} km',
+                    activeColor: AppTheme.primary,
+                    onChanged: (val) => setState(() => radioTemp = val),
+                  ),
+                  Center(child: Text('${radioTemp.round()} km a la redonda', style: const TextStyle(color: Colors.grey))),
+                  const SizedBox(height: 24),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            feedVm.setFiltros(tipo: null, estado: null, radio: null);
+                            Navigator.pop(ctx);
+                          },
+                          child: const Text('Limpiar Filtros'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            feedVm.setFiltros(
+                              tipo: tipoTemp,
+                              estado: estadoTemp,
+                              radio: radioTemp,
+                            );
+                            Navigator.pop(ctx);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Aplicar'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
 class _SearchBarDelegate extends SliverPersistentHeaderDelegate {
   final TextEditingController controller;
   final String query;
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
+  final VoidCallback onFilter;
 
   const _SearchBarDelegate({
     required this.controller,
     required this.query,
     required this.onChanged,
     required this.onClear,
+    required this.onFilter,
   });
 
   @override
-  double get minExtent => 66;
+  double get minExtent => 52;
   @override
-  double get maxExtent => 66;
+  double get maxExtent => 52;
 
   @override
   bool shouldRebuild(_SearchBarDelegate old) =>
@@ -319,62 +436,64 @@ class _SearchBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
-    // Cuando overlapsContent=true (el header cubre el contenido), activamos vidrio esmerilado
-    final isFloating = overlapsContent;
-
-    return ClipRect(
-      child: BackdropFilter(
-        filter: isFloating
-            ? ImageFilter.blur(sigmaX: 18, sigmaY: 18)
-            : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-        child: Container(
-          color: isFloating
-              ? Colors.white.withOpacity(0.72)
-              : Colors.white,
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: isFloating
-                    ? AppTheme.primary.withOpacity(0.7)
-                    : const Color(0xFFE0E0E0),
-                width: 1.5,
-              ),
-            ),
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 8, 4, 8),
+      child: Row(
+        children: [
+          Expanded(
             child: TextField(
               controller: controller,
               onChanged: onChanged,
+              style: const TextStyle(color: AppTheme.darkDark, fontSize: 14),
               decoration: InputDecoration(
-                hintText: 'Buscar por nombre, categoría...',
+                hintText: 'Buscar reportes...',
                 hintStyle: const TextStyle(
-                    color: Color(0xFF9E9E9E), fontSize: 14),
-                prefixIcon: Icon(Icons.search,
-                    color: isFloating
-                        ? AppTheme.primary
-                        : const Color(0xFF6B7280),
-                    size: 20),
+                    color: AppTheme.textSecondary, fontSize: 14),
+                prefixIcon: const Icon(Icons.search,
+                    color: AppTheme.textSecondary, size: 20),
                 suffixIcon: query.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
+                        icon: const Icon(Icons.clear,
+                            size: 18, color: AppTheme.textSecondary),
                         onPressed: onClear,
                       )
                     : null,
-                filled: false,
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                    vertical: 12, horizontal: 4),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(100),
+                  borderSide:
+                      const BorderSide(color: AppTheme.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(100),
+                  borderSide:
+                      const BorderSide(color: AppTheme.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(100),
+                  borderSide:
+                      const BorderSide(color: AppTheme.primaryBase, width: 1.5),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
               ),
             ),
           ),
-        ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.filter_list, color: AppTheme.darkBase),
+            tooltip: 'Filtros',
+            onPressed: onFilter,
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
     );
   }
 }
+
 
 // ── Navegación con fade suave + delay para ver la animación ───────────
 Future<T?> _navigateWithFade<T>(BuildContext context, Widget page) async {
@@ -434,10 +553,10 @@ class _AlertaMiniCardState extends State<_AlertaMiniCard> {
         child: Container(
           width: 180,
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF3E0),
+            color: AppTheme.backgroundLight,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-                color: const Color(0xFFFF9800).withOpacity(0.3)),
+                color: AppTheme.border),
           ),
           child: Row(
             children: [
@@ -462,7 +581,7 @@ class _AlertaMiniCardState extends State<_AlertaMiniCard> {
                   width: 60,
                   height: 115,
                   decoration: const BoxDecoration(
-                    color: Color(0xFFFFE0B2),
+                    color: AppTheme.background,
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(13),
                       bottomLeft: Radius.circular(13),
@@ -470,7 +589,7 @@ class _AlertaMiniCardState extends State<_AlertaMiniCard> {
                   ),
                   child: Icon(
                       _getIconoPorCategoria(ficha.nombreCategoria),
-                      color: const Color(0xFFE65100),
+                      color: AppTheme.primaryBase,
                       size: 28),
                 ),
               Expanded(
@@ -483,13 +602,13 @@ class _AlertaMiniCardState extends State<_AlertaMiniCard> {
                     children: [
                       const Row(children: [
                         Icon(Icons.warning_amber_rounded,
-                            color: Color(0xFFE65100), size: 12),
+                            color: AppTheme.accentDark, size: 12),
                         SizedBox(width: 4),
                         Text('NUEVO',
                             style: TextStyle(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w900,
-                                color: Color(0xFFE65100),
+                                color: AppTheme.accentDark,
                                 letterSpacing: 0.5)),
                       ]),
                       const SizedBox(height: 4),
@@ -499,7 +618,7 @@ class _AlertaMiniCardState extends State<_AlertaMiniCard> {
                           style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF1A1A1A),
+                              color: AppTheme.textPrimary,
                               height: 1.2)),
                       if (ficha.nombreCategoria != null) ...[
                         const SizedBox(height: 3),
@@ -508,7 +627,7 @@ class _AlertaMiniCardState extends State<_AlertaMiniCard> {
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                                 fontSize: 10,
-                                color: Color(0xFF6B7280))),
+                                color: AppTheme.textSecondary)),
                       ],
                     ],
                   ),
@@ -544,7 +663,6 @@ class _FichaCercanaCardState extends State<_FichaCercanaCard> {
     final ficha = widget.ficha;
     final distanciaKm = widget.distanciaKm;
     final esCreador = ficha.creadoPor == widget.currentUserId;
-    final isActive = ficha.estado.toLowerCase() == 'activo';
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
@@ -568,48 +686,42 @@ class _FichaCercanaCardState extends State<_FichaCercanaCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Indicador de estado separado (encima de la tarjeta)
-              Center(
-                child: Container(
-                  width: 28,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 5),
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? const Color(0xFF4CAF82)
-                        : const Color(0xFFF59E0B),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 7,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      if (ficha.fotoUrl != null &&
-                          ficha.fotoUrl!.isNotEmpty)
-                        Hero(
-                          tag: 'foto_cercana_${ficha.id}',
-                          child: CachedNetworkImage(
-                            imageUrl: ficha.fotoUrl!,
-                            fit: BoxFit.cover,
-                            memCacheWidth: 400,
-                            placeholder: (_, __) =>
-                                _CategoriaPlaceholder(
-                                    categoria:
-                                        ficha.nombreCategoria),
-                            errorWidget: (_, __, ___) =>
-                                _CategoriaPlaceholder(
-                                    categoria:
-                                        ficha.nombreCategoria),
-                          ),
-                        )
-                      else
-                        _CategoriaPlaceholder(
-                            categoria: ficha.nombreCategoria),
+            // ── Tarjeta imagen principal ──
+            Expanded(
+              flex: 7,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (ficha.fotoUrl != null &&
+                        ficha.fotoUrl!.isNotEmpty)
+                      Hero(
+                        tag: 'foto_cercana_${ficha.id}',
+                        child: CachedNetworkImage(
+                          imageUrl: ficha.fotoUrl!,
+                          fit: BoxFit.cover,
+                          memCacheWidth: 400,
+                          placeholder: (_, __) =>
+                              _CategoriaPlaceholder(
+                                  categoria:
+                                      ficha.nombreCategoria),
+                          errorWidget: (_, __, ___) =>
+                              _CategoriaPlaceholder(
+                                  categoria:
+                                      ficha.nombreCategoria),
+                        ),
+                      )
+                    else
+                      _CategoriaPlaceholder(
+                          categoria: ficha.nombreCategoria),
+
+                    // ── Chip de estado (esquina superior izquierda) ──
+                    Positioned(
+                      top: 7,
+                      left: 7,
+                      child: _buildEstadoChip(ficha.estado),
+                    ),
 
                       if (distanciaKm != null)
                         Positioned(
@@ -632,7 +744,7 @@ class _FichaCercanaCardState extends State<_FichaCercanaCard> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 6, vertical: 3),
                             decoration: BoxDecoration(
-                              color: AppTheme.primary.withOpacity(0.85),
+                              color: AppTheme.darkBase.withValues(alpha: 0.85),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: const Row(
@@ -717,7 +829,6 @@ class _FichaGridCardState extends State<_FichaGridCard> {
     final ficha = widget.ficha;
     final distanciaKm = widget.distanciaKm;
     final esCreador = ficha.creadoPor == widget.currentUserId;
-    final isActive = ficha.estado.toLowerCase() == 'activo';
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
@@ -740,20 +851,6 @@ class _FichaGridCardState extends State<_FichaGridCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Indicador de estado separado (encima de la tarjeta)
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 5),
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? const Color(0xFF4CAF82) // verde suave
-                      : const Color(0xFFF59E0B),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            ),
             // Imagen grande (70%)
             Expanded(
               flex: 10,
@@ -782,6 +879,13 @@ class _FichaGridCardState extends State<_FichaGridCard> {
                       _CategoriaPlaceholder(
                           categoria: ficha.nombreCategoria),
 
+                    // ── Chip de estado (esquina superior izquierda) ──
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: _buildEstadoChip(ficha.estado),
+                    ),
+
                     // Badge distancia (esquina superior derecha)
                     if (distanciaKm != null &&
                         distanciaKm < double.infinity)
@@ -804,7 +908,7 @@ class _FichaGridCardState extends State<_FichaGridCard> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 3),
                           decoration: BoxDecoration(
-                            color: AppTheme.primary.withOpacity(0.85),
+                            color: AppTheme.darkBase.withValues(alpha: 0.85),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: const Row(
@@ -868,7 +972,39 @@ class _FichaGridCardState extends State<_FichaGridCard> {
 }
 
 // ── Badge oscuro reutilizable (distancia, etc.) ───────────────────────
+// ── Chip de estado reutilizable ──────────────────────────────────────────
+Widget _buildEstadoChip(String estado) {
+  final e = estado.toLowerCase();
+  final Color dotColor;
+
+  if (e == 'activo') {
+    dotColor = AppTheme.primary; // Azul
+  } else if (e == 'pausado') {
+    dotColor = AppTheme.accent; // Dorado
+  } else {
+    dotColor = AppTheme.backgroundDark; // Gris
+  }
+
+  return Container(
+    width: 14,
+    height: 14,
+    decoration: BoxDecoration(
+      color: dotColor,
+      shape: BoxShape.circle,
+      border: Border.all(color: Colors.white, width: 2),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.25),
+          blurRadius: 3,
+          offset: const Offset(0, 1),
+        ),
+      ],
+    ),
+  );
+}
+
 class _BadgeOscuro extends StatelessWidget {
+
   final String label;
   final IconData? icon;
   const _BadgeOscuro({required this.label, this.icon});

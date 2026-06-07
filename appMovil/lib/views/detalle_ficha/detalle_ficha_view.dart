@@ -596,11 +596,14 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
               children: [
                 Icon(Icons.check_circle, color: AppTheme.success, size: 20),
                 SizedBox(width: 8),
-                Text(
-                  'Ya estás participando en esta búsqueda',
-                  style: TextStyle(
-                    color: AppTheme.primary,
-                    fontWeight: FontWeight.w600,
+                Expanded(
+                  child: Text(
+                    'Ya estás participando en esta búsqueda',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppTheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],

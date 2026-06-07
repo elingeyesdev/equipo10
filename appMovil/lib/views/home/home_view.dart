@@ -7,6 +7,7 @@ import '../../viewmodels/notificaciones_viewmodel.dart';
 import '../notificaciones/notificaciones_view.dart';
 import '../crear_ficha/crear_ficha_view.dart';
 import '../../viewmodels/feed_viewmodel.dart';
+import '../../viewmodels/auth_viewmodel.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/offline_banner.dart';
 
@@ -20,152 +21,121 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   int _currentIndex = 0;
 
-  // Etiquetas del navbar
   static const _tabs = [
-    _TabDef(
-      label: 'Explorar',
-      icon: Icons.public_outlined,
-      activeIcon: Icons.public,
-    ),
-    _TabDef(
-      label: 'Mis Búsquedas',
-      icon: Icons.folder_shared_outlined,
-      activeIcon: Icons.folder_shared,
-    ),
-    _TabDef(
-      label: 'Configuración',
-      icon: Icons.settings_outlined,
-      activeIcon: Icons.settings,
-    ),
+    _TabDef(label: 'Explorar',       icon: Icons.public_outlined,       activeIcon: Icons.public),
+    _TabDef(label: 'Mis Búsquedas', icon: Icons.folder_shared_outlined, activeIcon: Icons.folder_shared),
+    _TabDef(label: 'Configuración',  icon: Icons.settings_outlined,      activeIcon: Icons.settings),
   ];
 
-  AppBar _buildAppBar() {
-    // Tab 0: AppBar de Explorar con nombre de app alineado a la izquierda
+  // ── Widget reutilizable: campana con badge compacto al lado ──────────────
+  Widget _buildNotifButton(BuildContext context) {
+    return Consumer<NotificacionesViewModel>(
+      builder: (context, notifVm, _) {
+        return InkWell(
+          borderRadius: BorderRadius.circular(100),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const NotificacionesView()),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.notifications_outlined),
+                if (notifVm.unreadCount > 0) ...[
+                  const SizedBox(width: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accentDark,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      notifVm.unreadCount > 9 ? '9+' : '${notifVm.unreadCount}',
+                      style: const TextStyle(
+                        color: AppTheme.darkDark,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  PreferredSizeWidget? _buildAppBar() {
+    // ── Tab 0: Feed principal ─────────────────────────────────────────────
     if (_currentIndex == 0) {
       return AppBar(
         automaticallyImplyLeading: false,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        surfaceTintColor: Colors.white,
         centerTitle: false,
         titleSpacing: 20,
-        title: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.radar, color: Colors.white, size: 22),
-            SizedBox(width: 8),
-            Text(
-              'Echoes',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
+        iconTheme: const IconThemeData(color: AppTheme.darkBase),
+        actionsIconTheme: const IconThemeData(color: AppTheme.darkBase),
+        title: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.radar, color: AppTheme.primary, size: 32),
+              const SizedBox(width: 10),
+              const Text(
+                'Echoes',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 28,
+                  color: AppTheme.primary,
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            tooltip: 'Filtros Avanzados',
-            onPressed: () => _mostrarFiltros(context),
-          ),
-          Consumer<NotificacionesViewModel>(
-            builder: (context, notifVm, _) {
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications_outlined),
-                    tooltip: 'Notificaciones',
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const NotificacionesView()),
-                    ),
-                  ),
-                  if (notifVm.unreadCount > 0)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        constraints:
-                            const BoxConstraints(minWidth: 16, minHeight: 16),
-                        child: Text(
-                          notifVm.unreadCount > 9
-                              ? '9+'
-                              : '${notifVm.unreadCount}',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
+          _buildNotifButton(context),
+          const SizedBox(width: 8),
         ],
       );
     }
 
-    // Tab 1: Mis Búsquedas — también con notificaciones
+    // ── Tab 1: Mis Búsquedas ─────────────────────────────────────────────
     if (_currentIndex == 1) {
       return AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Mis búsquedas'),
-        actions: [
-          Consumer<NotificacionesViewModel>(
-            builder: (context, notifVm, _) {
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications_outlined),
-                    tooltip: 'Notificaciones',
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const NotificacionesView()),
-                    ),
-                  ),
-                  if (notifVm.unreadCount > 0)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        constraints:
-                            const BoxConstraints(minWidth: 16, minHeight: 16),
-                        child: Text(
-                          notifVm.unreadCount > 9
-                              ? '9+'
-                              : '${notifVm.unreadCount}',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
+        backgroundColor: Colors.white,
+        foregroundColor: AppTheme.darkDark,
+        elevation: 0,
+        surfaceTintColor: Colors.white,
+        title: const Padding(
+          padding: EdgeInsets.only(top: 8),
+          child: Text(
+            'Mis búsquedas',
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: AppTheme.primary,
+              fontSize: 28,
+            ),
           ),
+        ),
+        centerTitle: false,
+        actions: [
+          _buildNotifButton(context),
+          const SizedBox(width: 8),
         ],
       );
     }
 
-    // Tab 2: Configuración — sin botones extra
-    return AppBar(
-      automaticallyImplyLeading: false,
-      title: const Text('Configuración'),
-    );
+    // ── Tab 2: Configuración ─────────────────────────────────────────────
+    // Se elimina el AppBar para permitir un encabezado personalizado en PerfilView
+    return null;
   }
 
   @override
@@ -191,21 +161,24 @@ class _HomeViewState extends State<HomeView> {
                 );
                 if (result == true) feedVm.cargarFichas();
               },
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
+              backgroundColor: AppTheme.accent,
+              foregroundColor: AppTheme.darkDark,
               shape: const StadiumBorder(),
               icon: const Icon(Icons.add),
-              label: const Text('Reportar',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
+              label: const Text(
+                'Reportar',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
             )
           : null,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
+          color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
+              color: AppTheme.darkBase.withValues(alpha: 0.10),
               blurRadius: 10,
-              offset: const Offset(0, -4),
+              offset: const Offset(0, -3),
             ),
           ],
         ),
@@ -214,7 +187,7 @@ class _HomeViewState extends State<HomeView> {
           onTap: (index) => setState(() => _currentIndex = index),
           backgroundColor: Colors.white,
           selectedItemColor: AppTheme.primary,
-          unselectedItemColor: Colors.grey,
+          unselectedItemColor: AppTheme.darkLight,
           selectedLabelStyle:
               const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
           type: BottomNavigationBarType.fixed,
@@ -227,120 +200,6 @@ class _HomeViewState extends State<HomeView> {
               .toList(),
         ),
       ),
-    );
-  }
-
-  void _mostrarFiltros(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        final feedVm = context.read<FeedViewModel>();
-        
-        String? tipoTemp = feedVm.filtroTipo;
-        String? estadoTemp = feedVm.filtroEstado;
-        double radioTemp = feedVm.filtroDistanciaRadioKm ?? 10.0; // por defecto 10 km
-        
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20, right: 20, top: 20, 
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Filtros Avanzados', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
-                  
-                  // Filtro por Estado
-                  const Text('Estado del caso:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  DropdownButton<String>(
-                    isExpanded: true,
-                    value: estadoTemp,
-                    hint: const Text('Cualquier estado'),
-                    items: const [
-                      DropdownMenuItem(value: null, child: Text('Todos')),
-                      DropdownMenuItem(value: 'activo', child: Text('Activo')),
-                      DropdownMenuItem(value: 'pausado', child: Text('Pausado')),
-                      DropdownMenuItem(value: 'resuelto', child: Text('Resuelto')),
-                    ],
-                    onChanged: (val) => setState(() => estadoTemp = val),
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  // Filtro por Tipo de Reporte
-                  const Text('Tipo de caso:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  DropdownButton<String>(
-                    isExpanded: true,
-                    value: tipoTemp,
-                    hint: const Text('Cualquier tipo'),
-                    items: const [
-                      DropdownMenuItem(value: null, child: Text('Todos')),
-                      DropdownMenuItem(value: 'desaparicion', child: Text('Desaparición de Persona')),
-                      DropdownMenuItem(value: 'mascota', child: Text('Mascota Extraviada')),
-                      DropdownMenuItem(value: 'objeto', child: Text('Objeto Perdido')),
-                    ],
-                    onChanged: (val) => setState(() => tipoTemp = val),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Filtro de Radio de búsqueda
-                  const Text('Radio de cercanía (km):', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Slider(
-                    value: radioTemp,
-                    min: 1,
-                    max: 100,
-                    divisions: 99,
-                    label: '${radioTemp.round()} km',
-                    activeColor: AppTheme.primary,
-                    onChanged: (val) => setState(() => radioTemp = val),
-                  ),
-                  Center(child: Text('${radioTemp.round()} km a la redonda', style: const TextStyle(color: Colors.grey))),
-                  const SizedBox(height: 24),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            feedVm.setFiltros(tipo: null, estado: null, radio: null);
-                            Navigator.pop(ctx);
-                          },
-                          child: const Text('Limpiar Filtros'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            feedVm.setFiltros(
-                              tipo: tipoTemp,
-                              estado: estadoTemp,
-                              radio: radioTemp,
-                            );
-                            Navigator.pop(ctx);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primary,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Aplicar'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
     );
   }
 }
