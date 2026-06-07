@@ -107,12 +107,20 @@ class _TuCuentaViewState extends State<TuCuentaView> with SingleTickerProviderSt
     final vm = context.watch<PerfilViewModel>();
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Tu Cuenta'),
+        title: const Text('Tu cuenta'),
+        backgroundColor: Colors.white,
+        foregroundColor: AppTheme.textPrimary,
+        elevation: 0,
+        centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
+          labelColor: AppTheme.primary,
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: AppTheme.primary,
           tabs: const [
-            Tab(text: 'Datos Personales'),
+            Tab(text: 'Datos personales'),
             Tab(text: 'Seguridad'),
           ],
         ),
@@ -122,7 +130,7 @@ class _TuCuentaViewState extends State<TuCuentaView> with SingleTickerProviderSt
           : TabBarView(
               controller: _tabController,
               children: [
-                // TAB 1: Datos Personales
+                // TAB 1: Datos personales
                 SingleChildScrollView(
                   padding: const EdgeInsets.all(20),
                   child: Form(
@@ -130,24 +138,26 @@ class _TuCuentaViewState extends State<TuCuentaView> with SingleTickerProviderSt
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Información Pública', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const Text('Información pública', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _nombreCtrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Nombre Completo',
-                            prefixIcon: Icon(Icons.person),
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: 'Nombre completo',
+                            prefixIcon: const Icon(Icons.person, size: 20),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                           ),
                           validator: (v) => v == null || v.isEmpty ? 'El nombre es requerido' : null,
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _telefonoCtrl,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: 'Teléfono',
-                            prefixIcon: Icon(Icons.phone),
-                            border: OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.phone, size: 20),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                           ),
                           keyboardType: TextInputType.phone,
                         ),
@@ -157,8 +167,11 @@ class _TuCuentaViewState extends State<TuCuentaView> with SingleTickerProviderSt
                           height: 50,
                           child: ElevatedButton(
                             onPressed: _guardarDatos,
-                            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
-                            child: const Text('Guardar Datos', style: TextStyle(color: Colors.white, fontSize: 16)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                            ),
+                            child: const Text('Guardar datos', style: TextStyle(color: Colors.white, fontSize: 16)),
                           ),
                         ),
                       ],
@@ -174,7 +187,7 @@ class _TuCuentaViewState extends State<TuCuentaView> with SingleTickerProviderSt
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Cambiar Contraseña', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const Text('Cambiar contraseña', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 8),
                         const Text('Protege tu cuenta con una contraseña fuerte.', style: TextStyle(color: Colors.grey)),
                         const SizedBox(height: 20),
@@ -183,13 +196,14 @@ class _TuCuentaViewState extends State<TuCuentaView> with SingleTickerProviderSt
                           controller: _passActualCtrl,
                           obscureText: _obscureActual,
                           decoration: InputDecoration(
-                            labelText: 'Contraseña Actual',
-                            prefixIcon: const Icon(Icons.lock_outline),
+                            labelText: 'Contraseña actual',
+                            prefixIcon: const Icon(Icons.lock_outline, size: 20),
                             suffixIcon: IconButton(
-                              icon: Icon(_obscureActual ? Icons.visibility_off : Icons.visibility),
+                              icon: Icon(_obscureActual ? Icons.visibility_off : Icons.visibility, size: 20),
                               onPressed: () => setState(() => _obscureActual = !_obscureActual),
                             ),
-                            border: const OutlineInputBorder(),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                           ),
                           validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
                         ),
@@ -200,13 +214,14 @@ class _TuCuentaViewState extends State<TuCuentaView> with SingleTickerProviderSt
                           obscureText: _obscureNueva,
                           onChanged: (v) => setState(() {}),
                           decoration: InputDecoration(
-                            labelText: 'Nueva Contraseña',
-                            prefixIcon: const Icon(Icons.lock_reset),
+                            labelText: 'Nueva contraseña',
+                            prefixIcon: const Icon(Icons.lock_reset, size: 20),
                             suffixIcon: IconButton(
-                              icon: Icon(_obscureNueva ? Icons.visibility_off : Icons.visibility),
+                              icon: Icon(_obscureNueva ? Icons.visibility_off : Icons.visibility, size: 20),
                               onPressed: () => setState(() => _obscureNueva = !_obscureNueva),
                             ),
-                            border: const OutlineInputBorder(),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                           ),
                           validator: (v) {
                             if (v == null || v.isEmpty) return 'Requerido';
@@ -240,13 +255,14 @@ class _TuCuentaViewState extends State<TuCuentaView> with SingleTickerProviderSt
                           controller: _passConfirmCtrl,
                           obscureText: _obscureConfirm,
                           decoration: InputDecoration(
-                            labelText: 'Confirmar Nueva Contraseña',
-                            prefixIcon: const Icon(Icons.lock),
+                            labelText: 'Confirmar nueva contraseña',
+                            prefixIcon: const Icon(Icons.lock, size: 20),
                             suffixIcon: IconButton(
-                              icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility),
+                              icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility, size: 20),
                               onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
                             ),
-                            border: const OutlineInputBorder(),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                           ),
                           validator: (v) {
                             if (v != _passNuevaCtrl.text) return 'Las contraseñas no coinciden';
@@ -260,8 +276,11 @@ class _TuCuentaViewState extends State<TuCuentaView> with SingleTickerProviderSt
                           height: 50,
                           child: ElevatedButton(
                             onPressed: _cambiarPassword,
-                            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
-                            child: const Text('Actualizar Contraseña', style: TextStyle(color: Colors.white, fontSize: 16)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                            ),
+                            child: const Text('Actualizar contraseña', style: TextStyle(color: Colors.white, fontSize: 16)),
                           ),
                         ),
                       ],

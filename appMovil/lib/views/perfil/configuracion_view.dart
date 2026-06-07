@@ -74,12 +74,12 @@ class _ConfiguracionViewState extends State<ConfiguracionView> {
     switch (_locationPermission) {
       case LocationPermission.always:
         gpsColor = AppTheme.success;
-        gpsText = 'Óptimo (Permitido todo el tiempo)';
+        gpsText = 'Óptimo (permitido todo el tiempo)';
         gpsIcon = Icons.location_on;
         break;
       case LocationPermission.whileInUse:
-        gpsColor = Colors.orange;
-        gpsText = 'Restringido (Solo en uso)';
+        gpsColor = AppTheme.warning;
+        gpsText = 'Restringido (solo en uso)';
         gpsIcon = Icons.location_on_outlined;
         break;
       default:
@@ -91,7 +91,7 @@ class _ConfiguracionViewState extends State<ConfiguracionView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Configuración'),
+        title: const Text('Configuración', style: TextStyle(color: AppTheme.textPrimary)),
         backgroundColor: Colors.white,
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
@@ -101,7 +101,7 @@ class _ConfiguracionViewState extends State<ConfiguracionView> {
         padding: const EdgeInsets.all(16),
         children: [
           // ── Permisos de Ubicación ──────────────────────────────────────────
-          const _SeccionHeader(titulo: 'PERMISOS DE UBICACIÓN'),
+          const _SeccionHeader(titulo: 'Permisos de ubicación'),
           Card(
             elevation: 0,
             shape: RoundedRectangleBorder(
@@ -167,7 +167,7 @@ class _ConfiguracionViewState extends State<ConfiguracionView> {
           const SizedBox(height: 24),
 
           // ── Notificaciones ─────────────────────────────────────────────────
-          const _SeccionHeader(titulo: 'NOTIFICACIONES'),
+          const _SeccionHeader(titulo: 'Notificaciones'),
           Card(
             elevation: 0,
             shape: RoundedRectangleBorder(
@@ -178,7 +178,7 @@ class _ConfiguracionViewState extends State<ConfiguracionView> {
               children: [
                 SwitchListTile(
                   activeColor: AppTheme.primary,
-                  title: const Text('Notificaciones Push',
+                  title: const Text('Notificaciones push',
                       style: TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: const Text('Nuevos operativos y avisos urgentes',
                       style: TextStyle(fontSize: 12)),
@@ -188,7 +188,7 @@ class _ConfiguracionViewState extends State<ConfiguracionView> {
                 const Divider(height: 1),
                 SwitchListTile(
                   activeColor: AppTheme.primary,
-                  title: const Text('Alertas Sonoras',
+                  title: const Text('Alertas sonoras',
                       style: TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: const Text('Sonido al recibir notificaciones en la app',
                       style: TextStyle(fontSize: 12)),
@@ -201,7 +201,7 @@ class _ConfiguracionViewState extends State<ConfiguracionView> {
           const SizedBox(height: 24),
 
           // ── Almacenamiento ─────────────────────────────────────────────────
-          const _SeccionHeader(titulo: 'ALMACENAMIENTO'),
+          const _SeccionHeader(titulo: 'Almacenamiento'),
           Card(
             elevation: 0,
             shape: RoundedRectangleBorder(
@@ -213,10 +213,10 @@ class _ConfiguracionViewState extends State<ConfiguracionView> {
               leading: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
+                  color: AppTheme.accent.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.cleaning_services, color: Colors.orange.shade700),
+                child: const Icon(Icons.cleaning_services, color: AppTheme.accentDark),
               ),
               title: const Text('Limpiar caché',
                   style: TextStyle(fontWeight: FontWeight.w600)),

@@ -67,9 +67,20 @@ class _RegisterViewState extends State<RegisterView> {
     final vm = context.watch<AuthViewModel>();
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Crear Cuenta'),
-        leading: const BackButton(),
+        title: const Text(
+          'Crear cuenta',
+          style: TextStyle(
+            color: AppTheme.textPrimary,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        leading: const BackButton(color: AppTheme.textPrimary),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: false,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -99,7 +110,7 @@ class _RegisterViewState extends State<RegisterView> {
                   textCapitalization: TextCapitalization.words,
                   decoration: const InputDecoration(
                     labelText: 'Nombre completo',
-                    prefixIcon: Icon(Icons.person_outline),
+                    prefixIcon: Icon(Icons.person_outline, size: 20),
                   ),
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? 'Ingresa tu nombre'
@@ -112,7 +123,7 @@ class _RegisterViewState extends State<RegisterView> {
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
                     labelText: 'Teléfono',
-                    prefixIcon: Icon(Icons.phone_outlined),
+                    prefixIcon: Icon(Icons.phone_outlined, size: 20),
                   ),
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? 'Ingresa tu teléfono'
@@ -125,7 +136,7 @@ class _RegisterViewState extends State<RegisterView> {
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
                     labelText: 'Correo electrónico',
-                    prefixIcon: Icon(Icons.email_outlined),
+                    prefixIcon: Icon(Icons.email_outlined, size: 20),
                   ),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Ingresa tu correo';
@@ -140,12 +151,13 @@ class _RegisterViewState extends State<RegisterView> {
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     labelText: 'Contraseña',
-                    prefixIcon: const Icon(Icons.lock_outline),
+                    prefixIcon: const Icon(Icons.lock_outline, size: 20),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
+                        size: 20,
                       ),
                       onPressed: () =>
                           setState(() => _obscurePassword = !_obscurePassword),
@@ -160,9 +172,25 @@ class _RegisterViewState extends State<RegisterView> {
                 const SizedBox(height: 32),
                 vm.isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : ElevatedButton(
-                        onPressed: _onRegistrar,
-                        child: const Text('Crear Cuenta'),
+                    : SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: _onRegistrar,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            shape: const StadiumBorder(),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'Crear cuenta',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
                       ),
               ],
             ),

@@ -23,7 +23,7 @@ class _HomeViewState extends State<HomeView> {
 
   static const _tabs = [
     _TabDef(label: 'Explorar',       icon: Icons.public_outlined,       activeIcon: Icons.public),
-    _TabDef(label: 'Mis Búsquedas', icon: Icons.folder_shared_outlined, activeIcon: Icons.folder_shared),
+    _TabDef(label: 'Mis reportes', icon: Icons.folder_shared_outlined, activeIcon: Icons.folder_shared),
     _TabDef(label: 'Configuración',  icon: Icons.settings_outlined,      activeIcon: Icons.settings),
   ];
 
@@ -117,7 +117,7 @@ class _HomeViewState extends State<HomeView> {
         title: const Padding(
           padding: EdgeInsets.only(top: 8),
           child: Text(
-            'Mis búsquedas',
+            'Mis reportes',
             style: TextStyle(
               fontWeight: FontWeight.w800,
               color: AppTheme.primary,

@@ -298,9 +298,7 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
                                 onPressed: _onLogin,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppTheme.primary,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
+                                  shape: const StadiumBorder(),
                                   elevation: 0,
                                 ),
                                 child: const Text(

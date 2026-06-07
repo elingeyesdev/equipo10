@@ -36,8 +36,13 @@ class _AboutViewState extends State<AboutView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Sobre Echoes'),
+        title: const Text('Sobre Echoes', style: TextStyle(color: AppTheme.textPrimary)),
+        backgroundColor: Colors.white,
+        foregroundColor: AppTheme.textPrimary,
+        elevation: 0,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -115,7 +120,7 @@ class _AboutViewState extends State<AboutView> {
                       _controller,
                       allowScrubbing: true,
                       colors: const VideoProgressColors(
-                        playedColor: Color(0xFF00BCD4),
+                        playedColor: AppTheme.primary,
                         backgroundColor: Colors.black26,
                       ),
                     ),
@@ -149,7 +154,7 @@ class _AboutViewState extends State<AboutView> {
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1A1A1A),
+                        color: AppTheme.textPrimary,
                       ),
                     ),
                   ),
@@ -159,9 +164,8 @@ class _AboutViewState extends State<AboutView> {
                     style: TextStyle(
                       fontSize: 16,
                       height: 1.6,
-                      color: Color(0xFF424242),
+                      color: AppTheme.textSecondary,
                     ),
-                    textAlign: TextAlign.justify,
                   ),
                   const SizedBox(height: 24),
                   const Text(
@@ -218,7 +222,7 @@ class _AboutViewState extends State<AboutView> {
               text,
               style: const TextStyle(
                 fontSize: 15,
-                color: Color(0xFF424242),
+                color: AppTheme.textSecondary,
                 height: 1.4,
               ),
             ),

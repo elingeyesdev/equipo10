@@ -36,6 +36,15 @@ String _formatRelativo(DateTime? fecha) {
   return 'hace $meses mes${meses > 1 ? 'es' : ''}';
 }
 
+String _buildTiempoYDistancia(DateTime? fecha, double? dist) {
+  final List<String> parts = [];
+  if (fecha != null) parts.add(_formatRelativo(fecha));
+  if (dist != null && dist < double.infinity) {
+    parts.add(dist < 1 ? '${(dist * 1000).round()} m' : '${dist.toStringAsFixed(1)} km');
+  }
+  return parts.join(' • ');
+}
+
 // ── Estilo compartido para títulos de sección ─────────────────────────
 // Para cambiar tamaño o peso:  modifica fontSize y fontWeight aquí.
 // Para tu fuente TTF:
@@ -137,12 +146,6 @@ class _FeedViewState extends State<FeedView> {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
               child: Row(
                 children: [
-                  Container(
-                    width: 7, height: 7,
-                    decoration: const BoxDecoration(
-                        color: AppTheme.primaryBase, shape: BoxShape.circle),
-                  ),
-                  const SizedBox(width: 6),
                   Text('Se encontraron ${todos.length} operativo${todos.length != 1 ? 's' : ''}',
                       style: const TextStyle(
                           fontSize: 12,
@@ -299,6 +302,7 @@ void _mostrarFiltros(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -313,92 +317,116 @@ void _mostrarFiltros(BuildContext context) {
           builder: (context, setState) {
             return Padding(
               padding: EdgeInsets.only(
-                left: 20, right: 20, top: 20, 
+                top: 20, 
                 bottom: MediaQuery.of(context).viewInsets.bottom + 20
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Filtros Avanzados', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: Text('Filtros avanzados', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  ),
                   const SizedBox(height: 16),
                   
                   // Filtro por Estado
-                  const Text('Estado del caso:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  DropdownButton<String>(
-                    isExpanded: true,
-                    value: estadoTemp,
-                    hint: const Text('Cualquier estado'),
-                    items: const [
-                      DropdownMenuItem(value: null, child: Text('Todos')),
-                      DropdownMenuItem(value: 'activo', child: Text('Activo')),
-                      DropdownMenuItem(value: 'pausado', child: Text('Pausado')),
-                      DropdownMenuItem(value: 'resuelto', child: Text('Resuelto')),
-                    ],
-                    onChanged: (val) => setState(() => estadoTemp = val),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: Text('Estado del reporte:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: estadoTemp,
+                      hint: const Text('Cualquier estado'),
+                      items: const [
+                        DropdownMenuItem(value: null, child: Text('Todos')),
+                        DropdownMenuItem(value: 'activo', child: Text('Activo')),
+                        DropdownMenuItem(value: 'pausado', child: Text('Pausado')),
+                        DropdownMenuItem(value: 'resuelto', child: Text('Terminado/Resuelto')),
+                      ],
+                      onChanged: (val) => setState(() => estadoTemp = val),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   
                   // Filtro por Tipo de Reporte
-                  const Text('Tipo de caso:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  DropdownButton<String>(
-                    isExpanded: true,
-                    value: tipoTemp,
-                    hint: const Text('Cualquier tipo'),
-                    items: const [
-                      DropdownMenuItem(value: null, child: Text('Todos')),
-                      DropdownMenuItem(value: 'desaparicion', child: Text('DesapariciÃ³n de Persona')),
-                      DropdownMenuItem(value: 'mascota', child: Text('Mascota Extraviada')),
-                      DropdownMenuItem(value: 'objeto', child: Text('Objeto Perdido')),
-                    ],
-                    onChanged: (val) => setState(() => tipoTemp = val),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: Text('Tipo de reporte:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: tipoTemp,
+                      hint: const Text('Cualquier tipo'),
+                      items: const [
+                        DropdownMenuItem(value: null, child: Text('Todos')),
+                        DropdownMenuItem(value: 'desaparicion', child: Text('Desaparición de persona')),
+                        DropdownMenuItem(value: 'mascota', child: Text('Mascota extraviada')),
+                        DropdownMenuItem(value: 'objeto', child: Text('Objeto perdido')),
+                      ],
+                      onChanged: (val) => setState(() => tipoTemp = val),
+                    ),
                   ),
                   const SizedBox(height: 12),
 
-                  // Filtro de Radio de bÃºsqueda
-                  const Text('Radio de cercanÃ­a (km):', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Slider(
-                    value: radioTemp,
-                    min: 1,
-                    max: 100,
-                    divisions: 99,
-                    label: '${radioTemp.round()} km',
-                    activeColor: AppTheme.primary,
-                    onChanged: (val) => setState(() => radioTemp = val),
+                  // Filtro de Radio de búsqueda
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: Text('Radio de cercanía (km):', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4), // 4 + 16 slider padding = 20
+                    child: Slider(
+                      value: radioTemp,
+                      min: 1,
+                      max: 100,
+                      divisions: 99,
+                      label: '${radioTemp.round()} km',
+                      activeColor: AppTheme.primary,
+                      onChanged: (val) => setState(() => radioTemp = val),
+                    ),
                   ),
                   Center(child: Text('${radioTemp.round()} km a la redonda', style: const TextStyle(color: Colors.grey))),
                   const SizedBox(height: 24),
 
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            feedVm.setFiltros(tipo: null, estado: null, radio: null);
-                            Navigator.pop(ctx);
-                          },
-                          child: const Text('Limpiar Filtros'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            feedVm.setFiltros(
-                              tipo: tipoTemp,
-                              estado: estadoTemp,
-                              radio: radioTemp,
-                            );
-                            Navigator.pop(ctx);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primary,
-                            foregroundColor: Colors.white,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              feedVm.setFiltros(tipo: null, estado: null, radio: null);
+                              Navigator.pop(ctx);
+                            },
+                            child: const Text('Limpiar filtros'),
                           ),
-                          child: const Text('Aplicar'),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              feedVm.setFiltros(
+                                tipo: tipoTemp,
+                                estado: estadoTemp,
+                                radio: radioTemp,
+                              );
+                              Navigator.pop(ctx);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Text('Aplicar'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -663,6 +691,7 @@ class _FichaCercanaCardState extends State<_FichaCercanaCard> {
     final ficha = widget.ficha;
     final distanciaKm = widget.distanciaKm;
     final esCreador = ficha.creadoPor == widget.currentUserId;
+    final esResuelto = ficha.estado?.toLowerCase() == 'terminado' || ficha.estado?.toLowerCase() == 'resuelto';
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
@@ -681,61 +710,206 @@ class _FichaCercanaCardState extends State<_FichaCercanaCard> {
       child: AnimatedScale(
         scale: _pressed ? 0.96 : 1.0,
         duration: const Duration(milliseconds: 120),
-        child: SizedBox(
-          width: 200,
+        child: Opacity(
+          opacity: esResuelto ? 0.6 : 1.0,
+          child: SizedBox(
+            width: 200,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+              // ── Tarjeta imagen principal ──
+              Expanded(
+                flex: 7,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (ficha.fotoUrl != null &&
+                          ficha.fotoUrl!.isNotEmpty)
+                        Hero(
+                          tag: 'foto_cercana_${ficha.id}',
+                          child: CachedNetworkImage(
+                            imageUrl: ficha.fotoUrl!,
+                            fit: BoxFit.cover,
+                            memCacheWidth: 400,
+                            placeholder: (_, __) =>
+                                _CategoriaPlaceholder(
+                                    categoria:
+                                        ficha.nombreCategoria),
+                            errorWidget: (_, __, ___) =>
+                                _CategoriaPlaceholder(
+                                    categoria:
+                                        ficha.nombreCategoria),
+                          ),
+                        )
+                      else
+                        _CategoriaPlaceholder(
+                            categoria: ficha.nombreCategoria),
+
+                      // ── Chip de estado (esquina superior derecha) ──
+                      Positioned(
+                        top: 7,
+                        right: 7,
+                        child: _buildEstadoChip(ficha.estado),
+                      ),
+
+                        // Badge "Tu reporte"
+                        if (esCreador)
+                          Positioned(
+                            bottom: 8,
+                            left: 8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppTheme.darkBase.withValues(alpha: 0.85),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.person,
+                                      size: 10, color: Colors.white),
+                                  SizedBox(width: 4),
+                                  Text('Tu reporte',
+                                      style: TextStyle(
+                                          fontSize: 9,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w700)),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  flex: 3,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(ficha.titulo,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF111827),
+                                letterSpacing: -0.2)),
+                        const SizedBox(height: 2),
+                        Text(ficha.descripcion,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF6B7280))),
+                        const SizedBox(height: 2),
+                        if (ficha.createdAt != null || distanciaKm != null)
+                          Text(_buildTiempoYDistancia(ficha.createdAt, distanciaKm),
+                              style: const TextStyle(
+                                  fontSize: 9,
+                                  color: Color(0xFF9E9E9E))),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Tarjeta de grid tipo Airbnb (AnimatedScale) ───────────────────────
+class _FichaGridCard extends StatefulWidget {
+  final ReporteModel ficha;
+  final String currentUserId;
+  final double? distanciaKm;
+  const _FichaGridCard(
+      {required this.ficha,
+      required this.currentUserId,
+      this.distanciaKm});
+
+  @override
+  State<_FichaGridCard> createState() => _FichaGridCardState();
+}
+
+class _FichaGridCardState extends State<_FichaGridCard> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final ficha = widget.ficha;
+    final distanciaKm = widget.distanciaKm;
+    final esCreador = ficha.creadoPor == widget.currentUserId;
+    final esResuelto = ficha.estado?.toLowerCase() == 'terminado' || ficha.estado?.toLowerCase() == 'resuelto';
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTap: () async {
+        setState(() => _pressed = false);
+        final feedVm = context.read<FeedViewModel>();
+        final result = await _navigateWithFade<bool>(
+          context,
+          DetalleFichaView(
+              fichaId: ficha.id,
+              currentUserId: widget.currentUserId),
+        );
+        if (result == true) feedVm.cargarFichas();
+      },
+      child: AnimatedScale(
+        scale: _pressed ? 0.96 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        child: Opacity(
+          opacity: esResuelto ? 0.6 : 1.0,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            // ── Tarjeta imagen principal ──
-            Expanded(
-              flex: 7,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    if (ficha.fotoUrl != null &&
-                        ficha.fotoUrl!.isNotEmpty)
-                      Hero(
-                        tag: 'foto_cercana_${ficha.id}',
-                        child: CachedNetworkImage(
-                          imageUrl: ficha.fotoUrl!,
-                          fit: BoxFit.cover,
-                          memCacheWidth: 400,
-                          placeholder: (_, __) =>
-                              _CategoriaPlaceholder(
-                                  categoria:
-                                      ficha.nombreCategoria),
-                          errorWidget: (_, __, ___) =>
-                              _CategoriaPlaceholder(
-                                  categoria:
-                                      ficha.nombreCategoria),
-                        ),
-                      )
-                    else
-                      _CategoriaPlaceholder(
-                          categoria: ficha.nombreCategoria),
-
-                    // ── Chip de estado (esquina superior izquierda) ──
-                    Positioned(
-                      top: 7,
-                      left: 7,
-                      child: _buildEstadoChip(ficha.estado),
-                    ),
-
-                      if (distanciaKm != null)
-                        Positioned(
-                          top: 10,
-                          right: 10,
-                          child: _BadgeOscuro(
-                            icon: Icons.near_me,
-                            label: distanciaKm < 1
-                                ? '${(distanciaKm * 1000).round()} m'
-                                : '${distanciaKm.toStringAsFixed(1)} km',
+              // Imagen grande (70%)
+              Expanded(
+                flex: 10,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (ficha.fotoUrl != null &&
+                          ficha.fotoUrl!.isNotEmpty)
+                        Hero(
+                          tag: 'foto_${ficha.id}',
+                          child: CachedNetworkImage(
+                            imageUrl: ficha.fotoUrl!,
+                            fit: BoxFit.cover,
+                            memCacheWidth: 400,
+                            placeholder: (_, __) =>
+                                _CategoriaPlaceholder(
+                                    categoria: ficha.nombreCategoria),
+                            errorWidget: (_, __, ___) =>
+                                _CategoriaPlaceholder(
+                                    categoria: ficha.nombreCategoria),
                           ),
-                        ),
+                        )
+                      else
+                        _CategoriaPlaceholder(
+                            categoria: ficha.nombreCategoria),
 
-                      // Badge "Tu reporte"
+                      // ── Chip de estado (esquina superior derecha) ──
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: _buildEstadoChip(ficha.estado),
+                      ),
+
+                      // Indicador de creador (esquina inferior izquierda)
                       if (esCreador)
                         Positioned(
                           bottom: 8,
@@ -766,205 +940,42 @@ class _FichaCercanaCardState extends State<_FichaCercanaCard> {
                   ),
                 ),
               ),
+
+              // Texto debajo (sin caja)
               const SizedBox(height: 8),
               Expanded(
-                flex: 3,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(ficha.titulo,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF111827),
-                              letterSpacing: -0.2)),
-                      const SizedBox(height: 2),
-                      Text(ficha.descripcion,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 11,
-                              color: Color(0xFF6B7280))),
-                      const SizedBox(height: 2),
-                      if (ficha.createdAt != null)
-                        Text(_formatRelativo(ficha.createdAt),
-                            style: const TextStyle(
-                                fontSize: 9,
-                                color: Color(0xFF9E9E9E))),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Tarjeta de grid tipo Airbnb (AnimatedScale) ───────────────────────
-class _FichaGridCard extends StatefulWidget {
-  final ReporteModel ficha;
-  final String currentUserId;
-  final double? distanciaKm;
-  const _FichaGridCard(
-      {required this.ficha,
-      required this.currentUserId,
-      this.distanciaKm});
-
-  @override
-  State<_FichaGridCard> createState() => _FichaGridCardState();
-}
-
-class _FichaGridCardState extends State<_FichaGridCard> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final ficha = widget.ficha;
-    final distanciaKm = widget.distanciaKm;
-    final esCreador = ficha.creadoPor == widget.currentUserId;
-
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTap: () async {
-        setState(() => _pressed = false);
-        final feedVm = context.read<FeedViewModel>();
-        final result = await _navigateWithFade<bool>(
-          context,
-          DetalleFichaView(
-              fichaId: ficha.id,
-              currentUserId: widget.currentUserId),
-        );
-        if (result == true) feedVm.cargarFichas();
-      },
-      child: AnimatedScale(
-        scale: _pressed ? 0.96 : 1.0,
-        duration: const Duration(milliseconds: 120),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Imagen grande (70%)
-            Expanded(
-              flex: 10,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Stack(
-                  fit: StackFit.expand,
+                flex: 4,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (ficha.fotoUrl != null &&
-                        ficha.fotoUrl!.isNotEmpty)
-                      Hero(
-                        tag: 'foto_${ficha.id}',
-                        child: CachedNetworkImage(
-                          imageUrl: ficha.fotoUrl!,
-                          fit: BoxFit.cover,
-                          memCacheWidth: 400,
-                          placeholder: (_, __) =>
-                              _CategoriaPlaceholder(
-                                  categoria: ficha.nombreCategoria),
-                          errorWidget: (_, __, ___) =>
-                              _CategoriaPlaceholder(
-                                  categoria: ficha.nombreCategoria),
-                        ),
-                      )
-                    else
-                      _CategoriaPlaceholder(
-                          categoria: ficha.nombreCategoria),
-
-                    // ── Chip de estado (esquina superior izquierda) ──
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: _buildEstadoChip(ficha.estado),
-                    ),
-
-                    // Badge distancia (esquina superior derecha)
-                    if (distanciaKm != null &&
-                        distanciaKm < double.infinity)
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: _BadgeOscuro(
-                          label: distanciaKm < 1
-                              ? '${(distanciaKm * 1000).round()} m'
-                              : '${distanciaKm.toStringAsFixed(1)} km',
-                        ),
-                      ),
-
-                    // Indicador de creador (esquina inferior izquierda)
-                    if (esCreador)
-                      Positioned(
-                        bottom: 8,
-                        left: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppTheme.darkBase.withValues(alpha: 0.85),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.person,
-                                  size: 10, color: Colors.white),
-                              SizedBox(width: 4),
-                              Text('Tu reporte',
-                                  style: TextStyle(
-                                      fontSize: 9,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700)),
-                            ],
-                          ),
-                        ),
+                    Text(ficha.titulo,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF111827),
+                            letterSpacing: -0.2)),
+                    const SizedBox(height: 3),
+                    Text(ficha.descripcion,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 11, color: Color(0xFF6B7280))),
+                    const SizedBox(height: 4),
+                    if (ficha.createdAt != null || distanciaKm != null)
+                      Text(
+                        _buildTiempoYDistancia(ficha.createdAt, distanciaKm),
+                        style: const TextStyle(
+                            fontSize: 9,
+                            color: Color(0xFF9E9E9E)),
+                        overflow: TextOverflow.ellipsis,
                       ),
                   ],
                 ),
               ),
-            ),
-
-            // Texto debajo (sin caja)
-            const SizedBox(height: 8),
-            Expanded(
-              flex: 4,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(ficha.titulo,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF111827),
-                          letterSpacing: -0.2)),
-                  const SizedBox(height: 3),
-                  Text(ficha.descripcion,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 11, color: Color(0xFF6B7280))),
-                  const SizedBox(height: 4),
-                  if (ficha.createdAt != null)
-                    Text(
-                      _formatRelativo(ficha.createdAt),
-                      style: const TextStyle(
-                          fontSize: 9,
-                          color: Color(0xFF9E9E9E)),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -991,7 +1002,7 @@ Widget _buildEstadoChip(String estado) {
     decoration: BoxDecoration(
       color: dotColor,
       shape: BoxShape.circle,
-      border: Border.all(color: Colors.white, width: 2),
+      border: Border.all(color: Colors.white, width: 1.0),
       boxShadow: [
         BoxShadow(
           color: Colors.black.withValues(alpha: 0.25),

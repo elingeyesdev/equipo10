@@ -36,10 +36,12 @@ class ReporteController extends Controller
         try {
             $query = Reporte::with(['categoria', 'usuario', 'cuadrante']);
 
-            if ($request->has('estado') && in_array($request->estado, ['activo', 'pausado', 'resuelto'])) {
+            if ($request->has('estado') && in_array($request->estado, ['activo', 'pausado', 'resuelto', 'terminado'])) {
                 $query->where('estado', $request->estado);
+            } elseif ($request->has('estado') && $request->estado === 'todos') {
+                // Return all
             } else {
-                $query->whereIn('estado', ['activo', 'pausado']);
+                $query->whereIn('estado', ['activo', 'pausado', 'resuelto', 'terminado']);
             }
 
             if ($request->has('tipo_reporte')) {

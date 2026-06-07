@@ -90,7 +90,7 @@ class SoporteView extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Soporte y Legal'),
+        title: const Text('Soporte y legal', style: TextStyle(color: AppTheme.textPrimary)),
         backgroundColor: Colors.white,
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
@@ -100,7 +100,7 @@ class SoporteView extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           // ── Legal ──────────────────────────────────────────────────────────
-          const _SeccionHeader(titulo: 'LEGAL Y PRIVACIDAD'),
+          const _SeccionHeader(titulo: 'Legal y privacidad'),
           Card(
             elevation: 0,
             shape: RoundedRectangleBorder(
@@ -111,7 +111,7 @@ class SoporteView extends StatelessWidget {
               children: [
                 ListTile(
                   leading: const Icon(Icons.policy_outlined, color: AppTheme.primary),
-                  title: const Text('Política de Privacidad',
+                  title: const Text('Política de privacidad',
                       style: TextStyle(fontWeight: FontWeight.w600)),
                   trailing: const Icon(Icons.open_in_new, size: 16),
                   onTap: () {
@@ -122,7 +122,7 @@ class SoporteView extends StatelessWidget {
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.description_outlined, color: AppTheme.primary),
-                  title: const Text('Términos de Servicio',
+                  title: const Text('Términos de servicio',
                       style: TextStyle(fontWeight: FontWeight.w600)),
                   trailing: const Icon(Icons.open_in_new, size: 16),
                   onTap: () {
@@ -136,7 +136,7 @@ class SoporteView extends StatelessWidget {
           const SizedBox(height: 24),
 
           // ── Contacto ───────────────────────────────────────────────────────
-          const _SeccionHeader(titulo: 'AYUDA Y CONTACTO'),
+          const _SeccionHeader(titulo: 'Ayuda y contacto'),
           Card(
             elevation: 0,
             shape: RoundedRectangleBorder(
@@ -145,7 +145,7 @@ class SoporteView extends StatelessWidget {
             ),
             child: ListTile(
               leading: const Icon(Icons.email_outlined, color: AppTheme.primary),
-              title: const Text('Contactar a Soporte',
+              title: const Text('Contactar a soporte',
                   style: TextStyle(fontWeight: FontWeight.w600)),
               subtitle: const Text('soporte@echoesapp.com',
                   style: TextStyle(fontSize: 12)),
@@ -158,7 +158,7 @@ class SoporteView extends StatelessWidget {
           const SizedBox(height: 32),
 
           // ── Zona Peligro ───────────────────────────────────────────────────
-          const _SeccionHeader(titulo: 'ZONA DE PELIGRO'),
+          const _SeccionHeader(titulo: 'Zona de peligro'),
           Card(
             elevation: 0,
             color: AppTheme.danger.withOpacity(0.05),

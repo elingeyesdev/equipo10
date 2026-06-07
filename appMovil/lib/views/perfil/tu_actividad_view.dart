@@ -32,7 +32,7 @@ class _TuActividadViewState extends State<TuActividadView> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setStateModal) {
           return AlertDialog(
-            title: const Text('Agregar Habilidad'),
+            title: const Text('Agregar habilidad'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,6 +74,7 @@ class _TuActividadViewState extends State<TuActividadView> {
             ),
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+              const SizedBox(width: 8),
               ElevatedButton(
                 onPressed: () async {
                   String nuevaHabilidad = opcionSeleccionada;
@@ -96,7 +97,6 @@ class _TuActividadViewState extends State<TuActividadView> {
                     );
                   }
                 },
-                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
                 child: const Text('Agregar'),
               ),
             ],
@@ -113,7 +113,7 @@ class _TuActividadViewState extends State<TuActividadView> {
 
     if (perfil == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Tu Actividad')),
+        appBar: AppBar(title: const Text('Tu actividad')),
         body: const Center(child: Text('No se pudo cargar la actividad.')),
       );
     }
@@ -121,14 +121,14 @@ class _TuActividadViewState extends State<TuActividadView> {
     final stats = perfil.estadisticas;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tu Actividad')),
+      appBar: AppBar(title: const Text('Tu actividad')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Estadísticas de Impacto',
+              'Estadísticas de impacto',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
@@ -144,25 +144,25 @@ class _TuActividadViewState extends State<TuActividadView> {
                   icon: Icons.search,
                   title: 'Búsquedas',
                   value: '${stats['operativos_participados'] ?? 0}',
-                  color: Colors.blue,
+                  color: AppTheme.primary,
                 ),
                 _StatCard(
                   icon: Icons.campaign,
-                  title: 'Reportes Creados',
+                  title: 'Reportes creados',
                   value: '${stats['reportes_creados'] ?? 0}',
-                  color: Colors.orange,
+                  color: AppTheme.primary,
                 ),
                 _StatCard(
                   icon: Icons.check_circle,
-                  title: 'Casos Resueltos',
+                  title: 'Casos resueltos',
                   value: '${stats['casos_exitosos'] ?? 0}',
-                  color: Colors.green,
+                  color: AppTheme.primary,
                 ),
                 _StatCard(
                   icon: Icons.stars,
                   title: 'Puntos',
                   value: '${stats['puntos_ayuda'] ?? 0}',
-                  color: Colors.purple,
+                  color: AppTheme.primary,
                 ),
               ],
             ),
@@ -175,7 +175,7 @@ class _TuActividadViewState extends State<TuActividadView> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Habilidades (Skills)',
+                  'Habilidades (skills)',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 IconButton(
@@ -266,14 +266,7 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: AppTheme.border),
       ),
       padding: const EdgeInsets.all(12),
       child: Column(

@@ -219,7 +219,7 @@ class _PerfilViewState extends State<PerfilView> {
             children: [
               _MenuOption(
                 icon: Icons.person_outline,
-                title: 'Tu Cuenta',
+                title: 'Tu cuenta',
                 subtitle: 'Datos personales, contraseña',
                 onTap: () {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const TuCuentaView()));
@@ -228,7 +228,7 @@ class _PerfilViewState extends State<PerfilView> {
               const Divider(height: 1),
               _MenuOption(
                 icon: Icons.analytics_outlined,
-                title: 'Tu Actividad',
+                title: 'Tu actividad',
                 subtitle: 'Estadísticas y habilidades (skills)',
                 onTap: () {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const TuActividadView()));
@@ -237,7 +237,7 @@ class _PerfilViewState extends State<PerfilView> {
               const Divider(height: 1),
               _MenuOption(
                 icon: Icons.settings_outlined,
-                title: 'Configuración de la App',
+                title: 'Configuración de la app',
                 subtitle: 'Notificaciones, permisos, tracking',
                 onTap: () {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const ConfiguracionView()));
@@ -246,7 +246,7 @@ class _PerfilViewState extends State<PerfilView> {
               const Divider(height: 1),
               _MenuOption(
                 icon: Icons.help_outline,
-                title: 'Soporte y Legal',
+                title: 'Soporte y legal',
                 subtitle: 'Privacidad, eliminar cuenta',
                 onTap: () {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const SoporteView()));
