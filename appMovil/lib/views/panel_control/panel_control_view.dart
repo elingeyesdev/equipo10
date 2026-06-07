@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -1035,11 +1036,13 @@ class _PanelControlViewState extends State<PanelControlView> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  img['url'],
+                child: CachedNetworkImage(
+                  imageUrl: img['url'],
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
+                  errorWidget: (context, url, error) =>
                       Container(color: Colors.grey[300], child: const Icon(Icons.broken_image, color: Colors.grey)),
+                  placeholder: (context, url) =>
+                      Container(color: Colors.grey[200], child: const Center(child: CircularProgressIndicator())),
                 ),
               ),
               if (img['tipo'] == 'original')

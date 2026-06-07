@@ -252,9 +252,9 @@ class _FeedViewState extends State<FeedView> {
                       size: 64, color: AppTheme.primaryLight),
                   const SizedBox(height: 12),
                   Text(
-                    vm.query.isNotEmpty
-                        ? 'Sin resultados para "${vm.query}"'
-                        : 'No hay búsquedas activas',
+                    (vm.filtroTipo != null || vm.filtroEstado != null || vm.filtroDistanciaRadioKm != null || vm.query.isNotEmpty)
+                        ? 'No se encontraron resultados con estos filtros'
+                        : 'No hay reportes que encajen con tu búsqueda',
                     style: const TextStyle(
                         fontSize: 16, color: Color(0xFF6B7280)),
                   ),

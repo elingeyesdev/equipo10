@@ -112,11 +112,23 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
 
     if (fuente == null || !mounted) return;
 
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
     bool capturo = false;
     if (fuente == 'camara') {
       capturo = await vm.capturarFoto();
     } else {
       capturo = await vm.seleccionarDeGaleria();
+    }
+
+    if (mounted) {
+      Navigator.of(context).pop(); // Cerrar el diálogo de carga
     }
 
     if (!capturo || !mounted) return;

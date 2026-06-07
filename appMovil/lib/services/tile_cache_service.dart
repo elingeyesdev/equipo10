@@ -56,6 +56,7 @@ class TileCacheService {
   /// Lee un tile desde disco. Retorna `null` si no está en caché.
   Future<Uint8List?> getTile(int z, int x, int y,
       {String storeName = defaultStore}) async {
+    if (kIsWeb) return null; // El navegador ya maneja su propio caché de red
     try {
       final file = await _tileFile(z, x, y, storeName);
       if (await file.exists()) return file.readAsBytes();
@@ -68,6 +69,7 @@ class TileCacheService {
   /// Persiste un tile en disco.
   Future<void> saveTile(int z, int x, int y, Uint8List bytes,
       {String storeName = defaultStore}) async {
+    if (kIsWeb) return; // No persistimos en disco manualmente en la web
     try {
       final file = await _tileFile(z, x, y, storeName);
       await file.parent.create(recursive: true);

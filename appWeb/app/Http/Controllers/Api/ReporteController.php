@@ -870,8 +870,7 @@ class ReporteController extends Controller
                 ->get();
 
             foreach ($imagenesReporte as $img) {
-                $path = parse_url($img->url, PHP_URL_PATH);
-                $fixedUrl = $path ? request()->getSchemeAndHttpHost() . $path : $img->url;
+                $fixedUrl = $img->url;
                 
                 $galeria[] = [
                     'id' => $img->id,
@@ -895,8 +894,7 @@ class ReporteController extends Controller
 
                 if ($imagenesRelacion instanceof \Illuminate\Database\Eloquent\Collection && $imagenesRelacion->isNotEmpty()) {
                     foreach ($imagenesRelacion as $img) {
-                        $path = parse_url($img->url, PHP_URL_PATH);
-                        $fixedUrl = $path ? request()->getSchemeAndHttpHost() . $path : $img->url;
+                        $fixedUrl = $img->url;
                         
                         $galeria[] = [
                             'id' => $img->id,
@@ -920,8 +918,7 @@ class ReporteController extends Controller
                     }
                     foreach ($urls as $idx => $url) {
                         if (is_string($url)) {
-                            $path = parse_url($url, PHP_URL_PATH);
-                            $fixedUrl = $path ? request()->getSchemeAndHttpHost() . $path : $url;
+                            $fixedUrl = $url;
                             
                             $galeria[] = [
                                 'id' => $respuesta->id . '-' . $idx,
