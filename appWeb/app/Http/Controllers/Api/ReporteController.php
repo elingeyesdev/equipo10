@@ -1235,7 +1235,7 @@ class ReporteController extends Controller
                 ->get();
 
             if ($voluntarios->isEmpty()) {
-                \Log::info("[E14.3] No hay voluntarios vinculados al reporte {$reporte->id}");
+                \Log::channel('fcm')->info("[E14.3] No hay voluntarios vinculados al reporte {$reporte->id}");
                 return;
             }
 
@@ -1253,7 +1253,7 @@ class ReporteController extends Controller
                     $plantilla = NotificacionPlantillas::reapertura($reporte->titulo);
                     break;
                 default:
-                    \Log::warning("[E14.3] Tipo de resultado desconocido: {$tipoResultado}");
+                    \Log::channel('fcm')->warning("[E14.3] Tipo de resultado desconocido: {$tipoResultado}");
                     return;
             }
 
@@ -1295,6 +1295,8 @@ class ReporteController extends Controller
 
             // Enviar push masivo via FCM
             if ($fcm->estaConfigurado() && !empty($tokensParaPush)) {
+                $enviados = 0;
+                $fallidos = 0;
                 foreach ($tokensParaPush as $item) {
                     $enviado = $fcm->enviarAToken(
                         $item['token'],
@@ -1306,14 +1308,25 @@ class ReporteController extends Controller
                     // Marcar como enviada_push en la BD
                     if ($enviado) {
                         Notificacion::where('id', $item['notif_id'])->update(['enviada_push' => true]);
+                        $enviados++;
+                    } else {
+                        $fallidos++;
                     }
                 }
 
-                \Log::info("[E14.3] Push enviado a " . count($tokensParaPush) . " voluntarios del reporte {$reporte->id}");
+                \Log::channel('fcm')->info("[E14.3] Push enviado para reporte {$reporte->id}", [
+                    'tipo_resultado' => $tipoResultado,
+                    'total_voluntarios_vinculados' => $voluntarios->count(),
+                    'con_token_fcm' => count($tokensParaPush),
+                    'exitosos' => $enviados,
+                    'fallidos' => $fallidos
+                ]);
+            } else {
+                \Log::channel('fcm')->warning("[E14.3] No se enviaron push para reporte {$reporte->id}. Fcm configurado: " . ($fcm->estaConfigurado() ? 'Si' : 'No') . ", Tokens validos: " . count($tokensParaPush));
             }
 
         } catch (\Exception $e) {
-            \Log::error("[E14.3] Error al notificar voluntarios: " . $e->getMessage());
+            \Log::channel('fcm')->error("[E14.3] Error al notificar voluntarios: " . $e->getMessage());
         }
     }
 

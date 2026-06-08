@@ -49,7 +49,7 @@ class FcmService
                 $privateKey = openssl_pkey_get_private($this->privateKey);
 
                 if (!$privateKey) {
-                    Log::error('[FcmService] Clave privada de Firebase invalida');
+                    Log::channel('fcm')->error('[FcmService] Clave privada de Firebase invalida');
                     return null;
                 }
 
@@ -63,14 +63,14 @@ class FcmService
                 ]);
 
                 if ($response->successful()) {
-                    Log::info('[FcmService] Access token obtenido correctamente');
+                    Log::channel('fcm')->info('[FcmService] Access token obtenido correctamente');
                     return $response->json('access_token');
                 }
 
-                Log::error('[FcmService] Error al obtener access token: ' . $response->body());
+                Log::channel('fcm')->error('[FcmService] Error al obtener access token: ' . $response->body());
                 return null;
             } catch (\Exception $e) {
-                Log::error('[FcmService] Excepcion al obtener access token: ' . $e->getMessage());
+                Log::channel('fcm')->error('[FcmService] Excepcion al obtener access token: ' . $e->getMessage());
                 return null;
             }
         });
@@ -84,7 +84,7 @@ class FcmService
         $accessToken = $this->getAccessToken();
 
         if (!$accessToken) {
-            Log::error('[FcmService] No se pudo obtener access token, notificacion no enviada');
+            Log::channel('fcm')->error('[FcmService] No se pudo obtener access token, notificacion no enviada');
             return false;
         }
 
@@ -110,14 +110,14 @@ class FcmService
                 ->post($url, $message);
 
             if ($response->successful()) {
-                Log::info("[FcmService] Notificacion enviada a token: " . substr($token, 0, 20) . '...');
+                Log::channel('fcm')->info("[FcmService] Notificacion enviada a token: " . substr($token, 0, 20) . '...');
                 return true;
             }
 
-            Log::warning('[FcmService] Error al enviar notificacion: ' . $response->body());
+            Log::channel('fcm')->warning('[FcmService] Error al enviar notificacion: ' . $response->body());
             return false;
         } catch (\Exception $e) {
-            Log::error('[FcmService] Excepcion al enviar notificacion: ' . $e->getMessage());
+            Log::channel('fcm')->error('[FcmService] Excepcion al enviar notificacion: ' . $e->getMessage());
             return false;
         }
     }
@@ -150,7 +150,11 @@ class FcmService
             }
         }
 
-        Log::info("[FcmService] Envio masivo completado: {$resultados['enviados']} enviados, {$resultados['fallidos']} fallidos");
+        Log::channel('fcm')->info("[FcmService] Envio masivo completado: {$resultados['enviados']} enviados, {$resultados['fallidos']} fallidos", [
+            'titulo' => $titulo,
+            'datos' => $datos,
+            'invalidos' => $resultados['tokens_invalidos']
+        ]);
 
         return $resultados;
     }
