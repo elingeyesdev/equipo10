@@ -36,7 +36,8 @@ class Usuario extends Authenticatable
         'rol',
         'contrasena',
         'contrasena_set',
-        'habilidades'
+        'habilidades',
+        'fcm_token'
     ];
     
     protected $hidden = [

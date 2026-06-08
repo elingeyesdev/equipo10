@@ -33,6 +33,7 @@ Route::prefix('auth')->group(function () {
     Route::put('perfil/{usuarioId}/password', [AuthController::class, 'actualizarContrasena']);
     Route::put('ubicacion/{usuarioId}', [AuthController::class, 'actualizarUbicacion']);
     Route::put('notificaciones/{usuarioId}', [AuthController::class, 'actualizarNotificaciones']);
+    Route::put('fcm-token/{usuarioId}', [AuthController::class, 'registrarFcmToken']);
     Route::delete('perfil/{usuarioId}', [AuthController::class, 'eliminarCuenta']);
 });
 

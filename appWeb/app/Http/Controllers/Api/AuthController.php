@@ -449,5 +449,40 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Registrar o actualizar el token FCM del dispositivo del usuario.
+     * La app movil llama a este endpoint al iniciar sesion o al refrescar el token.
+     */
+    public function registrarFcmToken(Request $request, $usuarioId)
+    {
+        $validator = Validator::make($request->all(), [
+            'fcm_token' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $usuario = Usuario::findOrFail($usuarioId);
+            $usuario->fcm_token = $request->fcm_token;
+            $usuario->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Token FCM registrado correctamente'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al registrar token FCM',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
 
