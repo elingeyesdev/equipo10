@@ -19,6 +19,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Services\FcmService;
+use App\Services\NotificacionPlantillas;
 
 class ReporteController extends Controller
 {
@@ -1063,6 +1065,9 @@ class ReporteController extends Controller
                 $reporte->save();
             }
 
+            // E14.3: Notificar a TODOS los voluntarios vinculados via push
+            $this->notificarVoluntariosCambioEstado($reporte, 'positivo', $justificacion);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Reporte marcado como resuelto',
@@ -1105,6 +1110,9 @@ class ReporteController extends Controller
                 $reporte->save();
             }
 
+            // E14.3: Notificar a TODOS los voluntarios vinculados via push
+            $this->notificarVoluntariosCambioEstado($reporte, 'suspension', $justificacion);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Reporte pausado',
@@ -1134,8 +1142,6 @@ class ReporteController extends Controller
                     'justificacion' => null
                 ];
                 
-                // Si la próxima expansión quedó en el pasado mientras estaba pausado,
-                // re-programarla para dentro de 5 minutos para que se procese pronto.
                 if ($reporte->proxima_expansion && $reporte->proxima_expansion->isPast()) {
                     $updateData['proxima_expansion'] = now()->addMinutes(5);
                 }
@@ -1146,6 +1152,9 @@ class ReporteController extends Controller
                     'estado' => 'activo'
                 ]);
             }
+
+            // E14.3: Notificar a TODOS los voluntarios vinculados via push
+            $this->notificarVoluntariosCambioEstado($reporte, 'reapertura');
 
             return response()->json([
                 'success' => true,
@@ -1211,8 +1220,105 @@ class ReporteController extends Controller
         }
     }
 
+    /**
+     * E14.3: Notificar a TODOS los voluntarios vinculados a un reporte
+     * cuando cambia de estado (resuelto, pausado, reabierto).
+     * Envia push via FCM y guarda la notificacion en la BD.
+     */
+    private function notificarVoluntariosCambioEstado($reporte, string $tipoResultado, ?string $justificacion = null)
+    {
+        try {
+            // Obtener todos los voluntarios vinculados al reporte
+            $voluntarios = \App\Models\ReporteVoluntario::where('reporte_id', $reporte->id)
+                ->whereIn('estado', ['buscando', 'esperando', 'activo'])
+                ->with('usuario')
+                ->get();
+
+            if ($voluntarios->isEmpty()) {
+                \Log::info("[E14.3] No hay voluntarios vinculados al reporte {$reporte->id}");
+                return;
+            }
+
+            // Obtener la plantilla de mensaje segun el tipo de resultado
+            $nombreCreador = $reporte->usuario->nombre ?? '';
+
+            switch ($tipoResultado) {
+                case 'positivo':
+                    $plantilla = NotificacionPlantillas::positivo($reporte->titulo, $nombreCreador);
+                    break;
+                case 'suspension':
+                    $plantilla = NotificacionPlantillas::suspension($reporte->titulo, $justificacion ?? '');
+                    break;
+                case 'reapertura':
+                    $plantilla = NotificacionPlantillas::reapertura($reporte->titulo);
+                    break;
+                default:
+                    \Log::warning("[E14.3] Tipo de resultado desconocido: {$tipoResultado}");
+                    return;
+            }
+
+            $fcm = new FcmService();
+            $tokensParaPush = [];
+
+            foreach ($voluntarios as $voluntario) {
+                $usuario = $voluntario->usuario;
+                if (!$usuario) continue;
+
+                // No notificar al creador del reporte
+                if ($usuario->id === $reporte->usuario_id) continue;
+
+                // Guardar notificacion en la BD
+                $notif = Notificacion::create([
+                    'usuario_id' => $usuario->id,
+                    'tipo' => $plantilla['tipo'],
+                    'titulo' => $plantilla['titulo'],
+                    'mensaje' => $plantilla['cuerpo'],
+                    'leida' => false,
+                    'enviada_push' => false,
+                    'enviada_email' => false,
+                ]);
+
+                NotificacionDato::create([
+                    'notificacion_id' => $notif->id,
+                    'clave' => 'reporte_id',
+                    'valor' => $reporte->id,
+                ]);
+
+                // Recopilar token FCM si el usuario lo tiene registrado
+                if (!empty($usuario->fcm_token)) {
+                    $tokensParaPush[] = [
+                        'token' => $usuario->fcm_token,
+                        'notif_id' => $notif->id,
+                    ];
+                }
+            }
+
+            // Enviar push masivo via FCM
+            if ($fcm->estaConfigurado() && !empty($tokensParaPush)) {
+                foreach ($tokensParaPush as $item) {
+                    $enviado = $fcm->enviarAToken(
+                        $item['token'],
+                        $plantilla['titulo'],
+                        $plantilla['cuerpo'],
+                        ['reporte_id' => $reporte->id, 'tipo' => $plantilla['tipo']]
+                    );
+
+                    // Marcar como enviada_push en la BD
+                    if ($enviado) {
+                        Notificacion::where('id', $item['notif_id'])->update(['enviada_push' => true]);
+                    }
+                }
+
+                \Log::info("[E14.3] Push enviado a " . count($tokensParaPush) . " voluntarios del reporte {$reporte->id}");
+            }
+
+        } catch (\Exception $e) {
+            \Log::error("[E14.3] Error al notificar voluntarios: " . $e->getMessage());
+        }
+    }
+
     // =========================================================================
-    // PISTAS DE BÚSQUEDA
+    // PISTAS DE BUSQUEDA
     // =========================================================================
 
     /**
