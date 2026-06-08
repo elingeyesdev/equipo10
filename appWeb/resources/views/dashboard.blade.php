@@ -596,7 +596,7 @@
 
 <div class="row g-4 mb-4">
     <!-- Card COMUNIDAD (Total Usuarios) -->
-    <div class="col-xl-3 col-md-6">
+    <div class="col-xl col-md-6">
         <div class="stat-card success">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
@@ -617,7 +617,7 @@
     </div>
     
     <!-- Card ZONA CRÍTICA -->
-    <div class="col-xl-3 col-md-6">
+    <div class="col-xl col-md-6">
         <div class="stat-card danger">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
@@ -640,7 +640,7 @@
     </div>
     
     <!-- Card ALERTAS HOY -->
-    <div class="col-xl-3 col-md-6">
+    <div class="col-xl col-md-6">
         <div class="stat-card primary">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
@@ -661,7 +661,7 @@
     </div>
     
     <!-- Card CASOS ACTIVOS -->
-    <div class="col-xl-3 col-md-6">
+    <div class="col-xl col-md-6">
         <div class="stat-card warning">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
@@ -676,6 +676,28 @@
                 </div>
                 <div class="stat-icon warning">
                     <i class="bi bi-binoculars-fill"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card SATISFACCIÓN GLOBAL -->
+    <div class="col-xl col-md-6">
+        <div class="stat-card" style="position: relative;">
+            <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #fbbf24, #f59e0b);"></div>
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label mb-2">
+                        <i class="bi bi-star-fill text-warning me-1"></i> SATISFACCIÓN
+                    </div>
+                    <div class="stat-value">{{ number_format($promedioSatisfaccion ?? 0, 1) }} <span style="font-size: 1.2rem; color: #64748b;">/ 5</span></div>
+                    <div class="stat-change positive">
+                        <i class="bi bi-chat-right-text-fill"></i>
+                        {{ $totalEncuestas ?? 0 }} opiniones
+                    </div>
+                </div>
+                <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #fbbf24); color: white; box-shadow: 0 10px 30px -5px rgba(245, 158, 11, 0.4);">
+                    <i class="bi bi-star-fill"></i>
                 </div>
             </div>
         </div>

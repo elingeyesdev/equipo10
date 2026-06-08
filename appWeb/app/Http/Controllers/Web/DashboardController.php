@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Reporte;
 use App\Models\Usuario;
 use App\Models\Categoria;
+use App\Models\EncuestaSatisfaccion;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -61,6 +62,10 @@ class DashboardController extends Controller
             ->orderBy('reportes_count', 'desc')
             ->limit(5)
             ->get();
+            
+        // Métricas de Satisfacción
+        $totalEncuestas = EncuestaSatisfaccion::count();
+        $promedioSatisfaccion = $totalEncuestas > 0 ? round(EncuestaSatisfaccion::avg('puntuacion'), 1) : 0;
         
         return view('dashboard', compact(
             'totalReportes',
@@ -78,7 +83,9 @@ class DashboardController extends Controller
             'categoriasPopulares',
             'reportesHoy',
             'zonaCritica',
-            'tendenciaSemanal'
+            'tendenciaSemanal',
+            'totalEncuestas',
+            'promedioSatisfaccion'
         ));
     }
 }

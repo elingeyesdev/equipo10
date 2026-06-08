@@ -631,11 +631,15 @@
         return [nLat, nLng];
     }
 
-    function calcularNivelDinamico(fechaStr) {
+    function calcularNivelDinamico(fechaStr, fechaFinStr, estado) {
         if (!fechaStr) return 1;
         const fecha = new Date(fechaStr);
-        if (isNaN(fecha)) return 1;
-        const diffMinutos = (new Date() - fecha) / (1000 * 60);
+        let fin = new Date();
+        if ((estado === 'resuelto' || estado === 'encontrado' || estado === 'terminado') && fechaFinStr) {
+            fin = new Date(fechaFinStr);
+        }
+        if (isNaN(fecha) || isNaN(fin)) return 1;
+        const diffMinutos = (fin - fecha) / (1000 * 60);
         if (diffMinutos >= 5760) return 10;
         if (diffMinutos >= 4320) return 9;
         if (diffMinutos >= 2880) return 8;
@@ -721,16 +725,6 @@
                             const marker = L.marker([pLat, pLng], {icon: icons.pista})
                                 .bindPopup(pistaPopup, {minWidth: 280, maxWidth: 320});
                             marker.addTo(capas.pistas);
-                            
-                            // Zona de Búsqueda de Pistas
-                            const nivel = calcularNivelDinamico(resp.created_at);
-                            const radioDinamico = 0.0007 * nivel;
-                            L.rectangle([
-                                [pLat - radioDinamico, pLng - radioDinamico], 
-                                [pLat + radioDinamico, pLng + radioDinamico]
-                            ], {
-                                color: '#10b981', weight: 2, fillColor: '#10b981', fillOpacity: 0.25
-                            }).addTo(capas.pistas);
 
                             counts.pistas++;
                         }
@@ -772,7 +766,7 @@
                     marker.addTo(capas[layerKey]);
 
                     // Zona de Búsqueda del Reporte
-                    const nivel = calcularNivelDinamico(r.created_at);
+                    const nivel = calcularNivelDinamico(r.created_at, r.updated_at, state);
                     const radioDinamico = 0.0007 * nivel;
                     L.rectangle([
                         [lat - radioDinamico, lng - radioDinamico], 

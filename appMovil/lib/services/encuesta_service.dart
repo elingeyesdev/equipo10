@@ -12,7 +12,7 @@ class EncuestaService {
       
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
-        return data.map((json) => ReporteModel.fromJson(json)).toList();
+        return data.map((json) => ReporteModel.fromMap(json)).toList();
       }
       return [];
     } catch (e) {
