@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../theme/app_theme.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -149,6 +150,61 @@ class _LPPPickerViewState extends State<LPPPickerView> {
     }
   }
 
+  Future<void> _irAUbicacionActual() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Los servicios de ubicación están desactivados.')));
+      }
+      return;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Permiso de ubicación denegado.')));
+        }
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Los permisos de ubicación están denegados permanentemente.')));
+      }
+      return;
+    }
+
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+      final punto = LatLng(position.latitude, position.longitude);
+      
+      if (mounted) {
+        setState(() {
+          _selectedLPP = punto;
+          _mostrarSugerencias = false;
+        });
+        _mapController.move(punto, 16.0);
+        _detectarCuadrante(punto.latitude, punto.longitude);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No se pudo obtener la ubicación actual.')));
+      }
+    }
+  }
+
   @override
   void dispose() {
     _debounce?.cancel();
@@ -291,14 +347,27 @@ class _LPPPickerViewState extends State<LPPPickerView> {
             ],
           ),
 
-          // Toggle de capas (satelital / callejero)
+          // Toggle de capas (satelital / callejero) y Mi ubicación
           Positioned(
             bottom: 16,
             right: 16,
-            child: MapLayerToggleButton(
-              heroTag: null,
-              useSatellite: _useSatellite,
-              onToggle: () => setState(() => _useSatellite = !_useSatellite),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingActionButton(
+                  heroTag: 'my_location',
+                  mini: true,
+                  backgroundColor: Colors.white,
+                  onPressed: _irAUbicacionActual,
+                  child: const Icon(Icons.my_location, color: AppTheme.primary),
+                ),
+                const SizedBox(height: 8),
+                MapLayerToggleButton(
+                  heroTag: null,
+                  useSatellite: _useSatellite,
+                  onToggle: () => setState(() => _useSatellite = !_useSatellite),
+                ),
+              ],
             ),
           ),
 

@@ -33,6 +33,8 @@ class ReporteModel {
   final double? cuadranteLatMax;
   final double? cuadranteLngMin;
   final double? cuadranteLngMax;
+  final String? cuadranteNombre;
+  final String? cuadranteZona;
 
   // Getters de compatibilidad para evitar quebrar la UI previamente enlazada a Supabase
   String? get fotoUrl => primeraImagen;
@@ -79,6 +81,8 @@ class ReporteModel {
     this.cuadranteLatMax,
     this.cuadranteLngMin,
     this.cuadranteLngMax,
+    this.cuadranteNombre,
+    this.cuadranteZona,
   });
 
 
@@ -188,6 +192,8 @@ class ReporteModel {
       cuadranteLatMax: _parseDouble(map['cuadrante']?['lat_max']),
       cuadranteLngMin: _parseDouble(map['cuadrante']?['lng_min']),
       cuadranteLngMax: _parseDouble(map['cuadrante']?['lng_max']),
+      cuadranteNombre: map['cuadrante']?['nombre']?.toString(),
+      cuadranteZona: map['cuadrante']?['zona']?.toString(),
     );
   }
 

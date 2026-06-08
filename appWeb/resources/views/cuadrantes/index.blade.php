@@ -487,14 +487,7 @@
                         <p class="text-muted small">Visualiza y administra los sectores de búsqueda</p>
                     </div>
                     <div class="d-flex gap-2">
-                        <a href="{{ route('cuadrantes.editor') }}" class="btn btn-primary d-flex align-items-center gap-2">
-                            <i class="bi bi-pencil-square"></i>
-                            <span>Abrir Editor de Dibujo</span>
-                        </a>
-                        <button class="btn btn-outline-primary d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#createCuadranteModal">
-                            <i class="bi bi-plus-lg"></i>
-                            <span>Nuevo Cuadrante (Rápido)</span>
-                        </button>
+                        <!-- Botones eliminados según lo solicitado -->
                     </div>
                 </div>
             </div>
@@ -512,10 +505,18 @@
                             </label>
                         </div>
                         
+
                         <div class="form-check form-switch mb-2">
                             <input class="form-check-input" type="checkbox" id="showResueltos" checked onchange="toggleLayer('resueltos')">
                             <label class="form-check-label text-primary" for="showResueltos">
                                 <i class="bi bi-check-all"></i> Resueltos (<span id="countResueltos">0</span>)
+                            </label>
+                        </div>
+
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="showPistas" checked onchange="toggleLayer('pistas')">
+                            <label class="form-check-label text-warning" for="showPistas">
+                                <i class="bi bi-camera-fill"></i> Pistas / Evidencias (<span id="countPistas">0</span>)
                             </label>
                         </div>
                         
@@ -525,6 +526,16 @@
                                 <i class="bi bi-grid-3x3"></i> Cuadrícula Base
                             </label>
                         </div>
+                        
+                        <hr class="my-2">
+                        
+                        <label class="form-label mb-1 mt-1"><i class="bi bi-funnel-fill text-primary"></i> Filtrar Categoría</label>
+                        <select id="categoriaFilter" class="form-select form-select-sm" onchange="aplicarFiltrosMapa()">
+                            <option value="todas">Todas las categorías</option>
+                            @foreach($categorias as $cat)
+                                <option value="{{ $cat->id }}">{{ $cat->nombre }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     
                     
@@ -593,7 +604,9 @@
     // Capas
     const capas = {
         perdidos: L.layerGroup(),
+        encontrados: L.layerGroup(),
         resueltos: L.layerGroup(),
+        pistas: L.layerGroup(),
         zonasBusqueda: L.layerGroup(), // Zonas verdes (radios dinámicos)
         cuadricula: L.layerGroup() // Rectángulos grises base e intersectados
     };
@@ -601,7 +614,7 @@
     // Datos y Configuración
     const allReportes = {!! json_encode($reportes) !!};
     const totalGrupos = {{ $grupos ?? 0 }};
-    const counts = { perdidos: 0, resueltos: 0 };
+    const counts = { perdidos: 0, encontrados: 0, resueltos: 0, pistas: 0 };
     const santaCruzBounds = {
         norte: -17.7000, sur: -17.8530, este: -63.0960, oeste: -63.2500
     };
@@ -617,6 +630,24 @@
         }
         return [nLat, nLng];
     }
+
+    function calcularNivelDinamico(fechaStr) {
+        if (!fechaStr) return 1;
+        const fecha = new Date(fechaStr);
+        if (isNaN(fecha)) return 1;
+        const diffMinutos = (new Date() - fecha) / (1000 * 60);
+        if (diffMinutos >= 5760) return 10;
+        if (diffMinutos >= 4320) return 9;
+        if (diffMinutos >= 2880) return 8;
+        if (diffMinutos >= 1440) return 7;
+        if (diffMinutos >= 720) return 6;
+        if (diffMinutos >= 360) return 5;
+        if (diffMinutos >= 180) return 4;
+        if (diffMinutos >= 60) return 3;
+        if (diffMinutos >= 30) return 2;
+        return 1;
+    }
+
 
     function initMap() {
         // Zoom reducido a 11 para ver más lejos
@@ -637,48 +668,126 @@
                 html: "<div class='marker-pulse marker-perdido'></div>",
                 iconSize: [20, 20], iconAnchor: [10, 10]
             }),
+            encontrado: L.divIcon({
+                className: 'custom-div-icon',
+                html: "<div class='marker-pulse bg-success'></div>",
+                iconSize: [20, 20], iconAnchor: [10, 10]
+            }),
             resuelto: L.divIcon({
                 className: 'custom-div-icon',
                 html: "<div class='marker-pulse bg-primary'></div>",
                 iconSize: [20, 20], iconAnchor: [10, 10]
+            }),
+            pista: L.divIcon({
+                className: 'custom-div-icon',
+                html: "<div class='marker-pulse bg-warning'></div>",
+                iconSize: [16, 16], iconAnchor: [8, 8]
             })
         };
 
-        // Procesar Reportes
-        allReportes.forEach(r => {
-            const [lat, lng] = getValidLatLng(r.ubicacion_exacta_lat, r.ubicacion_exacta_lng);
+        window.renderMarkers = function() {
+            // Limpiar capas de marcadores
+            capas.perdidos.clearLayers();
+            capas.encontrados.clearLayers();
+            capas.resueltos.clearLayers();
+            capas.pistas.clearLayers();
             
-            // Ocultar si está fuera de la zona base
-            const p = L.latLng(lat, lng);
-            const limit = L.latLngBounds([santaCruzBounds.sur, santaCruzBounds.oeste], [santaCruzBounds.norte, santaCruzBounds.este]);
-            if (!limit.contains(p)) return;
+            counts.perdidos = 0;
+            counts.encontrados = 0;
+            counts.resueltos = 0;
+            counts.pistas = 0;
 
-            // Normalizar el tipo de reporte (quitar espacios y minúsculas)
-            let type = (r.tipo_reporte || '').toString().trim().toLowerCase();
-            let state = (r.estado || '').toString().trim().toLowerCase();
-            let layerKey = null;
-            let icon = null;
+            const categoriaFiltro = document.getElementById('categoriaFilter') ? document.getElementById('categoriaFilter').value : 'todas';
 
-            if (state === 'resuelto') { 
-                layerKey = 'resueltos'; 
-                icon = icons.resuelto; 
-                counts.resueltos++; 
-            }
-            else if (type === 'perdido') { 
-                layerKey = 'perdidos'; 
-                icon = icons.perdido; 
-                counts.perdidos++; 
-            }
-            
-            if (layerKey) {
-                const popupContent = getPopupContent(r);
-                const marker = L.marker([lat, lng], {icon: icon})
-                    .bindPopup(popupContent, {minWidth: 300, maxWidth: 350});
+            allReportes.forEach(r => {
+                // Filtrar por categoría
+                if (categoriaFiltro !== 'todas' && (!r.categoria || r.categoria.id !== categoriaFiltro)) {
+                    return;
+                }
+
+                // Renderizar Pistas asociadas a este reporte
+                if (r.respuestas && r.respuestas.length > 0) {
+                    r.respuestas.forEach((resp, index) => {
+                        if (resp.ubicacion_lat && resp.ubicacion_lng) {
+                            let [pLat, pLng] = getValidLatLng(resp.ubicacion_lat, resp.ubicacion_lng);
+                            
+                            // Añadir un pequeño offset para evitar que se superpongan exactamente
+                            const offsetLat = (Math.random() - 0.5) * 0.0003;
+                            const offsetLng = (Math.random() - 0.5) * 0.0003;
+                            pLat += offsetLat;
+                            pLng += offsetLng;
+
+                            const pistaPopup = getPopupPista(resp, r);
+                            const marker = L.marker([pLat, pLng], {icon: icons.pista})
+                                .bindPopup(pistaPopup, {minWidth: 280, maxWidth: 320});
+                            marker.addTo(capas.pistas);
+                            
+                            // Zona de Búsqueda de Pistas
+                            const nivel = calcularNivelDinamico(resp.created_at);
+                            const radioDinamico = 0.0007 * nivel;
+                            L.rectangle([
+                                [pLat - radioDinamico, pLng - radioDinamico], 
+                                [pLat + radioDinamico, pLng + radioDinamico]
+                            ], {
+                                color: '#10b981', weight: 2, fillColor: '#10b981', fillOpacity: 0.25
+                            }).addTo(capas.pistas);
+
+                            counts.pistas++;
+                        }
+                    });
+                }
+
+                if (!r.ubicacion_exacta_lat || !r.ubicacion_exacta_lng) return;
+
+                const [lat, lng] = getValidLatLng(r.ubicacion_exacta_lat, r.ubicacion_exacta_lng);
+
+                // Normalizar el tipo de reporte (quitar espacios y minúsculas)
+                let type = (r.tipo_reporte || '').toString().trim().toLowerCase();
+                let state = (r.estado || '').toString().trim().toLowerCase();
+                let layerKey = null;
+                let icon = null;
+
+                if (state === 'resuelto') { 
+                    layerKey = 'resueltos'; 
+                    icon = icons.resuelto; 
+                    counts.resueltos++; 
+                }
+                else if (type === 'perdido') { 
+                    layerKey = 'perdidos'; 
+                    icon = icons.perdido; 
+                    counts.perdidos++; 
+                }
+                else if (type === 'encontrado' || state === 'encontrado') {
+                    layerKey = 'encontrados';
+                    icon = icons.encontrado;
+                    counts.encontrados++;
+                }
                 
-                marker.reportData = r; // Adjuntar datos para historial
-                marker.addTo(capas[layerKey]);
-            }
-        });
+                if (layerKey) {
+                    const popupContent = getPopupContent(r);
+                    const marker = L.marker([lat, lng], {icon: icon})
+                        .bindPopup(popupContent, {minWidth: 300, maxWidth: 350});
+                    
+                    marker.reportData = r; // Adjuntar datos para historial
+                    marker.addTo(capas[layerKey]);
+
+                    // Zona de Búsqueda del Reporte
+                    const nivel = calcularNivelDinamico(r.created_at);
+                    const radioDinamico = 0.0007 * nivel;
+                    L.rectangle([
+                        [lat - radioDinamico, lng - radioDinamico], 
+                        [lat + radioDinamico, lng + radioDinamico]
+                    ], {
+                        color: '#10b981', weight: 2, fillColor: '#10b981', fillOpacity: 0.25
+                    }).addTo(capas[layerKey]);
+                }
+            });
+            
+            updateCounters();
+        };
+
+        // Renderizar inicialmente
+        window.renderMarkers();
 
         // Eventos para historial de movimiento
         map.on('popupopen', function(e) {
@@ -746,14 +855,98 @@
         if (cuadrantesData.length > 0) cargarCuadrantesExistentes();
     }
 
+    function aplicarFiltrosMapa() {
+        if (typeof window.renderMarkers === 'function') {
+            window.renderMarkers();
+        }
+    }
+
+    function updateCounters() {
+        if(document.getElementById('countPerdidos')) document.getElementById('countPerdidos').textContent = counts.perdidos;
+        if(document.getElementById('countEncontrados')) document.getElementById('countEncontrados').textContent = counts.encontrados;
+        if(document.getElementById('countResueltos')) document.getElementById('countResueltos').textContent = counts.resueltos;
+        if(document.getElementById('countPistas')) document.getElementById('countPistas').textContent = counts.pistas;
+    }
+
+    function toggleLayer(type) {
+        if (type === 'cuadricula') {
+            const isChecked = document.getElementById('showCuadricula').checked;
+            if (isChecked) {
+                map.addLayer(capas.cuadricula);
+            } else {
+                map.removeLayer(capas.cuadricula);
+            }
+        } else if (capas[type]) {
+            const isChecked = document.getElementById(`show${type.charAt(0).toUpperCase() + type.slice(1)}`).checked;
+            if (isChecked) {
+                map.addLayer(capas[type]);
+            } else {
+                map.removeLayer(capas[type]);
+            }
+        }
+    }
+
+    function getPopupPista(resp, r) {
+        let tipo = resp.tipo_respuesta === 'pista' ? 'Pista / Evidencia' : 'Avistamiento';
+        let imgHtml = '';
+        if (resp.imagenes && resp.imagenes.length > 0) {
+            let url = resp.imagenes[0].url || resp.imagenes[0];
+            imgHtml = `<div class="mb-2 position-relative" style="height: 120px; background-image: url('${url}'); background-size: cover; background-position: center; border-radius: 8px;"></div>`;
+        }
+
+        return `
+            <div class="amber-popup">
+                <div class="popup-header bg-warning text-dark p-2 rounded-top">
+                    <h6 class="mb-0 fw-bold text-uppercase"><i class="bi bi-camera-fill"></i> ${tipo}</h6>
+                </div>
+                <div class="p-3">
+                    ${imgHtml}
+                    <h6 class="fw-bold mb-1">Para: ${r.titulo}</h6>
+                    <p class="small text-muted mb-2">
+                        <i class="bi bi-calendar"></i> ${new Date(resp.created_at).toLocaleDateString()}
+                    </p>
+                    <p class="small mb-3 text-truncate-2">${resp.mensaje || 'Sin detalle'}</p>
+                    <a href="/reportes/${r.id}" class="btn btn-warning text-dark btn-sm w-100 fw-bold">
+                        VER REPORTE
+                    </a>
+                </div>
+            </div>
+        `;
+    }
+
     function getPopupContent(r) {
         let type = (r.tipo_reporte || '').toString().trim().toLowerCase();
         let colorClass = type === 'perdido' ? 'danger' : (type === 'encontrado' ? 'success' : 'info');
         let badge = r.recompensa > 0 ? `<span class="badge bg-warning text-dark me-1">Recompensa: ${r.recompensa}</span>` : '';
         let urgente = r.prioridad === 'urgente' ? '<span class="badge bg-danger animate__animated animate__flash infinite">URGENTE</span>' : '';
-        let foto = r.imagenes && r.imagenes.length > 0 ? 
-            `<div class="mb-2" style="height: 150px; background-image: url('/storage/${r.imagenes[0].ruta}'); background-size: cover; background-position: center; border-radius: 8px;"></div>` : 
-            '';
+        
+        let imgPistaUrl = null;
+        let etiquetaPista = null;
+
+        if (r.respuestas && r.respuestas.length > 0) {
+            const respuestasOrdenadas = [...r.respuestas].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            for(let resp of respuestasOrdenadas) {
+                if (resp.imagenes && resp.imagenes.length > 0) {
+                    imgPistaUrl = resp.imagenes[0].url || resp.imagenes[0]; 
+                    etiquetaPista = resp.tipo_respuesta === 'pista' ? 'Última Pista' : 'Avistamiento';
+                    break;
+                }
+            }
+        }
+
+        let imgOriginalUrl = null;
+        if (r.imagenes && r.imagenes.length > 0) {
+            imgOriginalUrl = r.imagenes[0].url || r.imagenes[0];
+        }
+
+        let fotoHtml = '';
+        if (imgPistaUrl) {
+            fotoHtml += `<div class="mb-2 position-relative" style="height: 150px; background-image: url('${imgPistaUrl}'); background-size: cover; background-position: center; border-radius: 8px;">
+                            <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2"><i class="bi bi-camera-fill me-1"></i>${etiquetaPista}</span>
+                         </div>`;
+        } else if (imgOriginalUrl) {
+            fotoHtml += `<div class="mb-2" style="height: 150px; background-image: url('${imgOriginalUrl}'); background-size: cover; background-position: center; border-radius: 8px;"></div>`;
+        }
 
         return `
             <div class="amber-popup">
@@ -761,7 +954,7 @@
                     <h6 class="mb-0 fw-bold text-uppercase"><i class="bi bi-megaphone-fill"></i> ${r.tipo_reporte}</h6>
                 </div>
                 <div class="p-3">
-                    ${foto}
+                    ${fotoHtml}
                     <h5 class="fw-bold mb-1">${r.titulo}</h5>
                     <div class="mb-2">${urgente} ${badge}</div>
                     
@@ -854,79 +1047,6 @@
                 const group = L.featureGroup(rectangles);
                 const gridBounds = group.getBounds();
                 map.fitBounds(gridBounds.pad(0.1));
-
-                // 2. Dibujar "Nuevos Cuadrantes" y MARCADORES de evidencias
-                allReportes.forEach(r => {
-                    const puntos = [];
-                    // Punto inicial (Reporte original) - Siempre Rojo
-                    if (r.ubicacion_exacta_lat && r.ubicacion_exacta_lng) {
-                        puntos.push({ 
-                            lat: r.ubicacion_exacta_lat, 
-                            lng: r.ubicacion_exacta_lng, 
-                            type: 'reporte',
-                            color: '#dc2626', // Rojo original
-                            nivel: r.nivel_expansion || 1
-                        });
-                    }
-                    
-                    // Respuestas (Evidencias, Pistas, etc.) - Sus propios colores
-                    if (r.respuestas) {
-                        r.respuestas.forEach(resp => {
-                            if (resp.ubicacion_lat && resp.ubicacion_lng) {
-                                // Determinar color según tipo (Sincronizado con móvil)
-                                let color = '#9ca3af'; // Gris (Nueva pista) por defecto
-                                if (resp.tipo_respuesta === 'pista' || resp.mensaje === 'Nueva pista') color = '#9ca3af'; // Gris
-                                if (resp.tipo_respuesta === 'ultima_senal' || resp.mensaje === 'Última señal') color = '#ffffff'; // Blanco
-                                if (resp.tipo_respuesta === 'zona_interes' || resp.mensaje === 'Zona de interés') color = '#fbbf24'; // Amarillo
-                                if (resp.tipo_respuesta === 'encontrado') color = '#198754'; // Verde (Se mantiene)
-
-                                puntos.push({ 
-                                    lat: resp.ubicacion_lat, 
-                                    lng: resp.ubicacion_lng, 
-                                    type: resp.tipo_respuesta || 'evidencia',
-                                    color: color,
-                                    nivel: resp.nivel_expansion || 1
-                                });
-                            }
-                        });
-                    }
-                    
-                    puntos.forEach(pt => {
-                        const [lat, lng] = getValidLatLng(pt.lat, pt.lng);
-                        
-                        // Solo dibujar si el punto está DENTRO de la cuadrícula base original
-                        if (gridBounds.contains([lat, lng])) {
-                            const radioBase = 0.0007; // Reducido ligeramente
-                            const nivel = pt.nivel || 1;
-                            const radioDinamico = radioBase * nivel;
-                            
-                            const boundsCuadrito = [
-                                [lat - radioDinamico, lng - radioDinamico], 
-                                [lat + radioDinamico, lng + radioDinamico]
-                            ];
-                            
-                            // 1. Dibujar el CUADRANTE (Siempre Verde)
-                            L.rectangle(boundsCuadrito, {
-                                color: '#10b981', // Verde
-                                weight: 2,
-                                fillColor: '#10b981',
-                                fillOpacity: 0.25 // Un poco más transparente para que no sature si crece mucho
-                            }).addTo(capas.cuadricula);
-
-                            // 2. Dibujar el PUNTO/MARCADOR (Si es evidencia, porque el reporte ya tiene su marcador pulsante)
-                            if (pt.type !== 'reporte') {
-                                L.circleMarker([lat, lng], {
-                                    radius: 6,
-                                    fillColor: pt.color,
-                                    color: '#fff',
-                                    weight: 2,
-                                    opacity: 1,
-                                    fillOpacity: 1
-                                }).addTo(capas.cuadricula);
-                            }
-                        }
-                    });
-                });
             }
             
         } catch (error) {

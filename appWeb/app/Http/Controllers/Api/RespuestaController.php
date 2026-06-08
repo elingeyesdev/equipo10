@@ -97,7 +97,7 @@ class RespuestaController extends Controller
                 'ubicacion_lat' => $request->ubicacion_lat,
                 'ubicacion_lng' => $request->ubicacion_lng,
                 'direccion_referencia' => $request->direccion_referencia,
-                'verificada' => false,
+                'verificada' => ($request->usuario_id == $reporte->usuario_id),
                 'util' => null
             ]);
 

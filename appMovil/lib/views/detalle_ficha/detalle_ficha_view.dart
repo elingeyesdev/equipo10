@@ -509,6 +509,30 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                               ),
                             ),
                           ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.location_on, color: AppTheme.primary, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  (ficha.direccionReferencia != null && (ficha.direccionReferencia as String).isNotEmpty)
+                                      ? (ficha.direccionReferencia as String)
+                                      : ((ficha.cuadranteNombre != null && ficha.cuadranteNombre!.isNotEmpty)
+                                          ? '${ficha.cuadranteNombre} (${ficha.cuadranteZona ?? "Zona"})'
+                                          : 'Ubicación seleccionada en el mapa'),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF1A1A1A),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -1059,9 +1083,7 @@ class _InfoSection extends StatelessWidget {
         if ((ficha.telefonoContacto != null &&
                 (ficha.telefonoContacto as String).isNotEmpty) ||
             (ficha.emailContacto != null &&
-                (ficha.emailContacto as String).isNotEmpty) ||
-            (ficha.direccionReferencia != null &&
-                (ficha.direccionReferencia as String).isNotEmpty))
+                (ficha.emailContacto as String).isNotEmpty))
           Card(
             elevation: 0,
             color: const Color(0xFFF8F9FA),
@@ -1088,11 +1110,6 @@ class _InfoSection extends StatelessWidget {
                       (ficha.emailContacto as String).isNotEmpty)
                     _ContactRow(
                         icon: Icons.email_outlined, text: ficha.emailContacto),
-                  if (ficha.direccionReferencia != null &&
-                      (ficha.direccionReferencia as String).isNotEmpty)
-                    _ContactRow(
-                        icon: Icons.location_on_outlined,
-                        text: ficha.direccionReferencia),
                 ],
               ),
             ),

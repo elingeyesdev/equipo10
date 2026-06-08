@@ -29,12 +29,14 @@ class CuadranteWebController extends Controller
 
         // Obtener reportes activos con ubicación para el mapa
         // Obtener TODOS los reportes con ubicación para el mapa "Amber Alert"
-        $reportes = \App\Models\Reporte::with(['categoria', 'imagenes', 'respuestas'])
+        $reportes = \App\Models\Reporte::with(['categoria', 'imagenes', 'respuestas.imagenes'])
             ->whereNotNull('ubicacion_exacta_lat')
             ->whereNotNull('ubicacion_exacta_lng')
             ->get(); // Traemos todos los atributos para el detalle completo
         
-        return view('cuadrantes.index', compact('cuadrantes', 'grupos', 'reportes'));
+        $categorias = \App\Models\Categoria::where('activo', true)->get();
+
+        return view('cuadrantes.index', compact('cuadrantes', 'grupos', 'reportes', 'categorias'));
     }
 
     public function create()
