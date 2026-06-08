@@ -10,6 +10,8 @@ import '../../viewmodels/feed_viewmodel.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/offline_banner.dart';
+import '../../services/encuesta_service.dart';
+import '../widgets/encuesta_dialog.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -26,6 +28,27 @@ class _HomeViewState extends State<HomeView> {
     _TabDef(label: 'Mis reportes', icon: Icons.folder_shared_outlined, activeIcon: Icons.folder_shared),
     _TabDef(label: 'Configuración',  icon: Icons.settings_outlined,      activeIcon: Icons.settings),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _revisarEncuestasPendientes();
+    });
+  }
+
+  Future<void> _revisarEncuestasPendientes() async {
+    final usuarioId = context.read<AuthViewModel>().currentUserId;
+    if (usuarioId == null || usuarioId.isEmpty) return;
+
+    final encuestaService = EncuestaService();
+    final pendientes = await encuestaService.getEncuestasPendientes(usuarioId);
+
+    if (pendientes.isNotEmpty && mounted) {
+      // Mostrar popup solo para la primera para no abrumar
+      EncuestaDialog.show(context, pendientes.first, usuarioId);
+    }
+  }
 
   // ── Widget reutilizable: campana con badge compacto al lado ──────────────
   Widget _buildNotifButton(BuildContext context) {

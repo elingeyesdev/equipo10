@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\CategoriaController;
 use App\Http\Controllers\Api\VoluntarioController;
 use App\Http\Controllers\Api\EvidenciaAprobacionController;
 use App\Http\Controllers\Api\ImageController;
+use App\Http\Controllers\Api\EncuestaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -149,10 +150,10 @@ Route::prefix('reportes')->group(function () {
     Route::post('{reporteId}/expandir-inmediato', [ReporteController::class, 'expandirInmediato']);
 
     // Broadcast a voluntarios
-    Route::post('{reporteId}/broadcast', [ReporteController::class, 'broadcastMensaje']);
+    Route::get('{reporteId}/coordenadas', [VoluntarioController::class, 'getCoordenadasVoluntario']);
     
-    // Mensaje directo a voluntario
-    Route::post('{reporteId}/mensaje/{usuarioId}', [ReporteController::class, 'enviarMensajeVoluntario']);
+    // Obtener ruta guardada de un voluntario específico en un reporte
+    Route::get('{reporteId}/voluntarios/{usuarioId}/ruta', [VoluntarioController::class, 'getRutaVoluntario']);
     
     // Marcar reporte como resuelto
     Route::put('{reporteId}/resuelto', [ReporteController::class, 'marcarResuelto']);
@@ -263,6 +264,14 @@ Route::prefix('evidencias')->group(function () {
     Route::get('{reporteId}/pendientes', [EvidenciaAprobacionController::class, 'pending']);
     Route::post('{id}/aprobar', [EvidenciaAprobacionController::class, 'approve']);
     Route::post('{id}/rechazar', [EvidenciaAprobacionController::class, 'reject']);
+});
+
+// ============================================
+// ENCUESTAS
+// ============================================
+Route::prefix('encuestas')->group(function () {
+    Route::get('pendientes/{usuarioId}', [EncuestaController::class, 'encuestasPendientes']);
+    Route::post('/', [EncuestaController::class, 'store']);
 });
 
 // Fin del archivo
