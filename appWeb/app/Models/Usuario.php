@@ -88,6 +88,11 @@ class Usuario extends Authenticatable
         return $this->hasMany(Respuesta::class, 'usuario_id');
     }
 
+    public function encuestas()
+    {
+        return $this->hasMany(EncuestaSatisfaccion::class, 'usuario_id');
+    }
+
 
     
     

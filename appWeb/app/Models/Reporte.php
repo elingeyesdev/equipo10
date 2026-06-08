@@ -106,6 +106,11 @@ class Reporte extends Model
         return $this->hasMany(ExpansionReporte::class, 'reporte_id');
     }
 
+    public function encuestas()
+    {
+        return $this->hasMany(EncuestaSatisfaccion::class, 'reporte_id');
+    }
+
     
     public function imagenes()
     {
