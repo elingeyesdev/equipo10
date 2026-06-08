@@ -738,7 +738,7 @@
             </div>
             <div class="card-body p-0">
                 @forelse($ultimosReportes ?? [] as $reporte)
-                <div class="activity-item">
+                <div class="activity-item" @if(in_array($reporte->estado, ['resuelto', 'terminado'])) style="opacity: 0.55;" @endif>
                     <div class="d-flex align-items-center">
                         <div class="flex-shrink-0 me-3">
                             <div class="user-avatar bg-primary-subtle text-primary rounded-4">

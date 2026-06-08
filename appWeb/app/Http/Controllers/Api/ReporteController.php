@@ -14,6 +14,7 @@ use App\Models\Notificacion;
 use App\Models\NotificacionDato;
 use App\Models\ReporteImagen;
 use App\Models\ReporteVideo;
+use App\Models\ImagenAlmacenada;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -424,7 +425,7 @@ class ReporteController extends Controller
     {
         $validator = Validator::make($request->all(), [
             // Max 10MB
-            'imagen' => 'required|image|max:10240', 
+            'imagen' => 'required|image|max:10240',
         ]);
 
         if ($validator->fails()) {
@@ -436,13 +437,20 @@ class ReporteController extends Controller
 
         try {
             $file = $request->file('imagen');
-            $path = $file->store('reportes', 'public');
-            
-            // Retornamos URL completa y la ruta relativa
+            $mimeType = $file->getMimeType();
+            $base64 = base64_encode(file_get_contents($file->getRealPath()));
+
+            $imagen = ImagenAlmacenada::create([
+                'mime_type' => $mimeType,
+                'base64_data' => $base64,
+            ]);
+
+            $url = url('/api/img/' . $imagen->id);
+
             return response()->json([
                 'success' => true,
-                'url' => asset('storage/' . $path),
-                'path' => $path
+                'url' => $url,
+                'path' => 'db:' . $imagen->id
             ], 200);
         } catch (\Exception $e) {
             return response()->json([

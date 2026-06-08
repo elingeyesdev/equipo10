@@ -11,12 +11,16 @@ use App\Http\Controllers\Api\NotificacionController;
 use App\Http\Controllers\Api\CategoriaController;
 use App\Http\Controllers\Api\VoluntarioController;
 use App\Http\Controllers\Api\EvidenciaAprobacionController;
+use App\Http\Controllers\Api\ImageController;
 
 /*
 |--------------------------------------------------------------------------
 | API Routes - Sistema de Reportes de Objetos Perdidos
 |--------------------------------------------------------------------------
 */
+
+// Ruta pública para servir imágenes almacenadas en la base de datos (persistentes en Render)
+Route::get('img/{id}', [ImageController::class, 'servirImagen']);
 
 // ============================================
 // AUTENTICACIÓN

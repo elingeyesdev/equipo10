@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use App\Models\ImagenAlmacenada;
 
 class AuthController extends Controller
 {
@@ -393,15 +394,22 @@ class AuthController extends Controller
         try {
             $usuario = Usuario::findOrFail($request->id);
             $file = $request->file('avatar');
-            $path = $file->store('avatares', 'public');
-            
-            $usuario->avatar_url = $path;
+            $mimeType = $file->getMimeType();
+            $base64 = base64_encode(file_get_contents($file->getRealPath()));
+
+            $imagen = ImagenAlmacenada::create([
+                'mime_type' => $mimeType,
+                'base64_data' => $base64,
+            ]);
+
+            $avatarUrl = url('/api/img/' . $imagen->id);
+            $usuario->avatar_url = $avatarUrl;
             $usuario->save();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Avatar actualizado correctamente',
-                'avatar_url' => asset('storage/' . $path)
+                'avatar_url' => $avatarUrl
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
