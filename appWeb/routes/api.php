@@ -172,7 +172,10 @@ Route::prefix('reportes')->group(function () {
     // Comentarios públicos
     Route::get('{reporteId}/comentarios', [ReporteController::class, 'listarComentarios']);
     Route::post('{reporteId}/comentarios', [ReporteController::class, 'agregarComentario']);
-    
+
+    // E13.2 – Datos consolidados para el reporte final PDF (ANTES de la ruta genérica {id})
+    Route::get('{id}/reporte-final', [ReporteController::class, 'reporteFinal']);
+
     // Obtener reporte específico (SIEMPRE AL FINAL)
     Route::get('{id}', [ReporteController::class, 'show']);
 });

@@ -1477,4 +1477,283 @@ class ReporteController extends Controller
             ], 500);
         }
     }
+
+    // =========================================================================
+    // E13.2 – REPORTE FINAL DE OPERATIVO (PDF)
+    // =========================================================================
+
+    /**
+     * Generar datos consolidados del operativo para el reporte final PDF.
+     *
+     * Retorna en UNA sola llamada:
+     *   - Ficha completa (categoria, cuadrante, características, imágenes)
+     *   - Voluntarios que participaron con tiempo activo individual
+     *   - Recorridos GPS de todos los voluntarios
+     *   - Evidencias aprobadas (galería)
+     *   - Estadísticas calculadas:
+     *       * total_voluntarios, tiempo_total_minutos, tiempo_activo_minutos
+     *       * distancia_total_km (suma Haversine de todos los recorridos)
+     *       * cuadrantes_expandidos, evidencias aprobadas / rechazadas
+     *
+     * GET /api/reportes/{id}/reporte-final
+     */
+    public function reporteFinal($id)
+    {
+        try {
+            // ── 1. Carga completa del reporte ────────────────────────────────
+            $reporte = Reporte::with([
+                'categoria',
+                'usuario:id,nombre,avatar_url,telefono',
+                'cuadrante',
+                'caracteristicas',
+                'imagenes',
+                'expansiones.cuadranteExpandido',
+            ])->findOrFail($id);
+
+            // ── 2. Voluntarios con datos de tracking ─────────────────────────
+            $voluntariosRaw = \App\Models\ReporteVoluntario::where('reporte_id', $id)
+                ->with('usuario:id,nombre,avatar_url,telefono')
+                ->get();
+
+            $voluntariosData = $voluntariosRaw->map(function ($v) {
+                $minutos = 0;
+                if ($v->inicio_busqueda && $v->fin_busqueda) {
+                    $inicio = \Carbon\Carbon::parse($v->inicio_busqueda);
+                    $fin    = \Carbon\Carbon::parse($v->fin_busqueda);
+                    $minutos = max(0, $inicio->diffInMinutes($fin));
+                } elseif ($v->inicio_busqueda) {
+                    // Aún buscando: calcular desde inicio hasta ahora
+                    $inicio  = \Carbon\Carbon::parse($v->inicio_busqueda);
+                    $minutos = max(0, $inicio->diffInMinutes(now()));
+                }
+
+                return [
+                    'id'               => $v->id,
+                    'usuario_id'       => $v->usuario_id,
+                    'nombre'           => $v->usuario->nombre ?? 'Voluntario',
+                    'avatar_url'       => $v->usuario->avatar_url ?? null,
+                    'telefono'         => $v->usuario->telefono ?? null,
+                    'estado'           => $v->estado,
+                    'estado_busqueda'  => $v->estado_busqueda,
+                    'inicio_busqueda'  => $v->inicio_busqueda,
+                    'fin_busqueda'     => $v->fin_busqueda,
+                    'tiempo_minutos'   => $minutos,
+                    'tiene_vehiculo'   => $v->tiene_vehiculo,
+                    'tipo_vehiculo'    => $v->tipo_vehiculo,
+                ];
+            });
+
+            // ── 3. Recorridos GPS (sólo los que tienen puntos) ───────────────
+            $recorridosRaw = \App\Models\ReporteVoluntario::where('reporte_id', $id)
+                ->whereNotNull('recorrido_puntos')
+                ->with('usuario:id,nombre')
+                ->get();
+
+            $recorridos = $recorridosRaw->map(fn($v) => [
+                'usuario_id'      => $v->usuario_id,
+                'nombre'          => $v->usuario->nombre ?? 'Voluntario',
+                'estado_busqueda' => $v->estado_busqueda,
+                'inicio_busqueda' => $v->inicio_busqueda,
+                'fin_busqueda'    => $v->fin_busqueda,
+                'puntos'          => is_string($v->recorrido_puntos)
+                    ? json_decode($v->recorrido_puntos, true)
+                    : ($v->recorrido_puntos ?? []),
+            ]);
+
+            // ── 4. Evidencias aprobadas / rechazadas ─────────────────────────
+            $evidenciasRaw = \App\Models\Respuesta::where('reporte_id', $id)
+                ->with(['usuario:id,nombre', 'imagenes'])
+                ->get();
+
+            $evidencias = collect();
+            foreach ($evidenciasRaw as $respuesta) {
+                $estado = $respuesta->estado_evidencia ?? 'pending';
+                $imagenesRelacion = $respuesta->relationLoaded('imagenes')
+                    ? $respuesta->getRelation('imagenes')
+                    : collect();
+
+                if ($imagenesRelacion instanceof \Illuminate\Database\Eloquent\Collection && $imagenesRelacion->isNotEmpty()) {
+                    foreach ($imagenesRelacion as $img) {
+                        $evidencias->push([
+                            'id'          => $img->id,
+                            'foto_url'    => str_replace('http://', 'https://', $img->url),
+                            'descripcion' => $respuesta->mensaje ?? '',
+                            'estado'      => $estado,
+                            'autor'       => $respuesta->usuario->nombre ?? 'Voluntario',
+                            'lat'         => $respuesta->ubicacion_lat,
+                            'lng'         => $respuesta->ubicacion_lng,
+                            'created_at'  => $respuesta->created_at,
+                        ]);
+                    }
+                } else {
+                    // Fallback para imagenes en JSON
+                    $urls = [];
+                    if (is_array($respuesta->imagenes)) {
+                        $urls = $respuesta->imagenes;
+                    } elseif (is_string($respuesta->imagenes)) {
+                        $urls = json_decode($respuesta->imagenes, true) ?? [];
+                    }
+                    foreach ($urls as $url) {
+                        if (is_string($url)) {
+                            $evidencias->push([
+                                'id'          => $respuesta->id,
+                                'foto_url'    => str_replace('http://', 'https://', $url),
+                                'descripcion' => $respuesta->mensaje ?? '',
+                                'estado'      => $estado,
+                                'autor'       => $respuesta->usuario->nombre ?? 'Voluntario',
+                                'lat'         => $respuesta->ubicacion_lat,
+                                'lng'         => $respuesta->ubicacion_lng,
+                                'created_at'  => $respuesta->created_at,
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            // ── 5. Calcular estadísticas ─────────────────────────────────────
+
+            // 5a. Tiempo total del operativo (created_at → ahora o updated_at si resuelto)
+            $fechaInicio = $reporte->created_at;
+            $fechaFin    = in_array($reporte->estado, ['resuelto', 'terminado', 'cerrado'])
+                ? $reporte->updated_at
+                : now();
+            $tiempoTotalMinutos = max(0, $fechaInicio->diffInMinutes($fechaFin));
+
+            // 5b. Tiempo activo acumulado de todos los voluntarios
+            $tiempoActivoMinutos = $voluntariosData->sum('tiempo_minutos');
+
+            // 5c. Distancia total cubierta (Haversine sobre todos los recorridos)
+            $distanciaTotalKm = 0.0;
+            foreach ($recorridos as $recorrido) {
+                $puntos = $recorrido['puntos'];
+                if (!is_array($puntos) || count($puntos) < 2) continue;
+                for ($i = 1; $i < count($puntos); $i++) {
+                    $distanciaTotalKm += $this->haversineKm(
+                        (float)$puntos[$i - 1]['lat'],
+                        (float)$puntos[$i - 1]['lng'],
+                        (float)$puntos[$i]['lat'],
+                        (float)$puntos[$i]['lng']
+                    );
+                }
+            }
+
+            // 5d. Cuadrantes expandidos
+            $cuadrantesExpandidos = $reporte->expansiones->pluck('cuadrante_expandido_id')->unique()->count();
+            $cuadrantesExpandidos = max(1, $cuadrantesExpandidos); // Mínimo 1 (el original)
+
+            // 5e. Contadores de evidencias
+            $totalEvidencias      = $evidencias->count();
+            $evidenciasAprobadas  = $evidencias->where('estado', 'approved')->count();
+            $evidenciasRechazadas = $evidencias->where('estado', 'rejected')->count();
+
+            // ── 6. Construir primera imagen ──────────────────────────────────
+            $primeraImagen = null;
+            if ($reporte->imagenes->isNotEmpty()) {
+                $url = $reporte->imagenes->first()->url;
+                $primeraImagen = str_replace('http://', 'https://', $url);
+            }
+
+            // ── 7. Construir respuesta consolidada ───────────────────────────
+            $data = [
+                // Ficha
+                'id'                  => $reporte->id,
+                'titulo'              => $reporte->titulo,
+                'descripcion'         => $reporte->descripcion,
+                'estado'              => $reporte->estado,
+                'prioridad'           => $reporte->prioridad,
+                'categoria'           => $reporte->categoria->nombre ?? null,
+                'categoria_id'        => $reporte->categoria_id,
+                'fecha_reporte'       => $reporte->created_at,
+                'fecha_perdida'       => $reporte->fecha_perdida,
+                'fecha_resolucion'    => in_array($reporte->estado, ['resuelto', 'terminado', 'cerrado'])
+                    ? $reporte->updated_at
+                    : null,
+                'justificacion'       => $reporte->justificacion,
+                'cuadrante_nombre'    => $reporte->cuadrante->nombre ?? null,
+                'cuadrante_zona'      => $reporte->cuadrante->zona ?? null,
+                'latitud'             => $reporte->ubicacion_exacta_lat,
+                'longitud'            => $reporte->ubicacion_exacta_lng,
+                'direccion_referencia' => $reporte->direccion_referencia,
+                'telefono_contacto'   => $reporte->telefono_contacto,
+                'email_contacto'      => $reporte->email_contacto,
+                'recompensa'          => $reporte->recompensa,
+                'nivel_expansion'     => $reporte->nivel_expansion,
+                'max_expansion'       => $reporte->max_expansion,
+                'vistas'              => $reporte->vistas,
+                'primera_imagen'      => $primeraImagen,
+
+                // Autor
+                'creador' => [
+                    'nombre'     => $reporte->usuario->nombre ?? null,
+                    'avatar_url' => $reporte->usuario->avatar_url ?? null,
+                    'telefono'   => $reporte->usuario->telefono ?? null,
+                ],
+
+                // Características
+                'caracteristicas' => $reporte->caracteristicas->pluck('valor', 'clave'),
+
+                // Cuadrantes expandidos (lista)
+                'expansiones' => $reporte->expansiones->map(fn($e) => [
+                    'cuadrante_id'   => $e->cuadrante_expandido_id,
+                    'nombre'         => $e->cuadranteExpandido->nombre ?? null,
+                    'nivel'          => $e->nivel,
+                    'fecha'          => $e->fecha_expansion,
+                ]),
+
+                // Voluntarios
+                'voluntarios' => $voluntariosData,
+
+                // Recorridos GPS
+                'recorridos' => $recorridos,
+
+                // Evidencias (todas, con estado)
+                'evidencias' => $evidencias->values(),
+
+                // Estadísticas calculadas
+                'estadisticas' => [
+                    'total_voluntarios'       => $voluntariosData->count(),
+                    'tiempo_total_minutos'    => (int) $tiempoTotalMinutos,
+                    'tiempo_activo_minutos'   => (int) $tiempoActivoMinutos,
+                    'distancia_total_km'      => round($distanciaTotalKm, 3),
+                    'cuadrantes_expandidos'   => $cuadrantesExpandidos,
+                    'total_evidencias'        => $totalEvidencias,
+                    'evidencias_aprobadas'    => $evidenciasAprobadas,
+                    'evidencias_rechazadas'   => $evidenciasRechazadas,
+                    'vistas'                  => $reporte->vistas,
+                ],
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data'    => $data,
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Log::error('[E13.2] Error al generar reporte final: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al generar el reporte final del operativo',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Calcular distancia entre dos coordenadas usando la fórmula de Haversine.
+     * Retorna la distancia en kilómetros.
+     */
+    private function haversineKm(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $radioTierra = 6371.0; // km
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLng = deg2rad($lng2 - $lng1);
+
+        $a = sin($dLat / 2) ** 2
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) ** 2;
+
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $radioTierra * $c;
+    }
 }
+
