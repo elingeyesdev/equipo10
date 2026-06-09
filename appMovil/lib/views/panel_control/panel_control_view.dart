@@ -689,31 +689,61 @@ class _PanelControlViewState extends State<PanelControlView> {
     );
   }
 
-  /// Genera el reporte PDF mostrando un diálogo de progreso con pasos.
+  /// Genera el reporte PDF mostrando un diálogo de progreso con porcentaje real.
   Future<void> _generarReportePDF(BuildContext context, PanelControlViewModel vm) async {
     if (vm.ficha == null) return;
     final ficha = vm.ficha!;
 
-    // Mostrar diálogo de progreso
-    final progressNotifier = ValueNotifier<_PdfStep>(_PdfStep.recopilando);
+    // Notificador de progreso con estado enriquecido
+    final progressNotifier = ValueNotifier<_PdfProgreso>(const _PdfProgreso(
+      icono: Icons.map_rounded,
+      titulo: 'Capturando mapa',
+      mensaje: 'Generando snapshot del mapa de ruta...',
+      porcentaje: 0.03,
+      color: Color(0xFF16A34A),
+      esError: false,
+    ));
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => _DialogoProgresoPDF(stepNotifier: progressNotifier),
+      builder: (ctx) => _DialogoProgresoPDF(progresoNotifier: progressNotifier),
     );
 
+    // Helper para actualizar el notificador con estado predefinido
+    void actualizarPaso(String paso, String mensaje, double porcentaje) {
+      final (icono, titulo, color) = switch (paso) {
+        'mapa'        => (Icons.map_rounded, 'Capturando mapa', const Color(0xFF16A34A)),
+        'recopilando' => (Icons.cloud_download_rounded, 'Recopilando datos', const Color(0xFF3F7AC5)),
+        'imagenes'    => (Icons.photo_library_rounded, 'Optimizando imágenes', const Color(0xFF8B5CF6)),
+        'ensamblando' => (Icons.picture_as_pdf_rounded, 'Generando PDF', const Color(0xFF3F7AC5)),
+        'error'       => (Icons.error_outline_rounded, 'Error', const Color(0xFFEF4444)),
+        _             => (Icons.hourglass_top_rounded, 'Procesando', const Color(0xFF3F7AC5)),
+      };
+      progressNotifier.value = _PdfProgreso(
+        icono: icono,
+        titulo: titulo,
+        mensaje: mensaje,
+        porcentaje: porcentaje,
+        color: color,
+        esError: paso == 'error',
+      );
+    }
+
     try {
-      // Paso 1: Capturar snapshot del mapa
-      progressNotifier.value = _PdfStep.capturandoMapa;
+      // Paso 1: Capturar snapshot del mapa (3%)
+      actualizarPaso('mapa', 'Generando snapshot del mapa de ruta...', 0.03);
       final mapaBytes = await capturarMapaComoImagen(_mapaKey);
 
-      // Paso 2: Obtener datos consolidados del operativo
-      progressNotifier.value = _PdfStep.recopilando;
+      // Paso 2: Obtener datos consolidados del operativo (10%)
+      actualizarPaso('recopilando', 'Consultando datos del operativo...', 0.10);
       Map<String, dynamic> datos;
       try {
         datos = await ReporteService().obtenerDatosReporteFinal(ficha.id);
+        actualizarPaso('recopilando', 'Datos del operativo obtenidos ✔', 0.15);
       } catch (_) {
         // Si el endpoint aún no existe, construimos datos básicos desde el modelo
+        actualizarPaso('recopilando', 'Usando datos locales del operativo...', 0.12);
         final evVm = context.read<EvidenciaViewModel>();
         datos = {
           'id': ficha.id,
@@ -759,12 +789,21 @@ class _PanelControlViewState extends State<PanelControlView> {
         };
       }
 
-      // Paso 3: Generar el PDF
-      progressNotifier.value = _PdfStep.generando;
+      // Paso 3: Generar el PDF con callback de progreso en tiempo real (15% - 95%)
+      actualizarPaso('imagenes', 'Descargando evidencias fotográficas...', 0.15);
       final pdfBytes = await PdfReporteService().generarReportePDF(
         datos: datos,
         mapaImagenBytes: mapaBytes,
+        onProgress: (paso, mensaje, porcentaje) {
+          // Escalar el progreso del servicio PDF al rango 15%-95%
+          final escalado = 0.15 + (porcentaje * 0.80);
+          actualizarPaso(paso, mensaje, escalado.clamp(0.0, 0.95));
+        },
       );
+
+      // Completado (100%)
+      actualizarPaso('ensamblando', '¡Reporte generado exitosamente!', 1.0);
+      await Future.delayed(const Duration(milliseconds: 400));
 
       // Cerrar diálogo de progreso
       if (context.mounted) Navigator.of(context).pop();
@@ -781,7 +820,7 @@ class _PanelControlViewState extends State<PanelControlView> {
         );
       }
     } catch (e) {
-      progressNotifier.value = _PdfStep.error;
+      actualizarPaso('error', 'Ocurrió un error al generar el reporte.\nIntenta de nuevo.', 0.0);
       await Future.delayed(const Duration(seconds: 2));
       if (context.mounted) {
         Navigator.of(context).pop();
@@ -1283,88 +1322,99 @@ class _EstadoBadge extends StatelessWidget {
 // Enum de pasos de generación del PDF
 // ────────────────────────────────────────────────────────────────────────────
 
-enum _PdfStep {
-  recopilando,
-  capturandoMapa,
-  generando,
-  error,
+// ────────────────────────────────────────────────────────────────────────────
+// Estado de progreso del PDF (E13.3 – reemplaza enum _PdfStep)
+// ────────────────────────────────────────────────────────────────────────────
+
+/// Estado inmutable que describe el progreso actual de la generación del PDF.
+class _PdfProgreso {
+  final IconData icono;
+  final String titulo;
+  final String mensaje;
+  /// Porcentaje de avance (0.0 – 1.0)
+  final double porcentaje;
+  final Color color;
+  final bool esError;
+
+  const _PdfProgreso({
+    required this.icono,
+    required this.titulo,
+    required this.mensaje,
+    required this.porcentaje,
+    required this.color,
+    required this.esError,
+  });
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Diálogo de progreso animado para la generación del PDF
+// Diálogo de progreso animado con barra de porcentaje real (E13.3)
 // ────────────────────────────────────────────────────────────────────────────
 
 class _DialogoProgresoPDF extends StatelessWidget {
-  final ValueNotifier<_PdfStep> stepNotifier;
+  final ValueNotifier<_PdfProgreso> progresoNotifier;
 
-  const _DialogoProgresoPDF({required this.stepNotifier});
+  const _DialogoProgresoPDF({required this.progresoNotifier});
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<_PdfStep>(
-      valueListenable: stepNotifier,
-      builder: (context, step, _) {
-        final (icon, titulo, mensaje, color) = switch (step) {
-          _PdfStep.recopilando => (
-              Icons.cloud_download_rounded,
-              'Recopilando datos',
-              'Obteniendo información del operativo,\nvoluntarios y evidencias...',
-              const Color(0xFF3F7AC5),
-            ),
-          _PdfStep.capturandoMapa => (
-              Icons.map_rounded,
-              'Capturando mapa',
-              'Generando snapshot del mapa\nde ruta final...',
-              const Color(0xFF16A34A),
-            ),
-          _PdfStep.generando => (
-              Icons.picture_as_pdf_rounded,
-              'Generando PDF',
-              'Ensamblando el documento con ficha,\nmapa, galería y estadísticas...',
-              const Color(0xFF3F7AC5),
-            ),
-          _PdfStep.error => (
-              Icons.error_outline_rounded,
-              'Error',
-              'Ocurrió un error al generar\nel reporte. Intenta de nuevo.',
-              const Color(0xFFEF4444),
-            ),
-        };
-
+    return ValueListenableBuilder<_PdfProgreso>(
+      valueListenable: progresoNotifier,
+      builder: (context, progreso, _) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          elevation: 8,
           child: Padding(
-            padding: const EdgeInsets.all(28),
+            padding: const EdgeInsets.fromLTRB(28, 32, 28, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Ícono animado
+                // Ícono animado con indicador circular
                 AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: step == _PdfStep.error
-                      ? Icon(icon, size: 52, color: color, key: ValueKey(step))
-                      : SizedBox(
-                          width: 52,
-                          height: 52,
-                          key: ValueKey(step),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              CircularProgressIndicator(
-                                color: color,
-                                strokeWidth: 3,
+                  duration: const Duration(milliseconds: 350),
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeIn,
+                  child: progreso.esError
+                      ? Icon(
+                          Icons.error_outline_rounded,
+                          size: 56,
+                          color: const Color(0xFFEF4444),
+                          key: const ValueKey('error_icon'),
+                        )
+                      : progreso.porcentaje >= 1.0
+                          ? Icon(
+                              Icons.check_circle_rounded,
+                              size: 56,
+                              color: const Color(0xFF16A34A),
+                              key: const ValueKey('done_icon'),
+                            )
+                          : SizedBox(
+                              width: 56,
+                              height: 56,
+                              key: ValueKey(progreso.titulo),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  CircularProgressIndicator(
+                                    value: progreso.porcentaje < 0.05
+                                        ? null // indeterminado al inicio
+                                        : progreso.porcentaje,
+                                    color: progreso.color,
+                                    strokeWidth: 3.5,
+                                    backgroundColor: progreso.color.withValues(alpha: 0.15),
+                                  ),
+                                  Icon(progreso.icono, size: 26, color: progreso.color),
+                                ],
                               ),
-                              Icon(icon, size: 24, color: color),
-                            ],
-                          ),
-                        ),
+                            ),
                 ),
                 const SizedBox(height: 20),
+
+                // Título del paso
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 250),
                   child: Text(
-                    titulo,
-                    key: ValueKey(titulo),
+                    progreso.esError ? 'Error al generar' : progreso.titulo,
+                    key: ValueKey(progreso.titulo),
                     style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
@@ -1373,41 +1423,75 @@ class _DialogoProgresoPDF extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
+
+                // Mensaje descriptivo
                 AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
+                  duration: const Duration(milliseconds: 200),
                   child: Text(
-                    mensaje,
-                    key: ValueKey(mensaje),
+                    progreso.mensaje,
+                    key: ValueKey(progreso.mensaje),
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      fontSize: 13,
+                      fontSize: 12.5,
                       color: Color(0xFF3F4B5B),
                       height: 1.4,
                     ),
                   ),
                 ),
-                // Indicador de pasos
                 const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: _PdfStep.values.where((s) => s != _PdfStep.error).map((s) {
-                    final isActive = s == step || (step == _PdfStep.generando && s.index < step.index);
-                    final isCurrent = s == step;
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: isCurrent ? 24 : 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: isActive
-                            ? const Color(0xFF3F7AC5)
-                            : const Color(0xFFDFDFDF),
-                        borderRadius: BorderRadius.circular(4),
+
+                // Barra de progreso con porcentaje
+                if (!progreso.esError) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0, end: progreso.porcentaje),
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.easeOut,
+                      builder: (ctx, value, _) => LinearProgressIndicator(
+                        value: value < 0.03 ? null : value,
+                        minHeight: 8,
+                        backgroundColor: const Color(0xFFE8EFF8),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          progreso.porcentaje >= 1.0
+                              ? const Color(0xFF16A34A)
+                              : progreso.color,
+                        ),
                       ),
-                    );
-                  }).toList(),
-                ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        progreso.porcentaje >= 1.0
+                            ? '¡Listo!'
+                            : 'Procesando...',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: progreso.porcentaje >= 1.0
+                              ? const Color(0xFF16A34A)
+                              : const Color(0xFF6B7280),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 0, end: progreso.porcentaje),
+                        duration: const Duration(milliseconds: 400),
+                        builder: (ctx, value, _) => Text(
+                          '${(value * 100).toInt()}%',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: progreso.color,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),

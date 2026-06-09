@@ -1,8 +1,7 @@
 import 'dart:typed_data';
-import 'dart:ui' as ui;
 
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:image/image.dart' as img_pkg;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -28,9 +27,11 @@ class PdfReporteService {
   /// [datos] es el Map retornado por el endpoint `/reportes/{id}/reporte-final`.
   /// [mapaImagenBytes] es un captura estática del mapa (puede ser null si aún
   /// no está disponible; en ese caso se muestra un placeholder).
+  /// [onProgress] recibe actualizaciones de progreso: (paso, mensaje, porcentaje 0.0–1.0).
   Future<Uint8List> generarReportePDF({
     required Map<String, dynamic> datos,
     Uint8List? mapaImagenBytes,
+    void Function(String paso, String mensaje, double porcentaje)? onProgress,
   }) async {
     final pdf = pw.Document(
       title: 'Reporte Final – ${datos['titulo'] ?? 'Operativo'}',
@@ -48,13 +49,15 @@ class PdfReporteService {
       bold: ttfBold,
     );
 
-    // Pre-descargar imágenes de evidencias
+    // Pre-descargar imágenes de evidencias con reporte de progreso
+    onProgress?.call('imagenes', 'Descargando evidencias fotográficas...', 0.1);
     final List<Map<String, dynamic>> evidencias =
         List<Map<String, dynamic>>.from(datos['evidencias'] ?? []);
     final List<_ImagenCargada> imagenesEvidencias =
-        await _cargarImagenes(evidencias);
+        await _cargarImagenes(evidencias, onProgress: onProgress);
 
     // Imagen principal del reporte (si aplica)
+    onProgress?.call('imagenes', 'Descargando imagen principal...', 0.5);
     _ImagenCargada? imagenPrincipal;
     final String? primeraImg = datos['primera_imagen']?.toString();
     if (primeraImg != null && primeraImg.isNotEmpty) {
@@ -64,7 +67,9 @@ class PdfReporteService {
       }
     }
 
-    // ── Página 1: Encabezado + Ficha del Operativo ──────────────────────────
+    onProgress?.call('ensamblando', 'Ensamblando documento PDF...', 0.75);
+
+    // ── Página 1: Encabezado + Ficha del Operativo ─────────────────────────────────
     pdf.addPage(
       pw.MultiPage(
         theme: baseTheme,
@@ -914,11 +919,20 @@ class PdfReporteService {
   }
 
   // ────────────────────────────────────────────────────────────────────────────
-  // Utilidades de descarga y optimización de imágenes
+  // Utilidades de descarga y optimización de imágenes (E13.3)
   // ────────────────────────────────────────────────────────────────────────────
 
-  /// Descarga y comprime una imagen para incluirla en el PDF.
-  /// Retorna null si falla.
+  /// Descarga, redimensiona y comprime una imagen a JPEG calidad 60%
+  /// para reducir el tamaño final del PDF.
+  ///
+  /// Algoritmo:
+  ///   1. Descarga bytes crudos vía HTTP (timeout 15s)
+  ///   2. Decodifica con el paquete `image`
+  ///   3. Redimensiona a máximo 1200px de ancho (mantiene ratio)
+  ///   4. Re-codifica como JPEG al 60% de calidad
+  ///
+  /// Retorna null si la descarga falla. Retorna los bytes originales
+  /// si la decodificación/compresión falla (fallback seguro).
   Future<Uint8List?> _descargarYOptimizar(String url) async {
     try {
       final response = await http.get(Uri.parse(url)).timeout(
@@ -927,39 +941,66 @@ class PdfReporteService {
       if (response.statusCode != 200) return null;
       final originalBytes = response.bodyBytes;
 
-      // Decodificar y re-codificar a JPEG calidad 60% para reducir tamaño en PDF
-      final codec = await ui.instantiateImageCodec(
-        originalBytes,
-        targetWidth: 1200,
-      );
-      final frame = await codec.getNextFrame();
-      final byteData = await frame.image.toByteData(
-        format: ui.ImageByteFormat.rawRgba,
-      );
-      frame.image.dispose();
+      // ── Compresión real con el paquete `image` ───────────────────────────
+      // Se ejecuta en el isolate actual. Para archivos muy grandes se podría
+      // mover a compute(), pero en la práctica las imágenes de evidencias
+      // pesan menos de 2 MB y el retraso es aceptable.
+      final imagen = img_pkg.decodeImage(originalBytes);
+      if (imagen == null) {
+        // No se pudo decodificar — devolver bytes originales como fallback
+        return originalBytes;
+      }
 
-      if (byteData == null) return originalBytes;
+      // Redimensionar si supera 1200px de ancho
+      const int anchoMaximo = 1200;
+      final img_pkg.Image imagenOptimizada = imagen.width > anchoMaximo
+          ? img_pkg.copyResize(imagen, width: anchoMaximo)
+          : imagen;
 
-      // Re-empaquetar: el paquete `pdf` acepta PNG/JPEG crudos
-      // Usamos la imagen original comprimida al 60% via encodeJpeg de dart:ui
-      // (no disponible directamente) — retornamos los bytes originales en caso
-      // de que la recodificación no sea posible, ya que `pdf` puede leerlos.
-      return originalBytes;
+      // Codificar a JPEG calidad 60%
+      final List<int> comprimidos = img_pkg.encodeJpg(imagenOptimizada, quality: 60);
+      return Uint8List.fromList(comprimidos);
     } catch (e) {
       return null;
     }
   }
 
-  /// Descarga todas las imágenes de la lista de evidencias.
+  /// Descarga y optimiza todas las evidencias aprobadas de la lista,
+  /// reportando progreso imagen por imagen a través de [onProgress].
   Future<List<_ImagenCargada>> _cargarImagenes(
-    List<Map<String, dynamic>> evidencias,
-  ) async {
+    List<Map<String, dynamic>> evidencias, {
+    void Function(String paso, String mensaje, double porcentaje)? onProgress,
+  }) async {
     final result = <_ImagenCargada>[];
-    final aprobadas = evidencias.where((e) => e['estado'] == 'approved').toList();
+    final aprobadas = evidencias
+        .where((e) => e['estado'] == 'approved' || e['estado'] == 'approved')
+        .toList();
 
-    for (final ev in aprobadas) {
+    // Si no hay filtro por estado usamos las aprobadas; de lo contrario tomamos todas
+    final aCargar = aprobadas.isNotEmpty
+        ? aprobadas
+        : evidencias
+            .where((e) =>
+                e['foto_url'] != null ||
+                e['url'] != null)
+            .toList();
+
+    final total = aCargar.length;
+    if (total == 0) return result;
+
+    for (int i = 0; i < total; i++) {
+      final ev = aCargar[i];
       final url = ev['foto_url']?.toString() ?? ev['url']?.toString();
       if (url == null || url.isEmpty) continue;
+
+      // Reportar progreso: 10% – 50% proporcional a imágenes descargadas
+      final progresoDescarga = 0.10 + (0.40 * ((i + 1) / total));
+      onProgress?.call(
+        'imagenes',
+        'Optimizando imagen ${i + 1} de $total...',
+        progresoDescarga,
+      );
+
       final bytes = await _descargarYOptimizar(url);
       if (bytes != null) {
         result.add(_ImagenCargada(
