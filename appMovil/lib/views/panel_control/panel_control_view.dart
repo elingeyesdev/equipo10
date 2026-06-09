@@ -9,6 +9,9 @@ import '../../widgets/map_tile_layer.dart';
 import '../../widgets/lpp_marker.dart';
 import 'revision_evidencias_view.dart';
 import '../widgets/full_screen_image_view.dart';
+import '../../services/pdf_reporte_service.dart';
+import '../../services/reporte_service.dart';
+import '../reporte_pdf/reporte_pdf_preview.dart';
 
 class PanelControlView extends StatefulWidget {
   final String fichaId;
@@ -22,6 +25,7 @@ class PanelControlView extends StatefulWidget {
 class _PanelControlViewState extends State<PanelControlView> {
   final MapController _mapController = MapController();
   bool _useSatellite = true;
+  final GlobalKey _mapaKey = GlobalKey();
 
   @override
   void initState() {
@@ -456,6 +460,11 @@ class _PanelControlViewState extends State<PanelControlView> {
           // Boton de revision de evidencias
           _buildBotonRevisionEvidencias(context, vm),
 
+          const SizedBox(height: 16),
+
+          // Botón de generar reporte PDF
+          _buildBotonGenerarPDF(context, vm),
+
           const SizedBox(height: 24),
           const Divider(),
           const SizedBox(height: 16),
@@ -616,6 +625,176 @@ class _PanelControlViewState extends State<PanelControlView> {
         ),
       ),
     );
+  }
+
+  // ── Botón Generar Reporte PDF ────────────────────────────────────────────
+  Widget _buildBotonGenerarPDF(BuildContext context, PanelControlViewModel vm) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF3F7AC5), Color(0xFF2D5A9A)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF3F7AC5).withValues(alpha: 0.35),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _generarReportePDF(context, vm),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            child: Row(
+              children: [
+                Icon(Icons.picture_as_pdf_rounded, color: Colors.white, size: 28),
+                SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Generar Reporte PDF',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Ficha, mapa de ruta, galería y estadísticas',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: Colors.white70),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Genera el reporte PDF mostrando un diálogo de progreso con pasos.
+  Future<void> _generarReportePDF(BuildContext context, PanelControlViewModel vm) async {
+    if (vm.ficha == null) return;
+    final ficha = vm.ficha!;
+
+    // Mostrar diálogo de progreso
+    final progressNotifier = ValueNotifier<_PdfStep>(_PdfStep.recopilando);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _DialogoProgresoPDF(stepNotifier: progressNotifier),
+    );
+
+    try {
+      // Paso 1: Capturar snapshot del mapa
+      progressNotifier.value = _PdfStep.capturandoMapa;
+      final mapaBytes = await capturarMapaComoImagen(_mapaKey);
+
+      // Paso 2: Obtener datos consolidados del operativo
+      progressNotifier.value = _PdfStep.recopilando;
+      Map<String, dynamic> datos;
+      try {
+        datos = await ReporteService().obtenerDatosReporteFinal(ficha.id);
+      } catch (_) {
+        // Si el endpoint aún no existe, construimos datos básicos desde el modelo
+        final evVm = context.read<EvidenciaViewModel>();
+        datos = {
+          'id': ficha.id,
+          'titulo': ficha.titulo,
+          'descripcion': ficha.descripcion,
+          'estado': ficha.estado,
+          'categoria': ficha.nombreCategoria,
+          'fecha_reporte': ficha.createdAt?.toIso8601String(),
+          'fecha_perdida': ficha.fechaPerdida,
+          'cuadrante_nombre': ficha.cuadranteNombre,
+          'cuadrante_zona': ficha.cuadranteZona,
+          'latitud': ficha.latitud,
+          'longitud': ficha.longitud,
+          'telefono_contacto': ficha.telefonoContacto,
+          'email_contacto': ficha.emailContacto,
+          'direccion_referencia': ficha.direccionReferencia,
+          'recompensa': ficha.recompensa,
+          'nivel_expansion': ficha.nivelExpansion,
+          'max_expansion': 10,
+          'primera_imagen': ficha.primeraImagen,
+          'evidencias': evVm.evidencias
+              .map((e) => {
+                    'foto_url': e.fotoUrl,
+                    'descripcion': e.descripcion,
+                    'estado': e.estado,
+                    'created_at': null,
+                  })
+              .toList(),
+          'estadisticas': {
+            'total_voluntarios': vm.voluntarios.length,
+            'total_evidencias': evVm.evidencias.length,
+            'evidencias_aprobadas':
+                evVm.evidencias.where((e) => e.estado == 'approved').length,
+            'evidencias_rechazadas':
+                evVm.evidencias.where((e) => e.estado == 'rejected').length,
+            'cuadrantes_expandidos': ficha.nivelExpansion,
+            'tiempo_total_minutos': ficha.createdAt != null
+                ? DateTime.now().difference(ficha.createdAt!).inMinutes
+                : 0,
+            'tiempo_activo_minutos': 0,
+            'distancia_total_km': 0.0,
+          },
+        };
+      }
+
+      // Paso 3: Generar el PDF
+      progressNotifier.value = _PdfStep.generando;
+      final pdfBytes = await PdfReporteService().generarReportePDF(
+        datos: datos,
+        mapaImagenBytes: mapaBytes,
+      );
+
+      // Cerrar diálogo de progreso
+      if (context.mounted) Navigator.of(context).pop();
+
+      // Navegar al preview del PDF
+      if (context.mounted) {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ReportePdfPreview(
+              tituloOperativo: ficha.titulo,
+              pdfBytes: pdfBytes,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      progressNotifier.value = _PdfStep.error;
+      await Future.delayed(const Duration(seconds: 2));
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al generar el reporte: $e'),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+      }
+    } finally {
+      progressNotifier.dispose();
+    }
   }
 
   Widget _buildTabMapa(PanelControlViewModel vm, dynamic ficha) {
@@ -1096,6 +1275,144 @@ class _EstadoBadge extends StatelessWidget {
         estado.toUpperCase(),
         style: TextStyle(color: border, fontWeight: FontWeight.bold, fontSize: 12),
       ),
+    );
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Enum de pasos de generación del PDF
+// ────────────────────────────────────────────────────────────────────────────
+
+enum _PdfStep {
+  recopilando,
+  capturandoMapa,
+  generando,
+  error,
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Diálogo de progreso animado para la generación del PDF
+// ────────────────────────────────────────────────────────────────────────────
+
+class _DialogoProgresoPDF extends StatelessWidget {
+  final ValueNotifier<_PdfStep> stepNotifier;
+
+  const _DialogoProgresoPDF({required this.stepNotifier});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<_PdfStep>(
+      valueListenable: stepNotifier,
+      builder: (context, step, _) {
+        final (icon, titulo, mensaje, color) = switch (step) {
+          _PdfStep.recopilando => (
+              Icons.cloud_download_rounded,
+              'Recopilando datos',
+              'Obteniendo información del operativo,\nvoluntarios y evidencias...',
+              const Color(0xFF3F7AC5),
+            ),
+          _PdfStep.capturandoMapa => (
+              Icons.map_rounded,
+              'Capturando mapa',
+              'Generando snapshot del mapa\nde ruta final...',
+              const Color(0xFF16A34A),
+            ),
+          _PdfStep.generando => (
+              Icons.picture_as_pdf_rounded,
+              'Generando PDF',
+              'Ensamblando el documento con ficha,\nmapa, galería y estadísticas...',
+              const Color(0xFF3F7AC5),
+            ),
+          _PdfStep.error => (
+              Icons.error_outline_rounded,
+              'Error',
+              'Ocurrió un error al generar\nel reporte. Intenta de nuevo.',
+              const Color(0xFFEF4444),
+            ),
+        };
+
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Ícono animado
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: step == _PdfStep.error
+                      ? Icon(icon, size: 52, color: color, key: ValueKey(step))
+                      : SizedBox(
+                          width: 52,
+                          height: 52,
+                          key: ValueKey(step),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              CircularProgressIndicator(
+                                color: color,
+                                strokeWidth: 3,
+                              ),
+                              Icon(icon, size: 24, color: color),
+                            ],
+                          ),
+                        ),
+                ),
+                const SizedBox(height: 20),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  child: Text(
+                    titulo,
+                    key: ValueKey(titulo),
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF353F4C),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  child: Text(
+                    mensaje,
+                    key: ValueKey(mensaje),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF3F4B5B),
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+                // Indicador de pasos
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: _PdfStep.values.where((s) => s != _PdfStep.error).map((s) {
+                    final isActive = s == step || (step == _PdfStep.generando && s.index < step.index);
+                    final isCurrent = s == step;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: isCurrent ? 24 : 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? const Color(0xFF3F7AC5)
+                            : const Color(0xFFDFDFDF),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

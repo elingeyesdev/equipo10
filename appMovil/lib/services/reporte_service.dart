@@ -331,4 +331,16 @@ class ReporteService {
       return false;
     }
   }
+
+  /// Obtiene los datos consolidados del operativo para el reporte final PDF.
+  ///
+  /// Llama al endpoint `GET /reportes/{id}/reporte-final` implementado en E13.2.
+  /// Retorna un [Map] con: ficha, estadísticas, evidencias y datos de voluntarios.
+  Future<Map<String, dynamic>> obtenerDatosReporteFinal(String reporteId) async {
+    final response = await _api.client.get('/reportes/$reporteId/reporte-final');
+    if (response.statusCode == 200 && response.data['success'] == true) {
+      return Map<String, dynamic>.from(response.data['data']);
+    }
+    throw Exception('No se pudieron obtener los datos del reporte final.');
+  }
 }
