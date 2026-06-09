@@ -1,9 +1,12 @@
-import 'dart:typed_data';
+// import 'dart:typed_data'; removed
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img_pkg;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:latlong2/latlong.dart';
+import 'mapbox_static_service.dart';
 
 /// Servicio encargado de ensamblar el PDF final del operativo.
 ///
@@ -25,36 +28,59 @@ class PdfReporteService {
   /// Genera el PDF completo del operativo.
   ///
   /// [datos] es el Map retornado por el endpoint `/reportes/{id}/reporte-final`.
-  /// [mapaImagenBytes] es un captura estática del mapa (puede ser null si aún
-  /// no está disponible; en ese caso se muestra un placeholder).
   /// [onProgress] recibe actualizaciones de progreso: (paso, mensaje, porcentaje 0.0–1.0).
   Future<Uint8List> generarReportePDF({
     required Map<String, dynamic> datos,
-    Uint8List? mapaImagenBytes,
     void Function(String paso, String mensaje, double porcentaje)? onProgress,
   }) async {
-    final pdf = pw.Document(
-      title: 'Reporte Final – ${datos['titulo'] ?? 'Operativo'}',
-      author: 'Echoes App',
-      creator: 'Echoes',
-    );
+    // 1. Obtener mapas estáticos de Mapbox
+    onProgress?.call('mapa', 'Descargando mapas satelitales...', 0.05);
+    Uint8List? mapaRutasBytes;
+    Uint8List? mapaEvidenciasBytes;
 
-    // Cargar fuente base (usa la fuente por defecto del paquete pdf que es
-    // latin, suficiente para español)
-    final ttfNormal = pw.Font.helvetica();
-    final ttfBold = pw.Font.helveticaBold();
+    try {
+      final lat = double.tryParse(datos['latitud']?.toString() ?? '');
+      final lng = double.tryParse(datos['longitud']?.toString() ?? '');
+      final lpp = (lat != null && lng != null) ? LatLng(lat, lng) : null;
+      
+      final cuadrante = (datos['mapa_cuadrante'] as List<LatLng>?) ?? [];
+      final rutas = (datos['mapa_rutas'] as List<List<LatLng>>?) ?? [];
+      
+      final urlRutas = MapboxStaticService.obtenerMapaRutasUrl(
+        cuadrante: cuadrante,
+        rutasVoluntarios: rutas,
+        lpp: lpp,
+      );
+      if (urlRutas != null) {
+        mapaRutasBytes = await _descargarImagenRaw(urlRutas);
+      }
 
-    final baseTheme = pw.ThemeData.withFont(
-      base: ttfNormal,
-      bold: ttfBold,
-    );
+      final evidencias = (datos['evidencias'] as List?)?.map((e) {
+        if (e['estado'] == 'approved') {
+          final eLat = double.tryParse(e['lat']?.toString() ?? '');
+          final eLng = double.tryParse(e['lng']?.toString() ?? '');
+          if (eLat != null && eLng != null) return LatLng(eLat, eLng);
+        }
+        return null;
+      }).whereType<LatLng>().toList() ?? [];
+
+      final urlEvidencias = MapboxStaticService.obtenerMapaEvidenciasUrl(
+        evidenciasAprobadas: evidencias,
+        lpp: lpp,
+      );
+      if (urlEvidencias != null) {
+        mapaEvidenciasBytes = await _descargarImagenRaw(urlEvidencias);
+      }
+    } catch (e) {
+      debugPrint('Error al obtener mapas estáticos: $e');
+    }
 
     // Pre-descargar imágenes de evidencias con reporte de progreso
-    onProgress?.call('imagenes', 'Descargando evidencias fotográficas...', 0.1);
-    final List<Map<String, dynamic>> evidencias =
+    onProgress?.call('imagenes', 'Descargando evidencias fotográficas...', 0.20);
+    final List<Map<String, dynamic>> listEvidencias =
         List<Map<String, dynamic>>.from(datos['evidencias'] ?? []);
     final List<_ImagenCargada> imagenesEvidencias =
-        await _cargarImagenes(evidencias, onProgress: onProgress);
+        await _cargarImagenes(listEvidencias, onProgress: onProgress);
 
     // Imagen principal del reporte (si aplica)
     onProgress?.call('imagenes', 'Descargando imagen principal...', 0.5);
@@ -68,6 +94,56 @@ class PdfReporteService {
     }
 
     onProgress?.call('ensamblando', 'Ensamblando documento PDF...', 0.75);
+
+    // Permite que la UI actualice la animación al 75% antes de lanzar el isolate
+    await Future.delayed(const Duration(milliseconds: 150));
+
+    final params = _PdfParams(
+      datos,
+      mapaRutasBytes,
+      mapaEvidenciasBytes,
+      imagenesEvidencias,
+      imagenPrincipal,
+    );
+
+    // Ejecuta el ensamblado pesado (pdf.addPage y pdf.save) en un Isolate de fondo
+    return await compute(_ensamblarPdfIsolate, params);
+  }
+
+  Future<Uint8List?> _descargarImagenRaw(String url) async {
+    try {
+      final res = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
+      if (res.statusCode == 200) return res.bodyBytes;
+    } catch (_) {}
+    return null;
+  }
+
+  /// Método asíncrono interno que corre en background para ensamblar y guardar el PDF
+  Future<Uint8List> _generarReportePDFSync(
+    Map<String, dynamic> datosOriginales,
+    Uint8List? mapaRutasBytes,
+    Uint8List? mapaEvidenciasBytes,
+    List<_ImagenCargada> imagenesEvidencias,
+    _ImagenCargada? imagenPrincipal,
+  ) async {
+    // Sanitizar datos para eliminar emojis y caracteres no soportados por Helvetica (Latin-1)
+    final datos = _limpiarDatos(datosOriginales) as Map<String, dynamic>;
+
+    final pdf = pw.Document(
+      title: 'Reporte Final - ${datos['titulo'] ?? 'Operativo'}',
+      author: 'Echoes App',
+      creator: 'Echoes',
+    );
+
+    // Cargar fuente base (usa la fuente por defecto del paquete pdf que es
+    // latin, suficiente para español)
+    final ttfNormal = pw.Font.helvetica();
+    final ttfBold = pw.Font.helveticaBold();
+
+    final baseTheme = pw.ThemeData.withFont(
+      base: ttfNormal,
+      bold: ttfBold,
+    );
 
     // ── Página 1: Encabezado + Ficha del Operativo ─────────────────────────────────
     pdf.addPage(
@@ -95,8 +171,9 @@ class PdfReporteService {
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
             _buildEncabezado(ctx, datos, ttfBold),
-            pw.SizedBox(height: 16),
-            _buildSeccionMapa(mapaImagenBytes, datos, ttfNormal, ttfBold),
+            _buildSeccionMapaRutas(mapaRutasBytes, datos, ttfNormal, ttfBold),
+            pw.SizedBox(height: 32),
+            _buildSeccionMapaEvidencias(mapaEvidenciasBytes, datos, ttfNormal, ttfBold),
           ],
         ),
       ),
@@ -205,7 +282,7 @@ class PdfReporteService {
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
             pw.Text(
-              'Echoes – Sistema de Búsqueda Sectorizada',
+              'Echoes - Sistema de Búsqueda Sectorizada',
               style: pw.TextStyle(fontSize: 7, color: _textSecondary),
             ),
             pw.Text(
@@ -232,7 +309,7 @@ class PdfReporteService {
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         // Título de sección
-        _buildSectionTitle('📋  FICHA DEL OPERATIVO', ttfBold),
+        _buildSectionTitle('[ FICHA DEL OPERATIVO ]', ttfBold),
         pw.SizedBox(height: 12),
 
         // Tarjeta principal
@@ -268,7 +345,7 @@ class PdfReporteService {
                       decoration: pw.BoxDecoration(
                         color: estadoColor.shade(0.15),
                         border: pw.Border.all(color: estadoColor, width: 0.8),
-                        borderRadius: pw.BorderRadius.circular(20),
+                        borderRadius: pw.BorderRadius.circular(4),
                       ),
                       child: pw.Text(
                         estado.toUpperCase(),
@@ -283,10 +360,10 @@ class PdfReporteService {
                     // Datos clave en tabla 2 columnas
                     _buildInfoGrid([
                       _InfoItem('Categoría', datos['categoria'] ?? 'N/A'),
-                      _InfoItem('Fecha de Reporte', _formatFecha(datos['fecha_reporte']?.toString())),
-                      _InfoItem('Fecha del Evento', _formatFecha(datos['fecha_perdida']?.toString())),
+                      _InfoItem('Fecha de reporte', _formatFecha(datos['fecha_reporte']?.toString())),
+                      _InfoItem('Fecha del evento', _formatFecha(datos['fecha_perdida']?.toString())),
                       _InfoItem('Cuadrante', datos['cuadrante_nombre'] ?? 'N/A'),
-                      _InfoItem('Nivel Expansión', '${datos['nivel_expansion'] ?? 1} / ${datos['max_expansion'] ?? 10}'),
+                      _InfoItem('Nivel de expansión', '${datos['nivel_expansion'] ?? 1} / ${datos['max_expansion'] ?? 10}'),
                       _InfoItem('Contacto', datos['telefono_contacto'] ?? 'No disponible'),
                     ], ttfNormal, ttfBold),
                     // Descripción
@@ -333,13 +410,42 @@ class PdfReporteService {
                           borderRadius: pw.BorderRadius.circular(6),
                         ),
                         child: pw.Text(
-                          '💰  Recompensa: S/ ${datos['recompensa']}',
+                          '[ Recompensa: S/ ${datos['recompensa']} ]',
                           style: pw.TextStyle(
                             font: ttfBold,
                             fontSize: 10,
                             color: PdfColor.fromInt(0xFF92400E),
                           ),
                         ),
+                      ),
+                    ],
+                    // Características adicionales
+                    if (datos['caracteristicas'] is Map && (datos['caracteristicas'] as Map).isNotEmpty) ...[
+                      pw.SizedBox(height: 14),
+                      pw.Text(
+                        'Características adicionales:',
+                        style: pw.TextStyle(font: ttfBold, fontSize: 10, color: _darkBase),
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: (datos['caracteristicas'] as Map).entries.map((e) {
+                          final clave = e.key.toString();
+                          final valor = e.value?.toString() ?? '';
+                          return pw.Container(
+                            padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: pw.BoxDecoration(
+                              color: _backgroundLight,
+                              border: pw.Border.all(color: _border, width: 0.5),
+                              borderRadius: pw.BorderRadius.circular(4),
+                            ),
+                            child: pw.Text(
+                              '$clave: $valor',
+                              style: pw.TextStyle(fontSize: 9, color: _textSecondary),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     ],
                   ],
@@ -393,7 +499,7 @@ class PdfReporteService {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('📊  RESUMEN RÁPIDO', ttfBold),
+        _buildSectionTitle('[ RESUMEN RÁPIDO ]', ttfBold),
         pw.SizedBox(height: 12),
         pw.Row(
           children: [
@@ -403,15 +509,14 @@ class PdfReporteService {
             pw.SizedBox(width: 8),
             _buildStatCard('Aprobadas', '$evidenciasAprobadas', _success, ttfBold),
             pw.SizedBox(width: 8),
-            _buildStatCard('Cuadrantes', '$cuadrantesExpandidos', _darkBase, ttfBold),
+            _buildStatCard('Cuadrantes', '$cuadrantesExpandidos', PdfColors.indigo, ttfBold),
           ],
         ),
       ],
     );
   }
 
-  /// Sección 2: Mapa de ruta (imagen capturada o placeholder).
-  pw.Widget _buildSeccionMapa(
+  pw.Widget _buildSeccionMapaRutas(
     Uint8List? mapaBytes,
     Map<String, dynamic> datos,
     pw.Font ttfNormal,
@@ -420,10 +525,11 @@ class PdfReporteService {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('🗺️  MAPA DE RUTA FINAL', ttfBold),
+        pw.SizedBox(height: 16),
+        _buildSectionTitle('[ MAPA DE RUTA DE VOLUNTARIOS ]', ttfBold),
         pw.SizedBox(height: 12),
         pw.Container(
-          width: double.infinity,
+          width: 531,
           decoration: pw.BoxDecoration(
             border: pw.Border.all(color: _border, width: 0.5),
             borderRadius: pw.BorderRadius.circular(8),
@@ -435,7 +541,6 @@ class PdfReporteService {
                   child: pw.Image(
                     pw.MemoryImage(mapaBytes),
                     fit: pw.BoxFit.contain,
-                    height: 380,
                   ),
                 )
               : _buildMapaPlaceholder(datos, ttfNormal, ttfBold),
@@ -447,9 +552,51 @@ class PdfReporteService {
           children: [
             _buildLeyendaItem('Punto de Última Posición', _danger, ttfNormal),
             pw.SizedBox(width: 16),
-            _buildLeyendaItem('Recorrido Voluntarios', _primary, ttfNormal),
+            _buildLeyendaItem('Recorrido Voluntarios', _warning, ttfNormal),
             pw.SizedBox(width: 16),
-            _buildLeyendaItem('Evidencias Aprobadas', PdfColors.blueAccent, ttfNormal),
+            _buildLeyendaItem('Cuadrante de Búsqueda', _primary, ttfNormal),
+          ],
+        ),
+      ],
+    );
+  }
+
+  pw.Widget _buildSeccionMapaEvidencias(
+    Uint8List? mapaBytes,
+    Map<String, dynamic> datos,
+    pw.Font ttfNormal,
+    pw.Font ttfBold,
+  ) {
+    if (mapaBytes == null) return pw.SizedBox();
+    
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('[ MAPA DE EVIDENCIAS APROBADAS ]', ttfBold),
+        pw.SizedBox(height: 12),
+        pw.Container(
+          width: 531,
+          decoration: pw.BoxDecoration(
+            border: pw.Border.all(color: _border, width: 0.5),
+            borderRadius: pw.BorderRadius.circular(8),
+          ),
+          child: pw.ClipRRect(
+            horizontalRadius: 8,
+            verticalRadius: 8,
+            child: pw.Image(
+              pw.MemoryImage(mapaBytes),
+              fit: pw.BoxFit.contain,
+            ),
+          ),
+        ),
+        pw.SizedBox(height: 10),
+        // Leyenda del mapa
+        pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.center,
+          children: [
+            _buildLeyendaItem('Punto de Última Posición', _danger, ttfNormal),
+            pw.SizedBox(width: 16),
+            _buildLeyendaItem('Evidencia Aprobada', _primary, ttfNormal),
           ],
         ),
       ],
@@ -517,7 +664,7 @@ class PdfReporteService {
     const int columnas = 2;
     final rows = <pw.Widget>[];
 
-    rows.add(_buildSectionTitle('📷  GALERÍA DE EVIDENCIAS', ttfBold));
+    rows.add(_buildSectionTitle('[ GALERÍA DE EVIDENCIAS ]', ttfBold));
     rows.add(pw.SizedBox(height: 12));
 
     // Construir grid de 2 columnas
@@ -546,7 +693,6 @@ class PdfReporteService {
                         pw.MemoryImage(img.bytes),
                         height: 160,
                         fit: pw.BoxFit.cover,
-                        width: double.infinity,
                       ),
                     ),
                     pw.Padding(
@@ -569,7 +715,7 @@ class PdfReporteService {
                             padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: pw.BoxDecoration(
                               color: _success.shade(0.15),
-                              borderRadius: pw.BorderRadius.circular(10),
+                              borderRadius: pw.BorderRadius.circular(4),
                             ),
                             child: pw.Text(
                               'APROBADA',
@@ -628,7 +774,7 @@ class PdfReporteService {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('📈  RESUMEN ESTADÍSTICO COMPLETO', ttfBold),
+        _buildSectionTitle('[ RESUMEN ESTADÍSTICO COMPLETO ]', ttfBold),
         pw.SizedBox(height: 16),
 
         // Tabla de datos clave
@@ -644,21 +790,21 @@ class PdfReporteService {
             },
             children: [
               _buildTableHeader(['Métrica', 'Valor'], ttfBold),
-              _buildTableRow(['Total de Voluntarios', '$totalVoluntarios participantes'], ttfNormal, isAlternate: false),
-              _buildTableRow(['Duración Total del Operativo', '${horasTotales}h ${minutosTotales}min'], ttfNormal, isAlternate: true),
-              _buildTableRow(['Tiempo Activo de Búsqueda', '${horasActivo}h ${minutosActivo}min'], ttfNormal, isAlternate: false),
-              _buildTableRow(['Distancia Total Cubierta', '${distanciaKm.toStringAsFixed(2)} km'], ttfNormal, isAlternate: true),
-              _buildTableRow(['Cuadrantes Expandidos', '$cuadrantesExpandidos cuadrante(s)'], ttfNormal, isAlternate: false),
-              _buildTableRow(['Nivel de Expansión Alcanzado', '$nivelExpansion / $maxExpansion'], ttfNormal, isAlternate: true),
-              _buildTableRow(['Total de Evidencias Reportadas', '$totalEvidencias'], ttfNormal, isAlternate: false),
-              _buildTableRow(['Evidencias Aprobadas', '$evidenciasAprobadas'], ttfNormal, isAlternate: true),
-              _buildTableRow(['Evidencias Rechazadas', '$evidenciasRechazadas'], ttfNormal, isAlternate: false),
+              _buildTableRow(['Total de voluntarios', '$totalVoluntarios participantes'], ttfNormal, isAlternate: false),
+              _buildTableRow(['Duración total del operativo', '${horasTotales}h ${minutosTotales}min'], ttfNormal, isAlternate: true),
+              _buildTableRow(['Tiempo activo de búsqueda', '${horasActivo}h ${minutosActivo}min'], ttfNormal, isAlternate: false),
+              _buildTableRow(['Distancia total cubierta', '${distanciaKm.toStringAsFixed(2)} km'], ttfNormal, isAlternate: true),
+              _buildTableRow(['Cuadrantes expandidos', '$cuadrantesExpandidos cuadrante(s)'], ttfNormal, isAlternate: false),
+              _buildTableRow(['Nivel de expansión alcanzado', '$nivelExpansion / $maxExpansion'], ttfNormal, isAlternate: true),
+              _buildTableRow(['Total de evidencias reportadas', '$totalEvidencias'], ttfNormal, isAlternate: false),
+              _buildTableRow(['Evidencias aprobadas', '$evidenciasAprobadas'], ttfNormal, isAlternate: true),
+              _buildTableRow(['Evidencias rechazadas', '$evidenciasRechazadas'], ttfNormal, isAlternate: false),
             ],
           ),
         ),
 
         pw.SizedBox(height: 20),
-        _buildSectionTitle('📉  COBERTURA DE EVIDENCIAS', ttfBold),
+        _buildSectionTitle('[ COBERTURA DE EVIDENCIAS ]', ttfBold),
         pw.SizedBox(height: 12),
 
         // Barra proporcional de evidencias
@@ -696,6 +842,8 @@ class PdfReporteService {
           ),
 
         pw.SizedBox(height: 24),
+        _buildSeccionGraficoEvidencias(datos, ttfNormal, ttfBold),
+        pw.SizedBox(height: 24),
 
         // Nota de cierre
         pw.Container(
@@ -709,6 +857,87 @@ class PdfReporteService {
             'Este reporte fue generado automáticamente por el sistema Echoes al concluir el operativo de búsqueda. '
             'Todos los datos son registros reales del sistema y pueden ser utilizados como evidencia oficial.',
             style: pw.TextStyle(fontSize: 9, color: _primaryDark, lineSpacing: 1.5),
+          ),
+        ),
+      ],
+    );
+  }
+
+  pw.Widget _buildSeccionGraficoEvidencias(
+    Map<String, dynamic> datos,
+    pw.Font ttfNormal,
+    pw.Font ttfBold,
+  ) {
+    final evidencias = datos['evidencias'] as List? ?? [];
+    if (evidencias.isEmpty) return pw.SizedBox();
+
+    // Agrupar evidencias por fecha (Día/Mes)
+    final Map<String, int> conteoPorFecha = {};
+    for (var ev in evidencias) {
+      final fechaStr = ev['created_at']?.toString();
+      if (fechaStr == null) continue;
+      final dt = DateTime.tryParse(fechaStr);
+      if (dt == null) continue;
+      final dateKey = '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}';
+      conteoPorFecha[dateKey] = (conteoPorFecha[dateKey] ?? 0) + 1;
+    }
+
+    if (conteoPorFecha.isEmpty) return pw.SizedBox();
+
+    // Si solo hay un día, agrupar por hora
+    if (conteoPorFecha.keys.length == 1) {
+      conteoPorFecha.clear();
+      for (var ev in evidencias) {
+        final fechaStr = ev['created_at']?.toString();
+        if (fechaStr == null) continue;
+        final dt = DateTime.tryParse(fechaStr);
+        if (dt == null) continue;
+        final dateKey = '${dt.hour.toString().padLeft(2, '0')}:00';
+        conteoPorFecha[dateKey] = (conteoPorFecha[dateKey] ?? 0) + 1;
+      }
+    }
+
+    final keys = conteoPorFecha.keys.toList();
+    final values = keys.map((k) => conteoPorFecha[k]!).toList();
+
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('[ DISTRIBUCIÓN DE EVIDENCIAS EN EL TIEMPO ]', ttfBold),
+        pw.SizedBox(height: 12),
+        pw.Container(
+          height: 180,
+          padding: const pw.EdgeInsets.all(12),
+          decoration: pw.BoxDecoration(
+            border: pw.Border.all(color: _border, width: 0.5),
+            borderRadius: pw.BorderRadius.circular(8),
+          ),
+          child: pw.Chart(
+            grid: pw.CartesianGrid(
+              xAxis: pw.FixedAxis.fromStrings(
+                List<String>.generate(keys.length, (i) => keys[i]),
+                marginStart: 30,
+                marginEnd: 30,
+                ticks: true,
+              ),
+              yAxis: pw.FixedAxis(
+                List<int>.generate(
+                  (values.isNotEmpty ? values.reduce((a, b) => a > b ? a : b) : 0) + 2,
+                  (i) => i,
+                ),
+                ticks: true,
+              ),
+            ),
+            datasets: [
+              pw.BarDataSet(
+                color: _primary,
+                width: 15,
+                data: List<pw.PointChartValue>.generate(
+                  keys.length,
+                  (i) => pw.PointChartValue(i.toDouble(), values[i].toDouble()),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -897,21 +1126,22 @@ class PdfReporteService {
             // Fondo completo de la barra
             pw.Container(
               height: 10,
-              width: double.infinity,
+              width: 531,
               decoration: pw.BoxDecoration(
                 color: _border,
                 borderRadius: pw.BorderRadius.circular(5),
               ),
             ),
             // Relleno proporcional — ancho útil A4 con márgenes de 32pt a cada lado = ~531pt
-            pw.Container(
-              height: 10,
-              width: 531 * porcentaje,
-              decoration: pw.BoxDecoration(
-                color: color,
-                borderRadius: pw.BorderRadius.circular(5),
+            if (valor > 0)
+              pw.Container(
+                height: 10,
+                width: 531 * porcentaje < 10 ? 10 : 531 * porcentaje,
+                decoration: pw.BoxDecoration(
+                  color: color,
+                  borderRadius: pw.BorderRadius.circular(5),
+                ),
               ),
-            ),
           ],
         ),
       ],
@@ -941,25 +1171,10 @@ class PdfReporteService {
       if (response.statusCode != 200) return null;
       final originalBytes = response.bodyBytes;
 
-      // ── Compresión real con el paquete `image` ───────────────────────────
-      // Se ejecuta en el isolate actual. Para archivos muy grandes se podría
-      // mover a compute(), pero en la práctica las imágenes de evidencias
-      // pesan menos de 2 MB y el retraso es aceptable.
-      final imagen = img_pkg.decodeImage(originalBytes);
-      if (imagen == null) {
-        // No se pudo decodificar — devolver bytes originales como fallback
-        return originalBytes;
-      }
-
-      // Redimensionar si supera 1200px de ancho
-      const int anchoMaximo = 1200;
-      final img_pkg.Image imagenOptimizada = imagen.width > anchoMaximo
-          ? img_pkg.copyResize(imagen, width: anchoMaximo)
-          : imagen;
-
-      // Codificar a JPEG calidad 60%
-      final List<int> comprimidos = img_pkg.encodeJpg(imagenOptimizada, quality: 60);
-      return Uint8List.fromList(comprimidos);
+      // ── Compresión real con el paquete `image` en background ───────────
+      // Offloaded a un isolate para evitar bloquear la UI
+      final Uint8List? optimizados = await compute(_optimizarImagenIsolate, originalBytes);
+      return optimizados ?? originalBytes;
     } catch (e) {
       return null;
     }
@@ -1070,4 +1285,69 @@ class _ImagenCargada {
     this.descripcion,
     this.fecha,
   });
+}
+
+class _PdfParams {
+  final Map<String, dynamic> datos;
+  final Uint8List? mapaRutasBytes;
+  final Uint8List? mapaEvidenciasBytes;
+  final List<_ImagenCargada> imagenesEvidencias;
+  final _ImagenCargada? imagenPrincipal;
+
+  const _PdfParams(
+    this.datos,
+    this.mapaRutasBytes,
+    this.mapaEvidenciasBytes,
+    this.imagenesEvidencias,
+    this.imagenPrincipal,
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Funciones Top-Level para Isolate (compute)
+// ────────────────────────────────────────────────────────────────────────────
+
+/// Elimina emojis y caracteres no soportados por la fuente Helvetica (Latin1)
+dynamic _limpiarDatos(dynamic valor) {
+  if (valor is String) {
+    var limpio = valor.replaceAll('–', '-').replaceAll('—', '-');
+    // Deja solo caracteres ASCII básicos y caracteres extendidos Latin-1 (acentos)
+    limpio = limpio.replaceAll(RegExp(r'[^\x00-\x7F\xC0-\xFF\s\.,;:!?()\[\]{}"\x27\-\+]'), '');
+    return limpio;
+  } else if (valor is List) {
+    return valor.map((e) => _limpiarDatos(e)).toList();
+  } else if (valor is Map) {
+    return valor.map((k, v) => MapEntry(k.toString(), _limpiarDatos(v)));
+  }
+  return valor;
+}
+
+/// Ejecuta el ensamblado del PDF en un isolate de fondo
+Future<Uint8List> _ensamblarPdfIsolate(_PdfParams args) async {
+  final service = PdfReporteService();
+  return await service._generarReportePDFSync(
+    args.datos,
+    args.mapaRutasBytes,
+    args.mapaEvidenciasBytes,
+    args.imagenesEvidencias,
+    args.imagenPrincipal,
+  );
+}
+
+/// Ejecuta la compresión de imagen pesada en un isolate
+Uint8List? _optimizarImagenIsolate(Uint8List originalBytes) {
+  try {
+    final imagen = img_pkg.decodeImage(originalBytes);
+    if (imagen == null) return originalBytes;
+
+    const int anchoMaximo = 1200;
+    final img_pkg.Image imagenOptimizada = imagen.width > anchoMaximo
+        ? img_pkg.copyResize(imagen, width: anchoMaximo)
+        : imagen;
+
+    final List<int> comprimidos = img_pkg.encodeJpg(imagenOptimizada, quality: 60);
+    return Uint8List.fromList(comprimidos);
+  } catch (e) {
+    return originalBytes;
+  }
 }

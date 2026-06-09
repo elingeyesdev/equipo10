@@ -1,8 +1,6 @@
 import 'dart:typed_data';
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:printing/printing.dart';
 
 import '../../theme/app_theme.dart';
@@ -128,24 +126,3 @@ class ReportePdfPreview extends StatelessWidget {
   }
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// Helper: Captura del mapa como imagen
-// ────────────────────────────────────────────────────────────────────────────
-
-/// Captura el widget del mapa identificado por [mapKey] como una imagen PNG.
-///
-/// Retorna `null` si la captura falla. Llamar ANTES de generar el PDF
-/// para que [PdfReporteService.generarReportePDF] reciba [mapaImagenBytes].
-Future<Uint8List?> capturarMapaComoImagen(GlobalKey mapKey) async {
-  try {
-    final RenderRepaintBoundary boundary =
-        mapKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-    final ui.Image image = await boundary.toImage(pixelRatio: 2.0);
-    final ByteData? byteData =
-        await image.toByteData(format: ui.ImageByteFormat.png);
-    image.dispose();
-    return byteData?.buffer.asUint8List();
-  } catch (e) {
-    return null;
-  }
-}
