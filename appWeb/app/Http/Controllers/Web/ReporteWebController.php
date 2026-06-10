@@ -77,7 +77,7 @@ class ReporteWebController extends Controller
 
     public function show(string $id)
     {
-        $reporte = Reporte::with(['usuario', 'categoria', 'cuadrante', 'respuestas.usuario', 'expansiones'])
+        $reporte = Reporte::with(['usuario', 'categoria', 'cuadrante', 'respuestas.usuario', 'expansiones', 'imagenes'])
             ->findOrFail($id);
         
         $reporte->increment('vistas');
@@ -151,9 +151,9 @@ class ReporteWebController extends Controller
         // Ordenar por fecha cronológicamente
         $timeline = $timeline->sortBy('fecha');
 
-        // Cargar pistas de búsqueda (respuestas tipo 'pista') con ubicación
+        // Cargar pistas de búsqueda y evidencias con ubicación
         $pistas = $reporte->respuestas()
-            ->where('tipo_respuesta', 'pista')
+            ->with('imagenes')
             ->whereNotNull('ubicacion_lat')
             ->whereNotNull('ubicacion_lng')
             ->orderBy('created_at')
@@ -162,7 +162,47 @@ class ReporteWebController extends Controller
         // Lista de cuadrantes para el selector de reasignación
         $cuadrantes = Cuadrante::orderBy('codigo')->get(['id', 'codigo', 'nombre', 'zona']);
 
-        return view('reportes.show', compact('reporte', 'timeline', 'pistas', 'cuadrantes'));
+        // ─── Variables de imagen principal ───────────────────────────────────
+        $qLat = request('lat');
+        $qLng = request('lng');
+
+        $fotoPrincipal      = $reporte->imagenes->count() > 0 ? $reporte->imagenes->first()->url : null;
+        $tituloPrincipal    = 'Foto del Reporte';
+        $descripcionPrincipal = '';
+        $fechaPrincipal     = $reporte->created_at ? $reporte->created_at->format('d/m/Y H:i') : 'Fecha desconocida';
+
+        if ($qLat && $qLng) {
+            foreach ($pistas as $p) {
+                $imgPista = null;
+                if ($p->relationLoaded('imagenes') && $p->getRelation('imagenes')->count() > 0) {
+                    $imgPista = $p->getRelation('imagenes')->first()->url;
+                }
+                if (!$imgPista && is_array($p->imagenes) && count($p->imagenes) > 0) {
+                    $first = $p->imagenes[0];
+                    $imgPista = is_string($first) ? $first : ($first['url'] ?? null);
+                }
+
+                if (abs((float)$p->ubicacion_lat - (float)$qLat) < 0.0001 &&
+                    abs((float)$p->ubicacion_lng - (float)$qLng) < 0.0001) {
+                    if ($imgPista) {
+                        $fotoPrincipal        = $imgPista;
+                        $tituloPrincipal      = 'Foto de la Evidencia';
+                        $descripcionPrincipal = $p->mensaje;
+                        $fechaPrincipal       = $p->created_at ? $p->created_at->format('d/m/Y H:i') : '';
+                    } else {
+                        $tituloPrincipal      = 'Información de la Pista';
+                        $descripcionPrincipal = $p->mensaje;
+                        $fechaPrincipal       = $p->created_at ? $p->created_at->format('d/m/Y H:i') : '';
+                    }
+                    break;
+                }
+            }
+        }
+
+        return view('reportes.show', compact(
+            'reporte', 'timeline', 'pistas', 'cuadrantes',
+            'fotoPrincipal', 'tituloPrincipal', 'descripcionPrincipal', 'fechaPrincipal'
+        ));
     }
 
 

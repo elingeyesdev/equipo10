@@ -7,6 +7,7 @@ import '../../models/evidencia_model.dart';
 import '../../viewmodels/tracking_viewmodel.dart';
 import '../../widgets/map_tile_layer.dart';
 import '../../widgets/lpp_marker.dart';
+import '../../widgets/evidencia_marker.dart';
 import '../../theme/app_theme.dart';
 import '../widgets/full_screen_image_view.dart';
 
@@ -233,8 +234,25 @@ class _TrackingViewState extends State<TrackingView> {
               children: [
                 MapTileLayer(useSatellite: _useSatellite),
 
-                // Cuadrante del reporte (si tiene bounds)
-                if (widget.ficha.cuadranteLatMin != null)
+                // Cuadrantes de búsqueda (Base verde y expansiones azules)
+                if (widget.ficha.expansionesData != null && widget.ficha.expansionesData!.isNotEmpty)
+                  PolygonLayer(
+                    polygons: widget.ficha.expansionesData!.where((e) => e['lat_min'] != null).map((e) {
+                      final isBase = e['nivel'] == 1;
+                      return Polygon(
+                        points: [
+                          LatLng(double.parse(e['lat_min'].toString()), double.parse(e['lng_min'].toString())),
+                          LatLng(double.parse(e['lat_max'].toString()), double.parse(e['lng_min'].toString())),
+                          LatLng(double.parse(e['lat_max'].toString()), double.parse(e['lng_max'].toString())),
+                          LatLng(double.parse(e['lat_min'].toString()), double.parse(e['lng_max'].toString())),
+                        ],
+                        color: (isBase ? AppTheme.success : Colors.blue).withValues(alpha: 0.12),
+                        borderColor: isBase ? AppTheme.success : Colors.blue.shade400,
+                        borderStrokeWidth: 2,
+                      );
+                    }).toList(),
+                  )
+                else if (widget.ficha.cuadranteLatMin != null)
                   PolygonLayer(polygons: [
                     Polygon(
                       points: [
@@ -243,8 +261,8 @@ class _TrackingViewState extends State<TrackingView> {
                         LatLng(widget.ficha.cuadranteLatMax!, widget.ficha.cuadranteLngMax!),
                         LatLng(widget.ficha.cuadranteLatMin!, widget.ficha.cuadranteLngMax!),
                       ],
-                      color: Colors.blue.withValues(alpha: 0.12),
-                      borderColor: Colors.blue.shade400,
+                      color: AppTheme.success.withValues(alpha: 0.12),
+                      borderColor: AppTheme.success,
                       borderStrokeWidth: 2,
                     )
                   ]),
@@ -354,10 +372,9 @@ class _TrackingViewState extends State<TrackingView> {
                               });
                             });
                           },
-                          child: LppMarker(
+                          child: EvidenciaMarker(
                             fotoUrl: evidencia.fotoUrl,
-                            nombre: 'Evidencia',
-                            color: Colors.blueAccent,
+                            nombreVoluntario: evidencia.nombreUsuario ?? 'Evidencia',
                           ),
                         ),
                       );

@@ -147,7 +147,7 @@
                     {{ ucfirst($reporte->tipo_reporte) }}
                 </span>
                 <span class="text-white-50 small">
-                    <i class="bi bi-clock me-1"></i> Publicado {{ $reporte->created_at->diffForHumans() }}
+                    <i class="bi bi-clock me-1"></i> Publicado {{ $reporte->created_at ? $reporte->created_at->diffForHumans() : 'Fecha desconocida' }}
                 </span>
             </div>
             <h1 class="fw-bold mb-1">{{ $reporte->titulo }}</h1>
@@ -206,29 +206,37 @@
                             <div class="info-card p-3">
                                 <label class="info-label"><i class="bi bi-tag-fill me-1 text-primary"></i> Categoría</label>
                                 <div class="d-flex align-items-center mt-1">
-                                    <span class="badge rounded-pill px-3 py-2" style="background-color: {{ $reporte->categoria->color }}; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">
-                                        {{ $reporte->categoria->nombre }}
-                                    </span>
+                                    @if($reporte->categoria)
+                                        <span class="badge rounded-pill px-3 py-2" style="background-color: {{ $reporte->categoria->color ?? '#6c757d' }}; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">
+                                            {{ $reporte->categoria->nombre }}
+                                        </span>
+                                    @else
+                                        <span class="badge rounded-pill px-3 py-2 bg-secondary text-white">Sin categoría</span>
+                                    @endif
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="info-card p-3">
                                 <label class="info-label"><i class="bi bi-person-badge-fill me-1 text-primary"></i> Reportado por</label>
-                                <div class="info-value mt-1">{{ $reporte->usuario->nombre }}</div>
+                                <div class="info-value mt-1">{{ $reporte->usuario->nombre ?? 'Desconocido' }}</div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="info-card p-3">
                                 <label class="info-label"><i class="bi bi-geo-fill me-1 text-primary"></i> Cuadrante</label>
-                                <div class="info-value mt-1">{{ $reporte->cuadrante->codigo }}</div>
-                                <small class="text-muted">{{ $reporte->cuadrante->nombre }}</small>
-                                
-                                @if($reporte->cuadrante_sugerido && $reporte->cuadrante_sugerido->id !== $reporte->cuadrante->id)
-                                    <div class="alert alert-warning mt-2 mb-0 py-2 px-3 small border-0 bg-warning-subtle text-warning-emphasis">
-                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                                        Sugerido: <strong>{{ $reporte->cuadrante_sugerido->codigo }}</strong>
-                                    </div>
+                                @if($reporte->cuadrante)
+                                    <div class="info-value mt-1">{{ $reporte->cuadrante->codigo }}</div>
+                                    <small class="text-muted">{{ $reporte->cuadrante->nombre }}</small>
+                                    @php $cuadranteSugerido = $reporte->cuadrante_sugerido; @endphp
+                                    @if($cuadranteSugerido && $cuadranteSugerido->id !== $reporte->cuadrante->id)
+                                        <div class="alert alert-warning mt-2 mb-0 py-2 px-3 small border-0 bg-warning-subtle text-warning-emphasis">
+                                            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                            Sugerido: <strong>{{ $cuadranteSugerido->codigo }}</strong>
+                                        </div>
+                                    @endif
+                                @else
+                                    <div class="info-value mt-1 text-muted">Sin cuadrante asignado</div>
                                 @endif
                             </div>
                         </div>
@@ -296,52 +304,14 @@
                                     <span class="fw-bold text-primary"><i class="bi bi-pin-map-fill me-1"></i> Puntos de avistamiento</span>
                                 </div>
                                 <div class="d-flex gap-2">
-                                    @if(auth()->check() && (auth()->user()->hasRole('administrador') || auth()->user()->hasRole('editor') || auth()->id() == $reporte->usuario_id))
-                                    <button id="btn-modo-pista" class="btn btn-warning btn-sm fw-semibold shadow-sm border-0" onclick="activarModoPista()">
-                                        <i class="bi bi-plus-lg me-1"></i> Añadir Pista
-                                    </button>
-                                    @endif
+                                    <!-- Remove Añadir Pista button -->
                                     <button onclick="toggleMapFullscreen()" class="btn btn-light btn-sm border shadow-sm">
                                         <i class="bi bi-arrows-fullscreen"></i>
                                     </button>
                                 </div>
                             </div>
                             
-                            <!-- Panel lateral de agregar pista -->
-                            <div id="panel-pista" style="display:none; position:absolute; top:60px; right:15px; z-index:1000; width:280px; background:white; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.15); overflow:hidden;">
-                                <div style="background:linear-gradient(135deg,#f59e0b,#d97706);padding:10px 15px;color:white;" class="d-flex justify-content-between align-items-center">
-                                    <span class="fw-bold fs-6"><i class="bi bi-pin-map-fill me-1"></i>Nueva Pista</span>
-                                    <button onclick="cancelarModoPista()" class="btn btn-sm btn-light py-0 px-2 border-0 text-dark">&times;</button>
-                                </div>
-                                <div class="p-3">
-                                    <div id="coords-status" class="alert py-2 px-3 mb-2 small text-warning-emphasis bg-warning-subtle border-warning-subtle rounded-3">
-                                        <i class="bi bi-geo-alt-fill me-1"></i><span id="coords-text">Clic en el mapa...</span>
-                                    </div>
-                                    <div class="mb-2">
-                                        <label class="fw-bold small mb-1">Tipo de pista</label>
-                                        <select id="sel-etiqueta" class="form-select form-select-sm rounded-3">
-                                            <option value="Visto por última vez">Visto por última vez</option>
-                                            <option value="Nueva pista">Nueva pista</option>
-                                            <option value="Avistamiento confirmado">Avistamiento confirmado</option>
-                                            <option value="Última señal">Última señal</option>
-                                            <option value="Zona de interés">Zona de interés</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="fw-bold small mb-1">Reasignar cuadrante (opcional)</label>
-                                        <select id="sel-cuadrante" class="form-select form-select-sm rounded-3">
-                                            <option value="">— Mantener actual —</option>
-                                            @foreach($cuadrantes as $cq)
-                                            <option value="{{ $cq->id }}">{{ $cq->codigo }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <button id="btn-guardar-pista" onclick="guardarPista()" disabled class="btn btn-warning w-100 fw-bold shadow-sm rounded-3 border-0">
-                                        <i class="bi bi-cloud-arrow-up-fill me-1"></i>Guardar
-                                    </button>
-                                    <div id="pista-msg" class="mt-2 text-center small"></div>
-                                </div>
-                            </div>
+                            <!-- Eliminar panel de añadir pista -->
                             
                             <!-- El Mapa -->
                             <div id="mapa-pistas-wrapper" style="position:relative; background: #f8f9fa;">
@@ -362,37 +332,32 @@
                 </div>
             </div>
 
-            <!-- Carousel Section -->
-            @if($reporte->imagenes->count() > 0)
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-body p-0">
-                    <div class="img-carousel-container">
-                        <div id="carouselReporteImages" class="carousel slide" data-bs-ride="carousel">
-                            <div class="carousel-inner">
-                                @foreach($reporte->imagenes as $key => $imagen)
-                                    <div class="carousel-item {{ $key == 0 ? 'active' : '' }}">
-                                        <img src="{{ $imagen->url }}" class="d-block w-100" style="height: 500px; object-fit: cover;" alt="Evidencia gráfica">
-                                        <div class="carousel-caption d-none d-md-block p-4" style="background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);">
-                                            <h5 class="fw-bold">Evidencia #{{ $key + 1 }}</h5>
-                                        </div>
-                                    </div>
-                                @endforeach
+            <!-- Main Image Section -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+                <div class="position-relative bg-light" style="min-height: 400px;">
+                    @if($fotoPrincipal)
+                        <img src="{{ $fotoPrincipal }}" 
+                             alt="{{ $tituloPrincipal }}" 
+                             class="w-100" 
+                             style="height: 500px; object-fit: cover;">
+                    @else
+                        <div class="d-flex align-items-center justify-content-center" style="height: 500px;">
+                            <div class="text-center text-muted">
+                                <i class="bi bi-camera" style="font-size: 3rem;"></i>
+                                <p class="mt-2">Sin imagen disponible</p>
                             </div>
-                            @if($reporte->imagenes->count() > 1)
-                                <button class="carousel-control-prev" type="button" data-bs-target="#carouselReporteImages" data-bs-slide="prev">
-                                    <span class="carousel-control-prev-icon bg-dark rounded-circle p-3 bg-opacity-50" aria-hidden="true"></span>
-                                    <span class="visually-hidden">Anterior</span>
-                                </button>
-                                <button class="carousel-control-next" type="button" data-bs-target="#carouselReporteImages" data-bs-slide="next">
-                                    <span class="carousel-control-next-icon bg-dark rounded-circle p-3 bg-opacity-50" aria-hidden="true"></span>
-                                    <span class="visually-hidden">Siguiente</span>
-                                </button>
-                            @endif
                         </div>
+                    @endif
+                    <div class="position-absolute bottom-0 start-0 w-100 p-4" 
+                         style="background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);">
+                        <h5 class="text-white fw-bold mb-1">{{ $tituloPrincipal }}</h5>
+                        @if($descripcionPrincipal)
+                            <p class="text-white-50 mb-1 small">{{ $descripcionPrincipal }}</p>
+                        @endif
+                        <p class="text-white-50 mb-0 small"><i class="bi bi-clock"></i> {{ $fechaPrincipal }}</p>
                     </div>
                 </div>
             </div>
-            @endif
         </div>
 
         <!-- Columna Derecha: Contacto y Timeline -->
@@ -453,7 +418,7 @@
                                 <div class="ps-4 ms-3"> <!-- Increased spacing: ps-3 ms-2 -> ps-4 ms-3 -->
                                     <div class="d-flex justify-content-between align-items-center mb-1">
                                         <h6 class="fw-bold mb-0 text-dark small">{{ $evento['titulo'] }}</h6>
-                                        <span class="text-muted" style="font-size: 0.7rem;">{{ $evento['fecha']->diffForHumans() }}</span>
+                                        <span class="text-muted" style="font-size: 0.7rem;">{{ $evento['fecha'] ? $evento['fecha']->diffForHumans() : '' }}</span>
                                     </div>
                                     <div class="timeline-item-content p-2 rounded bg-light border-start border-3 border-{{ $evento['color'] }}">
                                         <p class="text-secondary small mb-1" style="line-height: 1.3;">
@@ -491,16 +456,54 @@ const LPP_LAT   = {{ (float) $reporte->ubicacion_exacta_lat }};
 const LPP_LNG   = {{ (float) $reporte->ubicacion_exacta_lng }};
 const REPORTE_ID = "{{ $reporte->id }}";
 const TITULO    = @json($reporte->titulo);
-const NIVEL_EXPAN = {{ (int) $reporte->nivel_expansion }};
-const RADIO_BASE = 0.0008; // El mismo que en móvil
+const ESTADO_REPORTE = @json($reporte->estado);
+const CREATED_AT = @json($reporte->created_at);
+const UPDATED_AT = @json($reporte->updated_at);
+const RADIO_BASE = 0.0007; // Mismo radio que en cuadrantes/index
+
+// Calcular nivel dinámico basado en el tiempo (misma fórmula que cuadrantes/index)
+function calcularNivelDinamico(fechaStr, fechaFinStr, estado) {
+    if (!fechaStr) return 1;
+    const fecha = new Date(fechaStr);
+    let fin = new Date();
+    if ((estado === 'resuelto' || estado === 'encontrado' || estado === 'terminado') && fechaFinStr) {
+        fin = new Date(fechaFinStr);
+    }
+    if (isNaN(fecha) || isNaN(fin)) return 1;
+    const diffMinutos = (fin - fecha) / (1000 * 60);
+    if (diffMinutos >= 5760) return 10;
+    if (diffMinutos >= 4320) return 9;
+    if (diffMinutos >= 2880) return 8;
+    if (diffMinutos >= 1440) return 7;
+    if (diffMinutos >= 720) return 6;
+    if (diffMinutos >= 360) return 5;
+    if (diffMinutos >= 180) return 4;
+    if (diffMinutos >= 60) return 3;
+    if (diffMinutos >= 30) return 2;
+    return 1;
+}
+const NIVEL_EXPAN = calcularNivelDinamico(CREATED_AT, UPDATED_AT, ESTADO_REPORTE);
 @php
     $pistasJs = $pistas->map(function($p) {
+        // Usar relationLoaded para evitar RelationNotFoundException si no se precargó correctamente
+        $imagenesRel = $p->relationLoaded('imagenes') ? $p->getRelation('imagenes') : null;
+        $img = $imagenesRel && $imagenesRel->count() > 0 ? $imagenesRel->first()->url : null;
+
+        // Fallback: Si no hay en la relación, revisar la columna JSON
+        if (!$img && is_array($p->imagenes) && count($p->imagenes) > 0) {
+            $firstImg = $p->imagenes[0];
+            $img = is_string($firstImg) ? $firstImg : ($firstImg['url'] ?? null);
+        }
+
         return [
             'lat'      => (float) $p->ubicacion_lat,
             'lng'      => (float) $p->ubicacion_lng,
             'etiqueta' => $p->mensaje,
             'fecha'    => $p->created_at ? $p->created_at->format('d/m/Y H:i') : '',
             'nivel_expansion' => $p->nivel_expansion ?? 1,
+            'has_image' => $img != null,
+            'image_url' => $img,
+            'created_at' => $p->created_at ? $p->created_at->toISOString() : null,
         ];
     });
 @endphp
@@ -528,6 +531,16 @@ const iconPista = L.divIcon({
         width:18px;height:18px;border-radius:50%;
         background:#f59e0b;border:3px solid white;
         box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 2px 8px rgba(0,0,0,0.3);
+    "></div>`,
+    iconSize:[18,18], iconAnchor:[9,9]
+});
+
+const iconEvidencia = L.divIcon({
+    className: '',
+    html: `<div style="
+        width:18px;height:18px;border-radius:50%;
+        background:#8B5CF6;border:3px solid white;
+        box-shadow:0 0 0 3px rgba(139,92,246,0.35),0 2px 8px rgba(0,0,0,0.3);
     "></div>`,
     iconSize:[18,18], iconAnchor:[9,9]
 });
@@ -564,10 +577,24 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
     document.head.appendChild(style);
 
-    mapPistas = L.map('mapa-pistas').setView([LPP_LAT, LPP_LNG], 15);
+    const urlParams = new URLSearchParams(window.location.search);
+    const qLat = urlParams.get('lat');
+    const qLng = urlParams.get('lng');
+    
+    let mapCenterLat = LPP_LAT;
+    let mapCenterLng = LPP_LNG;
+    let mapZoom = 15;
+
+    if (qLat && qLng) {
+        mapCenterLat = parseFloat(qLat);
+        mapCenterLng = parseFloat(qLng);
+        mapZoom = 17;
+    }
+
+    mapPistas = L.map('mapa-pistas').setView([mapCenterLat, mapCenterLng], mapZoom);
 
     // Funciones para Fullscreen
-    function toggleMapFullscreen() {
+    window.toggleMapFullscreen = function() {
         const wrapper = document.getElementById('mapa-pistas-wrapper');
         const mapDiv = document.getElementById('mapa-pistas');
         
@@ -626,7 +653,7 @@ document.addEventListener('DOMContentLoaded', function() {
     dibujarZonaBusqueda(LPP_LAT, LPP_LNG, NIVEL_EXPAN);
 
     // ── Marcadores de pistas existentes (BD) ────────────────────────────────
-    PISTAS_BD.forEach(p => agregarMarcadorPista(p.lat, p.lng, p.etiqueta, p.fecha, p.nivel_expansion));
+    PISTAS_BD.forEach(p => agregarMarcadorPista(p.lat, p.lng, p.etiqueta, p.fecha, p.nivel_expansion, p.has_image, p.image_url, p.created_at));
 
     // ── Clic en el mapa para agregar pista ──────────────────────────────────
     mapPistas.on('click', function(e) {
@@ -662,9 +689,10 @@ function buildTooltip(etiqueta, foto, fecha) {
 }
 
 // ─── Agregar marcador de pista al mapa ────────────────────────────────────────
-function agregarMarcadorPista(lat, lng, etiqueta, fecha, nivel) {
-    const tooltipHtml = buildTooltip(etiqueta, FOTO_URL, fecha);
-    L.marker([lat, lng], {icon: iconPista})
+function agregarMarcadorPista(lat, lng, etiqueta, fecha, nivel, hasImage, imageUrl, createdAtStr) {
+    const tooltipHtml = buildTooltip(etiqueta, imageUrl, fecha);
+    const mIcon = hasImage ? iconEvidencia : iconPista;
+    L.marker([lat, lng], {icon: mIcon})
      .bindTooltip(tooltipHtml, {
          permanent: false, direction: 'top', offset: [0, -10],
          className: 'leaflet-tooltip-pista',
@@ -673,16 +701,22 @@ function agregarMarcadorPista(lat, lng, etiqueta, fecha, nivel) {
      .bindPopup(`<strong>${etiqueta}</strong><br><small class="text-muted">${fecha}</small>`)
      .addTo(mapPistas);
      
-    // La pista crece según su nivel guardado en la BD
-    dibujarZonaBusqueda(lat, lng, nivel || 1);
+    // La pista crece según su nivel o antigüedad
+    if (!hasImage) {
+        // Usar cálculo dinámico basado en antigüedad si createdAtStr está disponible
+        const nivelDinamico = createdAtStr ? calcularNivelDinamico(createdAtStr, null, 'activo') : (nivel || 1);
+        dibujarZonaBusqueda(lat, lng, nivelDinamico);
+    }
 }
 
 // ─── Dibujar cuadrado verde de búsqueda ──────────────────────────────────────
 function dibujarZonaBusqueda(lat, lng, nivel) {
     const radio = RADIO_BASE * nivel;
+    const nLat = parseFloat(lat);
+    const nLng = parseFloat(lng);
     const bounds = [
-        [lat - radio, lng - radio],
-        [lat + radio, lng + radio]
+        [nLat - radio, nLng - radio],
+        [nLat + radio, nLng + radio]
     ];
     
     L.rectangle(bounds, {

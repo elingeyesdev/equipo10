@@ -18,10 +18,10 @@ class EvidenciaMarker extends StatelessWidget {
     this.nombreVoluntario,
   });
 
-  // Colores de la paleta de evidencias
-  static const Color _colorBorde = Color(0xFFFF6F00);   // Ámbar oscuro
-  static const Color _colorFondo = Color(0xFFFFF8E1);   // Ámbar muy claro
-  static const Color _colorBadge = Color(0xFFFF8F00);   // Ámbar medio
+  // Colores de la paleta de evidencias (Morado)
+  static const Color _colorBorde = Color(0xFF8B5CF6);   // Purple-500
+  static const Color _colorFondo = Color(0xFFF5F3FF);   // Purple-50
+  static const Color _colorBadge = Color(0xFFA78BFA);   // Purple-400
 
   @override
   Widget build(BuildContext context) {

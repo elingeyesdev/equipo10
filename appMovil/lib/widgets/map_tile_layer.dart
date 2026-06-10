@@ -29,7 +29,7 @@ class MapTileLayer extends StatelessWidget {
         urlTemplate:
             'https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}',
         additionalOptions: {'accessToken': mapboxToken},
-        userAgentPackageName: 'com.equipo10.echoes',
+        userAgentPackageName: 'com.elingeyesdev.equipo10.app.v3',
         // E9.2: TileProvider con caché local — Cache-First
         tileProvider: CachingTileProvider(
           storeName: TileCacheService.defaultStore,
@@ -43,10 +43,11 @@ class MapTileLayer extends StatelessWidget {
 
     // OpenStreetMap — también con caché
     return TileLayer(
-      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      userAgentPackageName: 'com.equipo10.echoes',
+      urlTemplate: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+      subdomains: const ['a', 'b', 'c', 'd'],
+      userAgentPackageName: 'com.elingeyesdev.equipo10.app.v3',
       tileProvider: CachingTileProvider(
-        storeName: '${TileCacheService.defaultStore}_osm',
+        storeName: '${TileCacheService.defaultStore}_carto_v1',
       ),
       errorTileCallback: (tile, error, stackTrace) {
         debugPrint('[MapTileLayer] Tile OSM ${tile.coordinates} no disponible: $error');

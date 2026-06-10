@@ -167,7 +167,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
 
     final urlTemplate = useMapbox
         ? 'https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}'
-        : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png';
 
     if (!mounted) return;
     setState(() {
@@ -474,6 +474,12 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
         if (mounted) {
           setState(() {
             _pistas = pistasMaps.map((p) {
+              final String fullDate = (p['fecha']?.toString() ?? '') + ' ' + (p['hora']?.toString() ?? '') + ':00';
+              final int nivelDin = _calcularNivelDinamico(
+                fullDate.trim().length > 5 ? fullDate : null, 
+                widget.ficha.estado, 
+                null // Not saving resolution date in offline for now, or assume it continues
+              );
               return _PistaInfo(
                 id: p['id']?.toString(),
                 punto: LatLng(
@@ -485,7 +491,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                 hora: p['hora']?.toString() ?? '',
                 descripcion: p['descripcion']?.toString(),
                 cuadranteId: p['cuadrante_id']?.toString(),
-                nivelExpansion: widget.ficha.nivelExpansion,
+                nivelExpansion: nivelDin,
               );
             }).where((p) => p.punto.latitude != 0).toList();
             _actualizarCachePoligonos();
@@ -500,6 +506,12 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
         if (pistasLocales.isNotEmpty && mounted) {
           setState(() {
             _pistas = pistasLocales.map((p) {
+              final String fullDate = (p['fecha']?.toString() ?? '') + ' ' + (p['hora']?.toString() ?? '') + ':00';
+              final int nivelDin = _calcularNivelDinamico(
+                fullDate.trim().length > 5 ? fullDate : null, 
+                widget.ficha.estado, 
+                null
+              );
               return _PistaInfo(
                 id: p['id']?.toString(),
                 punto: LatLng(
@@ -511,7 +523,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                 hora: p['hora']?.toString() ?? '',
                 descripcion: p['descripcion']?.toString(),
                 cuadranteId: p['cuadrante_id']?.toString(),
-                nivelExpansion: widget.ficha.nivelExpansion,
+                nivelExpansion: nivelDin,
               );
             }).where((p) => p.punto.latitude != 0).toList();
           });
@@ -528,6 +540,30 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     } catch (e) {
       debugPrint('Error cargando evidencias: $e');
     }
+  }
+
+  int _calcularNivelDinamico(String? fechaStr, String estado, String? fechaFinStr) {
+    if (fechaStr == null || fechaStr.isEmpty) return 1;
+    final fecha = DateTime.tryParse(fechaStr.replaceAll(' ', 'T'));
+    if (fecha == null) return 1;
+
+    DateTime fin = DateTime.now();
+    if ((estado == 'resuelto' || estado == 'encontrado' || estado == 'terminado') &&
+        fechaFinStr != null && fechaFinStr.isNotEmpty) {
+      fin = DateTime.tryParse(fechaFinStr) ?? DateTime.now();
+    }
+
+    final diffMinutos = fin.difference(fecha).inMinutes;
+    if (diffMinutos >= 5760) return 10;
+    if (diffMinutos >= 4320) return 9;
+    if (diffMinutos >= 2880) return 8;
+    if (diffMinutos >= 1440) return 7;
+    if (diffMinutos >= 720) return 6;
+    if (diffMinutos >= 360) return 5;
+    if (diffMinutos >= 180) return 4;
+    if (diffMinutos >= 60) return 3;
+    if (diffMinutos >= 30) return 2;
+    return 1;
   }
 
   void _iniciarEdicionPista(_PistaInfo pista) {

@@ -20,6 +20,7 @@ import '../../theme/app_theme.dart';
 import 'evidencias_section.dart';
 import 'unirse_bottom_sheet.dart';
 import 'geofencing_bloqueado_sheet.dart';
+import '../../widgets/map_tile_layer.dart';
 
 class DetalleFichaView extends StatefulWidget {
   final String fichaId;
@@ -449,11 +450,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                                                 flags: InteractiveFlag.none),
                                           ),
                                           children: [
-                                            TileLayer(
-                                              urlTemplate:
-                                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                              userAgentPackageName: 'com.amigate.echoes',
-                                            ),
+                                            MapTileLayer(useSatellite: false),
                                             MarkerLayer(
                                               markers: [
                                                 Marker(
@@ -1064,12 +1061,7 @@ class _InfoSection extends StatelessWidget {
                   value: (ficha.fechaPerdida as String).length > 10
                       ? (ficha.fechaPerdida as String).substring(0, 10)
                       : ficha.fechaPerdida),
-            if (ficha.prioridad != null && (ficha.prioridad as String).isNotEmpty)
-              _MiniCard(
-                  icon: Icons.priority_high,
-                  label: 'Prioridad',
-                  value: (ficha.prioridad as String).toUpperCase(),
-                  color: Colors.orange),
+
             if (ficha.recompensa != null && (ficha.recompensa as num) > 0)
               _MiniCard(
                   icon: Icons.monetization_on_outlined,

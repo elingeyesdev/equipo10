@@ -27,7 +27,8 @@
         position: absolute;
         top: 15px;
         right: 15px;
-        z-index: 1000;
+        z-index: 9999 !important;
+        pointer-events: auto !important;
         background: white;
         padding: 15px;
         border-radius: 10px;
@@ -499,30 +500,36 @@
                         <h6><i class="bi bi-layers"></i> Capas y Filtros</h6>
                         
                         <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" id="showPerdidos" checked onchange="toggleLayer('perdidos')">
-                            <label class="form-check-label text-danger" for="showPerdidos">
+                            <input class="form-check-input layer-toggle" type="checkbox" id="showPerdidos" data-layer="perdidos" checked>
+                            <label class="form-check-label text-danger" for="showPerdidos" style="cursor: pointer; width: 100%;">
                                 <i class="bi bi-exclamation-triangle-fill"></i> Perdidos (<span id="countPerdidos">0</span>)
                             </label>
                         </div>
                         
-
                         <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" id="showResueltos" checked onchange="toggleLayer('resueltos')">
-                            <label class="form-check-label text-primary" for="showResueltos">
+                            <input class="form-check-input layer-toggle" type="checkbox" id="showResueltos" data-layer="resueltos" checked>
+                            <label class="form-check-label text-primary" for="showResueltos" style="cursor: pointer; width: 100%;">
                                 <i class="bi bi-check-all"></i> Resueltos (<span id="countResueltos">0</span>)
                             </label>
                         </div>
 
                         <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" id="showPistas" checked onchange="toggleLayer('pistas')">
-                            <label class="form-check-label text-warning" for="showPistas">
-                                <i class="bi bi-camera-fill"></i> Pistas / Evidencias (<span id="countPistas">0</span>)
+                            <input class="form-check-input layer-toggle" type="checkbox" id="showPistas" data-layer="pistas" checked>
+                            <label class="form-check-label text-warning" for="showPistas" style="cursor: pointer; width: 100%;">
+                                <i class="bi bi-geo-alt-fill"></i> Pistas (<span id="countPistas">0</span>)
                             </label>
                         </div>
                         
                         <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" id="showCuadricula" checked onchange="toggleLayer('cuadricula')">
-                            <label class="form-check-label text-secondary" for="showCuadricula">
+                            <input class="form-check-input layer-toggle" type="checkbox" id="showEvidencias" data-layer="evidencias" checked>
+                            <label class="form-check-label" style="color: #8B5CF6; cursor: pointer; width: 100%;" for="showEvidencias">
+                                <i class="bi bi-camera-fill"></i> Evidencias (<span id="countEvidencias">0</span>)
+                            </label>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input layer-toggle" type="checkbox" id="showCuadricula" data-layer="cuadricula" checked>
+                            <label class="form-check-label text-secondary" for="showCuadricula" style="cursor: pointer; width: 100%;">
                                 <i class="bi bi-grid-3x3"></i> Cuadrícula Base
                             </label>
                         </div>
@@ -539,27 +546,15 @@
                     </div>
                     
                     
-                    <div class="legend">
-                        <h6><i class="bi bi-info-circle"></i> Zonas</h6>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background-color: #FF6B6B;"></div>
-                            <span>Norte</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background-color: #4ECDC4;"></div>
-                            <span>Noreste</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background-color: #45B7D1;"></div>
-                            <span>Este</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background-color: #96CEB4;"></div>
-                            <span>Sur</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background-color: #FFEAA7;"></div>
-                            <span>Centro</span>
+                    <!-- Map Options -->
+                    <div class="map-options-left mt-2" style="position: absolute; top: 80px; left: 10px; z-index: 1000; background: transparent; box-shadow: none; padding: 0; min-width: auto; pointer-events: none;">
+                        <div class="d-flex flex-column gap-2" style="pointer-events: auto;">
+                            <button onclick="toggleMapFullscreen()" class="btn btn-light shadow-sm border" title="Pantalla Completa" style="width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-arrows-fullscreen"></i>
+                            </button>
+                            <button onclick="toggleBaseMap()" class="btn btn-light shadow-sm border" title="Cambiar mapa satelital/callejero" style="width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-layers"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -607,6 +602,7 @@
         encontrados: L.layerGroup(),
         resueltos: L.layerGroup(),
         pistas: L.layerGroup(),
+        evidencias: L.layerGroup(),
         zonasBusqueda: L.layerGroup(), // Zonas verdes (radios dinámicos)
         cuadricula: L.layerGroup() // Rectángulos grises base e intersectados
     };
@@ -614,7 +610,7 @@
     // Datos y Configuración
     const allReportes = {!! json_encode($reportes) !!};
     const totalGrupos = {{ $grupos ?? 0 }};
-    const counts = { perdidos: 0, encontrados: 0, resueltos: 0, pistas: 0 };
+    const counts = { perdidos: 0, encontrados: 0, resueltos: 0, pistas: 0, evidencias: 0 };
     const santaCruzBounds = {
         norte: -17.7000, sur: -17.8530, este: -63.0960, oeste: -63.2500
     };
@@ -657,13 +653,75 @@
         // Zoom reducido a 11 para ver más lejos
         map = L.map('map').setView([-17.7833, -63.1821], 11);
         
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© Amigate Maps'
-        }).addTo(map);
+        // Base Maps
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        });
+        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '© Esri'
+        });
+        
+        // Empezar con satélite
+        satelliteLayer.addTo(map);
+        
+        let isSatellite = true;
+        window.toggleBaseMap = function() {
+            if (isSatellite) {
+                map.removeLayer(satelliteLayer);
+                osmLayer.addTo(map);
+                isSatellite = false;
+            } else {
+                map.removeLayer(osmLayer);
+                satelliteLayer.addTo(map);
+                isSatellite = true;
+            }
+        };
+
+        window.toggleMapFullscreen = function() {
+            const container = document.querySelector('.map-container');
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        };
 
         // Agregar capas
         Object.values(capas).forEach(l => l.addTo(map));
         historyLayer = L.layerGroup().addTo(map);
+
+        // Prevenir que clics en los controles interactúen con el mapa
+        const mapControlElements = document.querySelectorAll('.map-controls, .map-options-left, .amber-popup');
+        mapControlElements.forEach(el => {
+            L.DomEvent.disableClickPropagation(el);
+            L.DomEvent.disableScrollPropagation(el);
+        });
+
+        // Configurar los listeners de los interruptores de capas dinámicamente
+        document.querySelectorAll('.layer-toggle').forEach(input => {
+            // Usamos 'click' además de 'change' por redundancia y asegurar respuesta
+            ['change', 'click'].forEach(evt => {
+                input.addEventListener(evt, function(e) {
+                    const type = this.getAttribute('data-layer');
+                    if (!type) return;
+                    
+                    const isChecked = this.checked;
+                    
+                    // Asegurarnos que no se repita si el evento es el mismo muy rápido
+                    setTimeout(() => {
+                        if (type === 'cuadricula') {
+                            if (isChecked) map.addLayer(capas.cuadricula);
+                            else map.removeLayer(capas.cuadricula);
+                        } else if (capas[type]) {
+                            if (isChecked) map.addLayer(capas[type]);
+                            else map.removeLayer(capas[type]);
+                        }
+                    }, 50);
+                });
+            });
+        });
 
         // Iconos
         const icons = {
@@ -686,6 +744,11 @@
                 className: 'custom-div-icon',
                 html: "<div class='marker-pulse bg-warning'></div>",
                 iconSize: [16, 16], iconAnchor: [8, 8]
+            }),
+            evidencia: L.divIcon({
+                className: 'custom-div-icon',
+                html: "<div class='marker-pulse' style='background-color: #8B5CF6;'></div>",
+                iconSize: [16, 16], iconAnchor: [8, 8]
             })
         };
 
@@ -695,11 +758,14 @@
             capas.encontrados.clearLayers();
             capas.resueltos.clearLayers();
             capas.pistas.clearLayers();
+            capas.evidencias.clearLayers();
+            capas.zonasBusqueda.clearLayers();
             
             counts.perdidos = 0;
             counts.encontrados = 0;
             counts.resueltos = 0;
             counts.pistas = 0;
+            counts.evidencias = 0;
 
             const categoriaFiltro = document.getElementById('categoriaFilter') ? document.getElementById('categoriaFilter').value : 'todas';
 
@@ -721,12 +787,29 @@
                             pLat += offsetLat;
                             pLng += offsetLng;
 
+                            const hasImage = resp.imagenes && resp.imagenes.length > 0;
+                            const markerIcon = hasImage ? icons.evidencia : icons.pista;
+                            const targetLayer = hasImage ? capas.evidencias : capas.pistas;
+                            
                             const pistaPopup = getPopupPista(resp, r);
-                            const marker = L.marker([pLat, pLng], {icon: icons.pista})
+                            const marker = L.marker([pLat, pLng], {icon: markerIcon})
                                 .bindPopup(pistaPopup, {minWidth: 280, maxWidth: 320});
-                            marker.addTo(capas.pistas);
+                            marker.addTo(targetLayer);
 
-                            counts.pistas++;
+                            if (hasImage) {
+                                counts.evidencias++;
+                            } else {
+                                counts.pistas++;
+                                // Zonas verdes dinámicas alrededor de las pistas (Crecen según antigüedad)
+                                const nivelPista = calcularNivelDinamico(resp.created_at, null, 'activo');
+                                const radioPista = 0.0007 * nivelPista; 
+                                L.rectangle([
+                                    [pLat - radioPista, pLng - radioPista], 
+                                    [pLat + radioPista, pLng + radioPista]
+                                ], {
+                                    color: '#10b981', weight: 2, fillColor: '#10b981', fillOpacity: 0.25
+                                }).addTo(targetLayer); // Añadir a la misma capa de pistas
+                            }
                         }
                     });
                 }
@@ -860,38 +943,26 @@
         if(document.getElementById('countEncontrados')) document.getElementById('countEncontrados').textContent = counts.encontrados;
         if(document.getElementById('countResueltos')) document.getElementById('countResueltos').textContent = counts.resueltos;
         if(document.getElementById('countPistas')) document.getElementById('countPistas').textContent = counts.pistas;
+        if(document.getElementById('countEvidencias')) document.getElementById('countEvidencias').textContent = counts.evidencias;
     }
 
-    function toggleLayer(type) {
-        if (type === 'cuadricula') {
-            const isChecked = document.getElementById('showCuadricula').checked;
-            if (isChecked) {
-                map.addLayer(capas.cuadricula);
-            } else {
-                map.removeLayer(capas.cuadricula);
-            }
-        } else if (capas[type]) {
-            const isChecked = document.getElementById(`show${type.charAt(0).toUpperCase() + type.slice(1)}`).checked;
-            if (isChecked) {
-                map.addLayer(capas[type]);
-            } else {
-                map.removeLayer(capas[type]);
-            }
-        }
-    }
+    // La función toggleLayer ya no es necesaria pues usamos event listeners
+    // pero la mantenemos vacía por compatibilidad por si alguna otra parte la llama
+    function toggleLayer(type) { }
 
     function getPopupPista(resp, r) {
-        let tipo = resp.tipo_respuesta === 'pista' ? 'Pista / Evidencia' : 'Avistamiento';
+        let hasImage = resp.imagenes && resp.imagenes.length > 0;
+        let tipo = hasImage ? 'Avistamiento' : 'Pista';
         let imgHtml = '';
-        if (resp.imagenes && resp.imagenes.length > 0) {
+        if (hasImage) {
             let url = resp.imagenes[0].url || resp.imagenes[0];
             imgHtml = `<div class="mb-2 position-relative" style="height: 120px; background-image: url('${url}'); background-size: cover; background-position: center; border-radius: 8px;"></div>`;
         }
 
         return `
             <div class="amber-popup">
-                <div class="popup-header bg-warning text-dark p-2 rounded-top">
-                    <h6 class="mb-0 fw-bold text-uppercase"><i class="bi bi-camera-fill"></i> ${tipo}</h6>
+                <div class="popup-header text-white p-2 rounded-top" style="background-color: ${hasImage ? '#8B5CF6' : '#f59e0b'};">
+                    <h6 class="mb-0 fw-bold text-uppercase"><i class="${hasImage ? 'bi bi-camera-fill' : 'bi bi-geo-alt-fill'}"></i> ${tipo}</h6>
                 </div>
                 <div class="p-3">
                     ${imgHtml}
@@ -900,7 +971,7 @@
                         <i class="bi bi-calendar"></i> ${new Date(resp.created_at).toLocaleDateString()}
                     </p>
                     <p class="small mb-3 text-truncate-2">${resp.mensaje || 'Sin detalle'}</p>
-                    <a href="/reportes/${r.id}" class="btn btn-warning text-dark btn-sm w-100 fw-bold">
+                    <a href="/reportes/${r.id}?lat=${resp.ubicacion_lat}&lng=${resp.ubicacion_lng}" class="btn btn-warning text-dark btn-sm w-100 fw-bold">
                         VER REPORTE
                     </a>
                 </div>
@@ -914,31 +985,13 @@
         let badge = r.recompensa > 0 ? `<span class="badge bg-warning text-dark me-1">Recompensa: ${r.recompensa}</span>` : '';
         let urgente = r.prioridad === 'urgente' ? '<span class="badge bg-danger animate__animated animate__flash infinite">URGENTE</span>' : '';
         
-        let imgPistaUrl = null;
-        let etiquetaPista = null;
-
-        if (r.respuestas && r.respuestas.length > 0) {
-            const respuestasOrdenadas = [...r.respuestas].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            for(let resp of respuestasOrdenadas) {
-                if (resp.imagenes && resp.imagenes.length > 0) {
-                    imgPistaUrl = resp.imagenes[0].url || resp.imagenes[0]; 
-                    etiquetaPista = resp.tipo_respuesta === 'pista' ? 'Última Pista' : 'Avistamiento';
-                    break;
-                }
-            }
-        }
-
         let imgOriginalUrl = null;
         if (r.imagenes && r.imagenes.length > 0) {
             imgOriginalUrl = r.imagenes[0].url || r.imagenes[0];
         }
 
         let fotoHtml = '';
-        if (imgPistaUrl) {
-            fotoHtml += `<div class="mb-2 position-relative" style="height: 150px; background-image: url('${imgPistaUrl}'); background-size: cover; background-position: center; border-radius: 8px;">
-                            <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2"><i class="bi bi-camera-fill me-1"></i>${etiquetaPista}</span>
-                         </div>`;
-        } else if (imgOriginalUrl) {
+        if (imgOriginalUrl) {
             fotoHtml += `<div class="mb-2" style="height: 150px; background-image: url('${imgOriginalUrl}'); background-size: cover; background-position: center; border-radius: 8px;"></div>`;
         }
 
@@ -967,18 +1020,7 @@
         `;
     }
 
-    function updateCounters() {
-        if(document.getElementById('countPerdidos')) document.getElementById('countPerdidos').textContent = counts.perdidos;
-        if(document.getElementById('countResueltos')) document.getElementById('countResueltos').textContent = counts.resueltos;
-    }
 
-    function toggleLayer(type) {
-        if (document.getElementById('show' + type.charAt(0).toUpperCase() + type.slice(1)).checked) {
-            map.addLayer(capas[type]);
-        } else {
-            map.removeLayer(capas[type]);
-        }
-    }
 
     function cargarCuadrantesExistentes() {
         try {

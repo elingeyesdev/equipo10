@@ -69,9 +69,6 @@ class Reporte extends Model
 
     // Incluir primera_imagen en el JSON de todos los endpoints
     protected $appends = ['primera_imagen'];
-
-    
-    
     
 
     public function usuario()
@@ -234,6 +231,39 @@ class Reporte extends Model
         }
         $primera = $this->imagenes()->first();
         return $primera ? $primera->url : null;
+    }
+
+    public function getCuadranteCalculadoAttribute()
+    {
+        if (!$this->cuadrante) {
+            return null;
+        }
+
+        $latMin = $this->cuadrante->lat_min;
+        $latMax = $this->cuadrante->lat_max;
+        $lngMin = $this->cuadrante->lng_min;
+        $lngMax = $this->cuadrante->lng_max;
+
+        if ($this->relationLoaded('expansiones') || $this->expansiones()->exists()) {
+            foreach ($this->expansiones as $exp) {
+                if ($exp->cuadranteExpandido) {
+                    $latMin = min($latMin, $exp->cuadranteExpandido->lat_min);
+                    $latMax = max($latMax, $exp->cuadranteExpandido->lat_max);
+                    $lngMin = min($lngMin, $exp->cuadranteExpandido->lng_min);
+                    $lngMax = max($lngMax, $exp->cuadranteExpandido->lng_max);
+                }
+            }
+        }
+
+        return [
+            'id' => $this->cuadrante->id,
+            'nombre' => $this->cuadrante->nombre,
+            'zona' => $this->cuadrante->zona,
+            'lat_min' => $latMin,
+            'lat_max' => $latMax,
+            'lng_min' => $lngMin,
+            'lng_max' => $lngMax,
+        ];
     }
 
     public function marcarComoResuelto()

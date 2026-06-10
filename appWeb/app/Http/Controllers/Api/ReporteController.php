@@ -37,7 +37,7 @@ class ReporteController extends Controller
         } catch (\Exception $e) {}
 
         try {
-            $query = Reporte::with(['categoria', 'usuario', 'cuadrante']);
+            $query = Reporte::with(['categoria', 'usuario', 'cuadrante', 'expansiones.cuadranteExpandido']);
 
             if ($request->has('estado') && in_array($request->estado, ['activo', 'pausado', 'resuelto', 'terminado'])) {
                 $query->where('estado', $request->estado);
@@ -82,7 +82,35 @@ class ReporteController extends Controller
                       );
             }
 
+
+
             $reportes = $query->orderBy('created_at', 'desc')->get();
+
+            // Calcular y sobrescribir los bounds (límites) del cuadrante para reflejar la expansión total
+            $reportes->transform(function ($reporte) {
+                if ($reporte->cuadrante) {
+                    $latMin = $reporte->cuadrante->lat_min;
+                    $latMax = $reporte->cuadrante->lat_max;
+                    $lngMin = $reporte->cuadrante->lng_min;
+                    $lngMax = $reporte->cuadrante->lng_max;
+
+                    foreach ($reporte->expansiones as $exp) {
+                        if ($exp->cuadranteExpandido) {
+                            $latMin = min($latMin, $exp->cuadranteExpandido->lat_min);
+                            $latMax = max($latMax, $exp->cuadranteExpandido->lat_max);
+                            $lngMin = min($lngMin, $exp->cuadranteExpandido->lng_min);
+                            $lngMax = max($lngMax, $exp->cuadranteExpandido->lng_max);
+                        }
+                    }
+
+                    $reporte->cuadrante->lat_min = $latMin;
+                    $reporte->cuadrante->lat_max = $latMax;
+                    $reporte->cuadrante->lng_min = $lngMin;
+                    $reporte->cuadrante->lng_max = $lngMax;
+                }
+                unset($reporte->expansiones); // Remover para no hacer el JSON muy pesado
+                return $reporte;
+            });
 
             return response()->json([
                 'success' => true,
@@ -1653,6 +1681,33 @@ class ReporteController extends Controller
                 $primeraImagen = str_replace('http://', 'https://', $url);
             }
 
+            // ── 6.5 Calcular límites totales del cuadrante (Base + Expansiones) ──────────
+            $cuadranteFinal = null;
+            if ($reporte->cuadrante) {
+                $latMin = $reporte->cuadrante->lat_min;
+                $latMax = $reporte->cuadrante->lat_max;
+                $lngMin = $reporte->cuadrante->lng_min;
+                $lngMax = $reporte->cuadrante->lng_max;
+
+                foreach ($reporte->expansiones as $exp) {
+                    if ($exp->cuadranteExpandido) {
+                        $latMin = min($latMin, $exp->cuadranteExpandido->lat_min);
+                        $latMax = max($latMax, $exp->cuadranteExpandido->lat_max);
+                        $lngMin = min($lngMin, $exp->cuadranteExpandido->lng_min);
+                        $lngMax = max($lngMax, $exp->cuadranteExpandido->lng_max);
+                    }
+                }
+                
+                $cuadranteFinal = [
+                    'nombre' => $reporte->cuadrante->nombre,
+                    'zona' => $reporte->cuadrante->zona,
+                    'lat_min' => $latMin,
+                    'lat_max' => $latMax,
+                    'lng_min' => $lngMin,
+                    'lng_max' => $lngMax,
+                ];
+            }
+
             // ── 7. Construir respuesta consolidada ───────────────────────────
             $data = [
                 // Ficha
@@ -1671,6 +1726,7 @@ class ReporteController extends Controller
                 'justificacion'       => $reporte->justificacion,
                 'cuadrante_nombre'    => $reporte->cuadrante->nombre ?? null,
                 'cuadrante_zona'      => $reporte->cuadrante->zona ?? null,
+                'cuadrante'           => $cuadranteFinal,
                 'latitud'             => $reporte->ubicacion_exacta_lat,
                 'longitud'            => $reporte->ubicacion_exacta_lng,
                 'direccion_referencia' => $reporte->direccion_referencia,
@@ -1698,6 +1754,10 @@ class ReporteController extends Controller
                     'nombre'         => $e->cuadranteExpandido->nombre ?? null,
                     'nivel'          => $e->nivel,
                     'fecha'          => $e->fecha_expansion,
+                    'lat_min'        => $e->cuadranteExpandido->lat_min ?? null,
+                    'lat_max'        => $e->cuadranteExpandido->lat_max ?? null,
+                    'lng_min'        => $e->cuadranteExpandido->lng_min ?? null,
+                    'lng_max'        => $e->cuadranteExpandido->lng_max ?? null,
                 ]),
 
                 // Voluntarios

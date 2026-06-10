@@ -39,7 +39,9 @@ class ReporteModel {
   // Getters de compatibilidad para evitar quebrar la UI previamente enlazada a Supabase
   String? get fotoUrl => primeraImagen;
   String get creadoPor => usuarioId;
-  dynamic get cuadrantes => null;
+  dynamic get cuadrantes => expansionesData;
+
+  final List<Map<String, dynamic>>? expansionesData;
 
   /// Retorna true si [lat, lng] están dentro del cuadrante del reporte.
   bool estaDentroDelCuadrante(double lat, double lng) {
@@ -83,6 +85,7 @@ class ReporteModel {
     this.cuadranteLngMax,
     this.cuadranteNombre,
     this.cuadranteZona,
+    this.expansionesData,
   });
 
 
@@ -161,6 +164,11 @@ class ReporteModel {
       if (chars.isEmpty) chars = null;
     }
 
+    List<Map<String, dynamic>>? expansionesList;
+    if (map['expansiones'] is List) {
+      expansionesList = List<Map<String, dynamic>>.from(map['expansiones']);
+    }
+
     return ReporteModel(
       id: map['id']?.toString() ?? '',
       usuarioId: map['usuario_id']?.toString() ?? '',
@@ -187,13 +195,13 @@ class ReporteModel {
       recompensa: _parseDouble(map['recompensa']),
       createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at'].toString()) : null,
       nivelExpansion: int.tryParse(map['nivel_expansion']?.toString() ?? '1') ?? 1,
-      // Extraer bounds del cuadrante anidado (disponible en el endpoint show)
       cuadranteLatMin: _parseDouble(map['cuadrante']?['lat_min']),
       cuadranteLatMax: _parseDouble(map['cuadrante']?['lat_max']),
       cuadranteLngMin: _parseDouble(map['cuadrante']?['lng_min']),
       cuadranteLngMax: _parseDouble(map['cuadrante']?['lng_max']),
       cuadranteNombre: map['cuadrante']?['nombre']?.toString(),
       cuadranteZona: map['cuadrante']?['zona']?.toString(),
+      expansionesData: expansionesList,
     );
   }
 
