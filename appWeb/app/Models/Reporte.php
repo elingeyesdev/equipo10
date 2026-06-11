@@ -29,7 +29,6 @@ class Reporte extends Model
         'fecha_perdida',
         'fecha_reporte',
         'estado',
-        'prioridad',
         'nivel_expansion',
         'max_expansion',
         'proxima_expansion',
@@ -60,7 +59,6 @@ class Reporte extends Model
 
     protected $attributes = [
         'estado' => 'activo',
-        'prioridad' => 'normal',
         'nivel_expansion' => 1,
         'max_expansion' => 3,
         'contacto_publico' => true,
@@ -160,7 +158,7 @@ class Reporte extends Model
 
     public function scopeUrgentes($query)
     {
-        return $query->where('prioridad', 'urgente');
+        return $query;
     }
 
     public function scopeConRecompensa($query)
@@ -305,18 +303,6 @@ class Reporte extends Model
         ];
 
         return $badges[$this->estado] ?? '<span class="badge bg-secondary">Desconocido</span>';
-    }
-
-    public function getBadgePrioridadAttribute()
-    {
-        $badges = [
-            'baja' => '<span class="badge bg-info">Baja</span>',
-            'normal' => '<span class="badge bg-primary">Normal</span>',
-            'alta' => '<span class="badge bg-warning text-dark">Alta</span>',
-            'urgente' => '<span class="badge bg-danger">Urgente</span>',
-        ];
-
-        return $badges[$this->prioridad] ?? '<span class="badge bg-secondary">Normal</span>';
     }
 
     public function getBadgeTipoAttribute()

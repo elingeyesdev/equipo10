@@ -37,16 +37,6 @@
                         </div>
 
                         <div class="col-md-4 mb-3">
-                            <label class="form-label">Prioridad</label>
-                            <select name="prioridad" class="form-select">
-                                <option value="baja" {{ $reporte->prioridad == 'baja' ? 'selected' : '' }}>Baja</option>
-                                <option value="normal" {{ $reporte->prioridad == 'normal' ? 'selected' : '' }}>Normal</option>
-                                <option value="alta" {{ $reporte->prioridad == 'alta' ? 'selected' : '' }}>Alta</option>
-                                <option value="urgente" {{ $reporte->prioridad == 'urgente' ? 'selected' : '' }}>Urgente</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-4 mb-3">
                             <label class="form-label">Recompensa (Bs.)</label>
                             <input type="number" name="recompensa" class="form-control" 
                                    value="{{ old('recompensa', $reporte->recompensa) }}" min="0" step="0.01">

@@ -19,7 +19,6 @@ class ReporteModel {
   final String? telefonoContacto;
   final String? emailContacto;
   final String? direccionReferencia;
-  final String? prioridad;
   final int? vistas;
   final String? fechaPerdida;
   final String? avatarUsuario;
@@ -71,7 +70,6 @@ class ReporteModel {
     this.telefonoContacto,
     this.emailContacto,
     this.direccionReferencia,
-    this.prioridad,
     this.vistas,
     this.fechaPerdida,
     this.avatarUsuario,
@@ -187,7 +185,6 @@ class ReporteModel {
       telefonoContacto: map['telefono_contacto']?.toString(),
       emailContacto: map['email_contacto']?.toString(),
       direccionReferencia: map['direccion_referencia']?.toString(),
-      prioridad: map['prioridad']?.toString(),
       vistas: map['vistas'] is int ? map['vistas'] : int.tryParse(map['vistas']?.toString() ?? ''),
       fechaPerdida: map['fecha_perdida']?.toString(),
       avatarUsuario: uAvatar,
@@ -231,7 +228,6 @@ class ReporteModel {
     String? telefonoContacto,
     String? emailContacto,
     String? direccionReferencia,
-    String? prioridad,
     int? vistas,
     String? fechaPerdida,
     Map<String, dynamic>? caracteristicas,
@@ -256,7 +252,6 @@ class ReporteModel {
       telefonoContacto: telefonoContacto ?? this.telefonoContacto,
       emailContacto: emailContacto ?? this.emailContacto,
       direccionReferencia: direccionReferencia ?? this.direccionReferencia,
-      prioridad: prioridad ?? this.prioridad,
       vistas: vistas ?? this.vistas,
       fechaPerdida: fechaPerdida ?? this.fechaPerdida,
       caracteristicas: caracteristicas ?? this.caracteristicas,

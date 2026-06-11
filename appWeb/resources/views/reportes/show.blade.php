@@ -154,21 +154,40 @@
             <p class="mb-0 opacity-75">ID de Reporte: #{{ $reporte->id }}</p>
         </div>
         <div class="d-flex gap-2">
-            @if(auth()->check() && auth()->id() == $reporte->usuario_id)
-                <form action="{{ route('reportes.update', $reporte->id) }}" method="POST" class="d-inline">
-                    @csrf
-                    @method('PUT')
-                    <input type="hidden" name="titulo" value="{{ $reporte->titulo }}">
-                    <input type="hidden" name="descripcion" value="{{ $reporte->descripcion }}">
-                    <input type="hidden" name="estado" value="resuelto">
-                    <button type="submit" class="btn btn-warning fw-semibold shadow-sm border-0 text-dark" onclick="return confirm('¿Está seguro de cerrar esta búsqueda?');">
+            @if(auth()->check() && (auth()->id() == $reporte->usuario_id || auth()->user()->hasRole('administrador')))
+                @if($reporte->estado === 'cerrado')
+                    <form action="{{ route('reportes.reanudar', $reporte->id) }}" method="POST" class="d-inline" id="form-reanudar-{{ $reporte->id }}">
+                        @csrf
+                        @method('PUT')
+                        <button type="button" class="btn btn-success fw-semibold shadow-sm border-0" onclick="confirmarReanudar('{{ $reporte->id }}')">
+                            <i class="bi bi-play-circle me-1"></i> Reanudar Búsqueda
+                        </button>
+                    </form>
+                @else
+                    <button type="button" class="btn btn-warning fw-semibold shadow-sm border-0 text-dark" onclick="confirmarCierre('{{ $reporte->id }}')">
                         <i class="bi bi-x-circle me-1"></i> Cerrar Búsqueda
                     </button>
-                </form>
+                @endif
             @else
-                <button type="button" class="btn btn-secondary fw-semibold shadow-sm border-0" disabled title="Solo el creador puede cerrar la búsqueda">
-                    <i class="bi bi-x-circle me-1"></i> Cerrar Búsqueda
-                </button>
+                @if($reporte->estado === 'cerrado')
+                    <button type="button" class="btn btn-secondary fw-semibold shadow-sm border-0" disabled title="Solo el creador o un admin puede reanudar la búsqueda">
+                        <i class="bi bi-play-circle me-1"></i> Reanudar Búsqueda
+                    </button>
+                @else
+                    <button type="button" class="btn btn-secondary fw-semibold shadow-sm border-0" disabled title="Solo el creador o un admin puede cerrar la búsqueda">
+                        <i class="bi bi-x-circle me-1"></i> Cerrar Búsqueda
+                    </button>
+                @endif
+            @endif
+
+            @if(auth()->check() && auth()->user()->hasRole('administrador'))
+                <form action="{{ route('reportes.destroy', $reporte->id) }}" method="POST" class="d-inline" id="form-eliminar-{{ $reporte->id }}">
+                    @csrf
+                    @method('DELETE')
+                    <button type="button" class="btn btn-danger fw-semibold shadow-sm border-0" onclick="confirmarEliminacion('{{ $reporte->id }}')">
+                        <i class="bi bi-trash me-1"></i> Eliminar
+                    </button>
+                </form>
             @endif
 
             <a href="{{ route('reportes.edit', $reporte->id) }}" class="btn btn-light bg-white text-primary fw-semibold shadow-sm border-0">
@@ -242,37 +261,9 @@
                         </div>
                         <div class="col-md-6">
                             <div class="info-card p-3">
-                                <label class="info-label"><i class="bi bi-stoplights-fill me-1 text-primary"></i> Estado y Prioridad</label>
-                                <div class="d-flex gap-2 mt-2">
-                                    @switch($reporte->estado)
-                                        @case('activo')
-                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-3 text-uppercase fw-bold">Activo</span>
-                                            @break
-                                        @case('pausado')
-                                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2 rounded-3 text-uppercase fw-bold">Pausado</span>
-                                            @break
-                                        @case('resuelto')
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-3 text-uppercase fw-bold">Finalizado</span>
-                                            @break
-                                        @default
-                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-2 rounded-3 text-uppercase fw-bold">{{ ucfirst($reporte->estado) }}</span>
-                                    @endswitch
-
-                                    @switch($reporte->prioridad)
-                                        @case('urgente')
-                                            <span class="badge bg-danger text-white px-3 py-2 rounded-3 text-uppercase fw-bold shadow-sm d-flex align-items-center">
-                                                <i class="bi bi-fire me-1"></i> Urgente
-                                            </span>
-                                            @break
-                                        @case('alta')
-                                            <span class="badge bg-warning text-dark px-3 py-2 rounded-3 text-uppercase fw-bold">Alta</span>
-                                            @break
-                                        @case('normal')
-                                            <span class="badge bg-info text-white px-3 py-2 rounded-3 text-uppercase fw-bold">Normal</span>
-                                            @break
-                                        @default
-                                            <span class="badge bg-light text-dark border px-3 py-2 rounded-3 text-uppercase fw-bold">Baja</span>
-                                    @endswitch
+                                <label class="info-label"><i class="bi bi-stoplights-fill me-1 text-primary"></i> Estado</label>
+                                <div class="mt-1 d-flex gap-2">
+                                    {!! $reporte->badge_estado !!}
                                 </div>
                             </div>
                         </div>
@@ -701,12 +692,7 @@ function agregarMarcadorPista(lat, lng, etiqueta, fecha, nivel, hasImage, imageU
      .bindPopup(`<strong>${etiqueta}</strong><br><small class="text-muted">${fecha}</small>`)
      .addTo(mapPistas);
      
-    // La pista crece según su nivel o antigüedad
-    if (!hasImage) {
-        // Usar cálculo dinámico basado en antigüedad si createdAtStr está disponible
-        const nivelDinamico = createdAtStr ? calcularNivelDinamico(createdAtStr, null, 'activo') : (nivel || 1);
-        dibujarZonaBusqueda(lat, lng, nivelDinamico);
-    }
+    // Las evidencias no tienen cuadrantes ni nivel de expansión, solo son marcadores en el mapa
 }
 
 // ─── Dibujar cuadrado verde de búsqueda ──────────────────────────────────────
@@ -825,5 +811,88 @@ function guardarPista() {
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.12));
 }
 </style>
+<!-- Formulario oculto para cerrar búsqueda -->
+<form id="form-cerrar-{{ $reporte->id }}" action="{{ route('reportes.cerrar', $reporte->id) }}" method="POST" style="display: none;">
+    @csrf
+    @method('PUT')
+    <input type="hidden" name="motivo_cierre" id="input_motivo_cierre_{{ $reporte->id }}">
+</form>
+
+<script>
+function confirmarReanudar(id) {
+    Swal.fire({
+        title: 'Reanudar Búsqueda',
+        text: "Al reanudar esta búsqueda, volverá a estar activa y visible para los voluntarios.",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#198754',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="bi bi-play-circle"></i> Confirmar Reanudación',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('form-reanudar-' + id).submit();
+        }
+    });
+}
+
+function confirmarCierre(id) {
+    Swal.fire({
+        title: 'Cerrar Búsqueda',
+        text: "Al cerrar esta búsqueda, dejará de ser visible para los voluntarios en la app móvil y se les notificará.",
+        icon: 'warning',
+        input: 'textarea',
+        inputLabel: 'Motivo del cierre',
+        inputPlaceholder: 'Ej. El operativo fue cancelado por orden superior, o se encontró lo buscado...',
+        inputAttributes: {
+            'aria-label': 'Motivo del cierre'
+        },
+        showCancelButton: true,
+        confirmButtonColor: '#ffc107',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="bi bi-check-circle"></i> Confirmar Cierre',
+        cancelButtonText: 'Cancelar',
+        inputValidator: (value) => {
+            if (!value) {
+                return '¡Debes ingresar un motivo para el cierre!'
+            }
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('input_motivo_cierre_' + id).value = result.value;
+            document.getElementById('form-cerrar-' + id).submit();
+        }
+    });
+}
+
+function confirmarEliminacion(id) {
+    Swal.fire({
+        title: '¿Eliminar permanentemente?',
+        text: "Esta acción no se puede deshacer y eliminará todos los registros asociados. Se notificará a los participantes.",
+        icon: 'error',
+        input: 'textarea',
+        inputLabel: 'Motivo de eliminación',
+        inputPlaceholder: 'Ej. Reporte falso, spam, duplicado...',
+        inputValidator: (value) => {
+            if (!value) return '¡Debes ingresar un motivo para eliminar!';
+        },
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="bi bi-trash"></i> Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            let form = document.getElementById('form-eliminar-' + id);
+            let input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'motivo_eliminacion';
+            input.value = result.value;
+            form.appendChild(input);
+            form.submit();
+        }
+    });
+}
+</script>
 
 @endsection

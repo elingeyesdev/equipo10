@@ -200,7 +200,6 @@ class ReporteController extends Controller
                 'fecha_perdida' => $request->fecha_perdida,
                 'fecha_reporte' => now(),
                 'estado' => 'activo',
-                'prioridad' => 'normal',
                 'nivel_expansion' => 1,
                 'max_expansion' => 10, // Hasta 10 anillos de crecimiento
                 'proxima_expansion' => now()->addMinutes(30), // Primer nivel a los 30 min
@@ -1715,7 +1714,6 @@ class ReporteController extends Controller
                 'titulo'              => $reporte->titulo,
                 'descripcion'         => $reporte->descripcion,
                 'estado'              => $reporte->estado,
-                'prioridad'           => $reporte->prioridad,
                 'categoria'           => $reporte->categoria->nombre ?? null,
                 'categoria_id'        => $reporte->categoria_id,
                 'fecha_reporte'       => $reporte->created_at,

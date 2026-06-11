@@ -507,6 +507,13 @@
                         </div>
                         
                         <div class="form-check form-switch mb-2">
+                            <input class="form-check-input layer-toggle" type="checkbox" id="showPausados" data-layer="pausados" checked>
+                            <label class="form-check-label text-secondary" for="showPausados" style="cursor: pointer; width: 100%;">
+                                <i class="bi bi-pause-circle-fill"></i> Pausados (<span id="countPausados">0</span>)
+                            </label>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-2">
                             <input class="form-check-input layer-toggle" type="checkbox" id="showResueltos" data-layer="resueltos" checked>
                             <label class="form-check-label text-primary" for="showResueltos" style="cursor: pointer; width: 100%;">
                                 <i class="bi bi-check-all"></i> Resueltos (<span id="countResueltos">0</span>)
@@ -599,6 +606,7 @@
     // Capas
     const capas = {
         perdidos: L.layerGroup(),
+        pausados: L.layerGroup(),
         encontrados: L.layerGroup(),
         resueltos: L.layerGroup(),
         pistas: L.layerGroup(),
@@ -610,7 +618,7 @@
     // Datos y Configuración
     const allReportes = {!! json_encode($reportes) !!};
     const totalGrupos = {{ $grupos ?? 0 }};
-    const counts = { perdidos: 0, encontrados: 0, resueltos: 0, pistas: 0, evidencias: 0 };
+    const counts = { perdidos: 0, pausados: 0, encontrados: 0, resueltos: 0, pistas: 0, evidencias: 0 };
     const santaCruzBounds = {
         norte: -17.7000, sur: -17.8530, este: -63.0960, oeste: -63.2500
     };
@@ -730,6 +738,11 @@
                 html: "<div class='marker-pulse marker-perdido'></div>",
                 iconSize: [20, 20], iconAnchor: [10, 10]
             }),
+            pausado: L.divIcon({
+                className: 'custom-div-icon',
+                html: "<div class='marker-pulse bg-secondary'></div>",
+                iconSize: [20, 20], iconAnchor: [10, 10]
+            }),
             encontrado: L.divIcon({
                 className: 'custom-div-icon',
                 html: "<div class='marker-pulse bg-success'></div>",
@@ -755,6 +768,7 @@
         window.renderMarkers = function() {
             // Limpiar capas de marcadores
             capas.perdidos.clearLayers();
+            capas.pausados.clearLayers();
             capas.encontrados.clearLayers();
             capas.resueltos.clearLayers();
             capas.pistas.clearLayers();
@@ -762,6 +776,7 @@
             capas.zonasBusqueda.clearLayers();
             
             counts.perdidos = 0;
+            counts.pausados = 0;
             counts.encontrados = 0;
             counts.resueltos = 0;
             counts.pistas = 0;
@@ -828,6 +843,11 @@
                     layerKey = 'resueltos'; 
                     icon = icons.resuelto; 
                     counts.resueltos++; 
+                }
+                else if (state === 'pausado') { 
+                    layerKey = 'pausados'; 
+                    icon = icons.pausado; 
+                    counts.pausados++; 
                 }
                 else if (type === 'perdido') { 
                     layerKey = 'perdidos'; 
@@ -940,6 +960,7 @@
 
     function updateCounters() {
         if(document.getElementById('countPerdidos')) document.getElementById('countPerdidos').textContent = counts.perdidos;
+        if(document.getElementById('countPausados')) document.getElementById('countPausados').textContent = counts.pausados;
         if(document.getElementById('countEncontrados')) document.getElementById('countEncontrados').textContent = counts.encontrados;
         if(document.getElementById('countResueltos')) document.getElementById('countResueltos').textContent = counts.resueltos;
         if(document.getElementById('countPistas')) document.getElementById('countPistas').textContent = counts.pistas;
@@ -983,7 +1004,6 @@
         let type = (r.tipo_reporte || '').toString().trim().toLowerCase();
         let colorClass = type === 'perdido' ? 'danger' : (type === 'encontrado' ? 'success' : 'info');
         let badge = r.recompensa > 0 ? `<span class="badge bg-warning text-dark me-1">Recompensa: ${r.recompensa}</span>` : '';
-        let urgente = r.prioridad === 'urgente' ? '<span class="badge bg-danger animate__animated animate__flash infinite">URGENTE</span>' : '';
         
         let imgOriginalUrl = null;
         if (r.imagenes && r.imagenes.length > 0) {
@@ -1003,7 +1023,7 @@
                 <div class="p-3">
                     ${fotoHtml}
                     <h5 class="fw-bold mb-1">${r.titulo}</h5>
-                    <div class="mb-2">${urgente} ${badge}</div>
+                    <div class="mb-2">${badge}</div>
                     
                     <p class="small text-muted mb-2">
                         <i class="bi bi-tag"></i> ${r.categoria ? r.categoria.nombre : 'General'}<br>

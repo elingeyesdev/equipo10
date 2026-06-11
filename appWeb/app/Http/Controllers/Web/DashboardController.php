@@ -22,12 +22,7 @@ class DashboardController extends Controller
         $reportesPerdidos = Reporte::where('tipo_reporte', 'perdido')->where('estado', 'activo')->count();
         $reportesEncontrados = Reporte::where('tipo_reporte', 'encontrado')->where('estado', 'activo')->count();
         
-        
-        $reportesBaja = Reporte::where('prioridad', 'baja')->count();
-        $reportesNormal = Reporte::where('prioridad', 'normal')->count();
-        $reportesAlta = Reporte::where('prioridad', 'alta')->count();
-        $reportesUrgente = Reporte::where('prioridad', 'urgente')->count();
-        
+
         // Stats para Centro de Operaciones
         $reportesHoy = Reporte::whereDate('created_at', \Carbon\Carbon::today())->count();
         
@@ -76,10 +71,6 @@ class DashboardController extends Controller
             'reportesResueltos',
             'reportesPerdidos',
             'reportesEncontrados',
-            'reportesBaja',
-            'reportesNormal',
-            'reportesAlta',
-            'reportesUrgente',
             'ultimosReportes',
             'nuevosUsuarios',
             'categoriasPopulares',

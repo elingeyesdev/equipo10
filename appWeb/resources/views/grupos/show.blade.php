@@ -203,7 +203,7 @@
                         <th>Categoría</th>
                         <th>Usuario</th>
                         <th>Estado</th>
-                        <th>Prioridad</th>
+
                         <th>Respuestas</th>
                         <th>Vistas</th>
                         <th>Fecha</th>
@@ -270,23 +270,7 @@
                                     <span class="badge bg-dark-subtle text-dark border border-dark">{{ ucfirst($reporte->estado) }}</span>
                             @endswitch
                         </td>
-                        <td>
-                            @switch($reporte->prioridad)
-                                @case('urgente')
-                                    <span class="badge bg-danger-subtle text-danger border border-danger">
-                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>Urgente
-                                    </span>
-                                    @break
-                                @case('alta')
-                                    <span class="badge bg-warning-subtle text-warning border border-warning">Alta</span>
-                                    @break
-                                @case('normal')
-                                    <span class="badge bg-info-subtle text-info border border-info">Normal</span>
-                                    @break
-                                @default
-                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary">Baja</span>
-                            @endswitch
-                        </td>
+
                         <td>
                             <div class="d-flex align-items-center">
                                 <i class="bi bi-chat-dots text-muted me-1"></i>

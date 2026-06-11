@@ -10,10 +10,18 @@ use App\Models\Reporte;
 use App\Models\Usuario;
 use App\Models\Categoria;
 use App\Models\Cuadrante;
+use App\Services\FcmService;
 use Illuminate\Http\Request;
 
 class ReporteWebController extends Controller
 {
+    protected $fcmService;
+
+    public function __construct(FcmService $fcmService)
+    {
+        $this->fcmService = $fcmService;
+    }
+
     public function index(Request $request)
     {
         $query = Reporte::with(['usuario', 'categoria', 'cuadrante']);
@@ -61,7 +69,7 @@ class ReporteWebController extends Controller
             'descripcion' => 'required|string',
             'fecha_perdida' => 'nullable|date',
             'direccion_referencia' => 'nullable|string',
-            'prioridad' => 'nullable|in:baja,normal,alta,urgente',
+
             'estado' => 'nullable|in:activo,resuelto,inactivo,spam',
             'contacto_publico' => 'nullable|boolean',
             'telefono_contacto' => 'nullable|string|max:20',
@@ -77,7 +85,7 @@ class ReporteWebController extends Controller
 
     public function show(string $id)
     {
-        $reporte = Reporte::with(['usuario', 'categoria', 'cuadrante', 'respuestas.usuario', 'expansiones', 'imagenes'])
+        $reporte = Reporte::with(['usuario', 'categoria', 'cuadrante', 'respuestas.usuario', 'expansiones', 'imagenes', 'voluntarios.usuario'])
             ->findOrFail($id);
         
         $reporte->increment('vistas');
@@ -122,26 +130,51 @@ class ReporteWebController extends Controller
             ]);
         }
 
-        // 4. Expansiones de búsqueda
-        foreach ($reporte->expansiones as $expansion) {
+        // 4. Expansiones de búsqueda (Agrupadas por Nivel)
+        $expansionesAgrupadas = $reporte->expansiones->groupBy('nivel');
+        foreach ($expansionesAgrupadas as $nivel => $expansiones) {
+            $primeraExp = $expansiones->first();
             $timeline->push([
                 'tipo' => 'expansion',
-                'fecha' => $expansion->created_at ?? $reporte->updated_at, // Fallback si no tiene created_at
-                'titulo' => 'Expansión de Búsqueda (Nivel ' . $expansion->nivel . ')',
-                'descripcion' => 'El área de búsqueda se ha expandido a nuevos cuadrantes.',
+                'fecha' => $primeraExp->fecha_expansion ?? $primeraExp->created_at ?? $reporte->updated_at,
+                'titulo' => 'Expansión de Búsqueda (Nivel ' . $nivel . ')',
+                'descripcion' => 'El área de búsqueda se ha expandido a ' . $expansiones->count() . ' nuevos cuadrantes.',
                 'icono' => 'bi-arrows-expand',
                 'color' => 'secondary',
                 'usuario' => null
             ]);
         }
+        
+        // 4.5 Tracking de Voluntarios
+        foreach ($reporte->voluntarios as $voluntario) {
+            if ($voluntario->inicio_busqueda) {
+                $duracionStr = '';
+                if ($voluntario->fin_busqueda) {
+                    $mins = $voluntario->fin_busqueda->diffInMinutes($voluntario->inicio_busqueda);
+                    $duracionStr = " - Duración: " . ($mins > 60 ? intdiv($mins, 60) . 'h ' . ($mins % 60) . 'm' : $mins . 'm');
+                } else {
+                    $duracionStr = " - (En curso)";
+                }
+
+                $timeline->push([
+                    'tipo' => 'tracking',
+                    'fecha' => $voluntario->inicio_busqueda,
+                    'titulo' => 'Tracking ' . ($voluntario->fin_busqueda ? 'Finalizado' : 'Iniciado'),
+                    'descripcion' => 'Recorrido de búsqueda registrado' . $duracionStr,
+                    'icono' => 'bi-geo-alt',
+                    'color' => 'success',
+                    'usuario' => $voluntario->usuario
+                ]);
+            }
+        }
 
         // 5. Resolución (si está resuelto)
-        if ($reporte->estado === 'resuelto') {
+        if (in_array($reporte->estado, ['resuelto', 'cerrado'])) {
             $timeline->push([
                 'tipo' => 'resolucion',
                 'fecha' => $reporte->updated_at,
-                'titulo' => 'Caso Resuelto',
-                'descripcion' => 'El reporte ha sido marcado como resuelto.',
+                'titulo' => 'Caso ' . ucfirst($reporte->estado),
+                'descripcion' => 'El reporte ha sido marcado como ' . $reporte->estado . ($reporte->motivo_cierre ? ' por el motivo: ' . $reporte->motivo_cierre : '.'),
                 'icono' => 'bi-check-circle-fill',
                 'color' => 'success',
                 'usuario' => null // O el usuario que lo cerró si guardáramos eso
@@ -224,7 +257,7 @@ class ReporteWebController extends Controller
             'titulo' => 'required|string|max:200',
             'descripcion' => 'required|string',
             'estado' => 'nullable|in:activo,resuelto,inactivo,spam',
-            'prioridad' => 'nullable|in:baja,normal,alta,urgente',
+
             'recompensa' => 'nullable|numeric|min:0'
         ]);
 
@@ -234,9 +267,127 @@ class ReporteWebController extends Controller
             ->with('success', 'Reporte actualizado exitosamente');
     }
 
-    public function destroy(string $id)
+    public function cerrar(Request $request, string $id)
     {
         $reporte = Reporte::findOrFail($id);
+        
+        $request->validate([
+            'motivo_cierre' => 'required|string|max:500'
+        ]);
+
+        $reporte->update([
+            'estado' => 'cerrado',
+            'motivo_cierre' => $request->motivo_cierre
+        ]);
+
+        // Notificar a voluntarios y al creador
+        $usuariosANotificar = \App\Models\ReporteVoluntario::where('reporte_id', $reporte->id)->pluck('usuario_id')->toArray();
+        if (!in_array($reporte->usuario_id, $usuariosANotificar)) {
+            $usuariosANotificar[] = $reporte->usuario_id;
+        }
+
+        $adminText = auth()->user()->hasRole('administrador') ? ' por un administrador' : '';
+        $titulo = 'Búsqueda Cerrada';
+        $mensaje = 'La búsqueda "' . $reporte->titulo . '" ha sido cerrada' . $adminText . '. Motivo: ' . $request->motivo_cierre;
+        $fcm = new FcmService();
+
+        foreach (array_unique($usuariosANotificar) as $userId) {
+            $notif = \App\Models\Notificacion::create([
+                'usuario_id' => $userId,
+                'tipo' => 'alerta_operativo',
+                'titulo' => $titulo,
+                'mensaje' => $mensaje,
+                'leida' => false,
+                'enviada_push' => false,
+            ]);
+
+            // Enviar FCM si el usuario tiene token
+            $usuario = \App\Models\Usuario::find($userId);
+            if ($usuario && !empty($usuario->fcm_token) && $fcm->estaConfigurado()) {
+                $enviado = $fcm->enviarAToken(
+                    $usuario->fcm_token,
+                    $titulo,
+                    $mensaje,
+                    ['reporte_id' => $reporte->id, 'tipo' => 'alerta_operativo']
+                );
+                if ($enviado) {
+                    $notif->update(['enviada_push' => true]);
+                }
+            }
+        }
+
+        return redirect()->route('reportes.show', $reporte->id)
+            ->with('success', 'Búsqueda cerrada exitosamente.');
+    }
+
+    public function reanudar(Request $request, string $id)
+    {
+        $reporte = Reporte::findOrFail($id);
+
+        if ($reporte->estado !== 'cerrado') {
+            return redirect()->route('reportes.show', $reporte->id)
+                ->with('error', 'Solo se puede reanudar una búsqueda que está cerrada.');
+        }
+
+        $reporte->estado = 'activo';
+        $reporte->save();
+
+        // Crear evento
+        ReporteTimeline::create([
+            'reporte_id' => $reporte->id,
+            'evento' => 'Búsqueda Reanudada',
+            'descripcion' => 'El operativo de búsqueda ha sido reanudado.',
+            'fecha' => now(),
+        ]);
+
+        return redirect()->route('reportes.show', $reporte->id)
+            ->with('success', 'Búsqueda reanudada exitosamente.');
+    }
+
+    public function destroy(Request $request, string $id)
+    {
+        $reporte = Reporte::findOrFail($id);
+        $titulo = $reporte->titulo;
+        
+        $request->validate([
+            'motivo_eliminacion' => 'required|string|max:500'
+        ]);
+        
+        // Notificar a voluntarios y creador antes de eliminar
+        $usuariosANotificar = \App\Models\ReporteVoluntario::where('reporte_id', $reporte->id)->pluck('usuario_id')->toArray();
+        if (!in_array($reporte->usuario_id, $usuariosANotificar)) {
+            $usuariosANotificar[] = $reporte->usuario_id;
+        }
+        
+        $tituloNotif = 'Búsqueda Eliminada';
+        $mensajeNotif = 'La búsqueda "' . $titulo . '" ha sido eliminada por un administrador. Motivo: ' . $request->motivo_eliminacion;
+        $fcm = new FcmService();
+
+        foreach (array_unique($usuariosANotificar) as $userId) {
+            $notif = \App\Models\Notificacion::create([
+                'usuario_id' => $userId,
+                'tipo' => 'alerta_operativo',
+                'titulo' => $tituloNotif,
+                'mensaje' => $mensajeNotif,
+                'leida' => false,
+                'enviada_push' => false,
+            ]);
+
+            // Enviar FCM si el usuario tiene token
+            $usuario = \App\Models\Usuario::find($userId);
+            if ($usuario && !empty($usuario->fcm_token) && $fcm->estaConfigurado()) {
+                $enviado = $fcm->enviarAToken(
+                    $usuario->fcm_token,
+                    $tituloNotif,
+                    $mensajeNotif,
+                    ['tipo' => 'alerta_operativo']
+                );
+                if ($enviado) {
+                    $notif->update(['enviada_push' => true]);
+                }
+            }
+        }
+
         $reporte->delete();
 
         return redirect()->route('reportes.index')

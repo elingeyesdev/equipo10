@@ -109,17 +109,7 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Prioridad</label>
-                            <select name="prioridad" class="form-select">
-                                <option value="baja">Baja</option>
-                                <option value="normal" selected>Normal</option>
-                                <option value="alta">Alta</option>
-                                <option value="urgente">Urgente</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-6 mb-3">
                             <label class="form-label">Recompensa (Bs.)</label>
                             <input type="number" name="recompensa" class="form-control" 
                                    value="{{ old('recompensa') }}" min="0" step="0.01" placeholder="0.00">

@@ -157,11 +157,35 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     function confirmDelete(id) {
-        if (confirm('¿Estás seguro de que deseas eliminar este reporte?')) {
-            document.getElementById('delete-form-' + id).submit();
-        }
+        Swal.fire({
+            title: '¿Eliminar permanentemente?',
+            text: "Esta acción no se puede deshacer y eliminará todos los registros asociados. Se notificará a los participantes.",
+            icon: 'error',
+            input: 'textarea',
+            inputLabel: 'Motivo de eliminación',
+            inputPlaceholder: 'Ej. Reporte falso, spam, duplicado...',
+            inputValidator: (value) => {
+                if (!value) return '¡Debes ingresar un motivo para eliminar!';
+            },
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="bi bi-trash"></i> Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                let form = document.getElementById('delete-form-' + id);
+                let input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'motivo_eliminacion';
+                input.value = result.value;
+                form.appendChild(input);
+                form.submit();
+            }
+        });
     }
 </script>
 @endsection

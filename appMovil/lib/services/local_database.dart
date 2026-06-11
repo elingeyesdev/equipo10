@@ -83,7 +83,6 @@ class LocalDatabase {
         primera_imagen       TEXT,
         nombre_categoria     TEXT,
         nombre_usuario       TEXT,
-        prioridad            TEXT,
         fecha_perdida        TEXT,
         nivel_expansion      INTEGER NOT NULL DEFAULT 1,
         caracteristicas_json TEXT,
@@ -227,7 +226,6 @@ class LocalDatabase {
           'primera_imagen': r.primeraImagen,
           'nombre_categoria': r.nombreCategoria,
           'nombre_usuario': r.nombreUsuario,
-          'prioridad': r.prioridad,
           'fecha_perdida': r.fechaPerdida,
           'nivel_expansion': r.nivelExpansion,
           'caracteristicas_json':
@@ -269,7 +267,6 @@ class LocalDatabase {
         primeraImagen: r['primera_imagen'] as String?,
         nombreCategoria: r['nombre_categoria'] as String?,
         nombreUsuario: r['nombre_usuario'] as String?,
-        prioridad: r['prioridad'] as String?,
         fechaPerdida: r['fecha_perdida'] as String?,
         nivelExpansion:
             r['nivel_expansion'] != null ? (r['nivel_expansion'] as int) : 1,
@@ -355,7 +352,6 @@ class LocalDatabase {
       primeraImagen: r['primera_imagen'] as String?,
       nombreCategoria: r['nombre_categoria'] as String?,
       nombreUsuario: r['nombre_usuario'] as String?,
-      prioridad: r['prioridad'] as String?,
       fechaPerdida: r['fecha_perdida'] as String?,
       nivelExpansion: r['nivel_expansion'] != null ? (r['nivel_expansion'] as int) : 1,
       caracteristicas: chars,

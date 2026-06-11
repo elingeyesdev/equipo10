@@ -79,7 +79,6 @@ class ReporteController extends Controller
             'titulo' => 'sometimes|string|max:200',
             'descripcion' => 'sometimes|string',
             'estado' => 'sometimes|in:activo,resuelto,inactivo,spam',
-            'prioridad' => 'sometimes|in:baja,normal,alta,urgente'
         ]);
 
         if ($validator->fails()) {

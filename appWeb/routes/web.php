@@ -89,6 +89,10 @@ Route::get('/', function () {
     
     Route::middleware(['auth', 'role_or_permission:administrador|editor|crear reportes|editar reportes'])->group(function () {
     Route::resource('reportes', ReporteWebController::class);
+    // Cerrar búsqueda con motivo
+    Route::put('/reportes/{reporte}/cerrar', [ReporteWebController::class, 'cerrar'])->name('reportes.cerrar');
+    // Reanudar búsqueda
+    Route::put('/reportes/{reporte}/reanudar', [ReporteWebController::class, 'reanudar'])->name('reportes.reanudar');
     // Guardar pista de búsqueda en un reporte (solo admin o creador, validado en controller)
     Route::post('/reportes/{reporte}/pistas', [ReporteWebController::class, 'guardarPista'])->name('reportes.pistas.store');
     });

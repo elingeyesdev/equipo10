@@ -150,6 +150,7 @@ Route::prefix('reportes')->group(function () {
     Route::post('{reporteId}/expandir-inmediato', [ReporteController::class, 'expandirInmediato']);
 
     // Broadcast a voluntarios
+    Route::post('{reporteId}/broadcast', [ReporteController::class, 'broadcastMensaje']);
     Route::get('{reporteId}/coordenadas', [VoluntarioController::class, 'getCoordenadasVoluntario']);
     
     // Obtener ruta guardada de un voluntario específico en un reporte
