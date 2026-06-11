@@ -134,11 +134,15 @@ class ReporteWebController extends Controller
         $expansionesAgrupadas = $reporte->expansiones->groupBy('nivel');
         foreach ($expansionesAgrupadas as $nivel => $expansiones) {
             $primeraExp = $expansiones->first();
+            $nombresCuadrantes = $expansiones->map(function($e) {
+                return $e->cuadranteExpandido ? $e->cuadranteExpandido->codigo : 'Desconocido';
+            })->filter()->implode(', ');
+
             $timeline->push([
                 'tipo' => 'expansion',
                 'fecha' => $primeraExp->fecha_expansion ?? $primeraExp->created_at ?? $reporte->updated_at,
                 'titulo' => 'Expansión de Búsqueda (Nivel ' . $nivel . ')',
-                'descripcion' => 'El área de búsqueda se ha expandido a ' . $expansiones->count() . ' nuevos cuadrantes.',
+                'descripcion' => 'Se ha expandido a ' . $expansiones->count() . ' cuadrante(s): ' . $nombresCuadrantes,
                 'icono' => 'bi-arrows-expand',
                 'color' => 'secondary',
                 'usuario' => null
@@ -150,8 +154,9 @@ class ReporteWebController extends Controller
             if ($voluntario->inicio_busqueda) {
                 $duracionStr = '';
                 if ($voluntario->fin_busqueda) {
-                    $mins = $voluntario->fin_busqueda->diffInMinutes($voluntario->inicio_busqueda);
-                    $duracionStr = " - Duración: " . ($mins > 60 ? intdiv($mins, 60) . 'h ' . ($mins % 60) . 'm' : $mins . 'm');
+                    $secs = $voluntario->inicio_busqueda->diffInSeconds($voluntario->fin_busqueda);
+                    $mins = floor($secs / 60);
+                    $duracionStr = " - Duración: " . ($mins >= 60 ? floor($mins / 60) . 'h ' . ($mins % 60) . 'm' : $mins . 'm');
                 } else {
                     $duracionStr = " - (En curso)";
                 }

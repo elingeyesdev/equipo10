@@ -497,8 +497,19 @@ const NIVEL_EXPAN = calcularNivelDinamico(CREATED_AT, UPDATED_AT, ESTADO_REPORTE
             'created_at' => $p->created_at ? $p->created_at->toISOString() : null,
         ];
     });
+
+    $tracksJs = [];
+    foreach($reporte->voluntarios as $vol) {
+        if ($vol->recorrido_puntos && is_array($vol->recorrido_puntos) && count($vol->recorrido_puntos) > 0) {
+            $tracksJs[] = [
+                'nombre' => $vol->usuario->nombre ?? 'Voluntario',
+                'puntos' => $vol->recorrido_puntos
+            ];
+        }
+    }
 @endphp
 const PISTAS_BD = @json($pistasJs);
+const TRACKING_BD = @json($tracksJs);
 
 // ─── Estado ───────────────────────────────────────────────────────────────────
 let mapPistas, modoPista = false, pinTemporal = null;
@@ -645,6 +656,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ── Marcadores de pistas existentes (BD) ────────────────────────────────
     PISTAS_BD.forEach(p => agregarMarcadorPista(p.lat, p.lng, p.etiqueta, p.fecha, p.nivel_expansion, p.has_image, p.image_url, p.created_at));
+
+    // ── Rutas de Tracking de los Voluntarios ────────────────────────────────
+    TRACKING_BD.forEach(track => {
+        if (track.puntos && track.puntos.length > 0) {
+            const latlngs = track.puntos.map(pt => [pt.lat, pt.lng]);
+            const polyline = L.polyline(latlngs, {
+                color: '#10b981', // emerald-500
+                weight: 4,
+                opacity: 0.8,
+                dashArray: '10, 10',
+                lineJoin: 'round'
+            }).addTo(mapPistas);
+            
+            // Tooltip para identificar el voluntario
+            polyline.bindTooltip('Ruta: ' + track.nombre, {sticky: true});
+        }
+    });
 
     // ── Clic en el mapa para agregar pista ──────────────────────────────────
     mapPistas.on('click', function(e) {
