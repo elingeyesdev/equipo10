@@ -38,7 +38,7 @@ class EncuestaService {
         'puntuacion': puntuacion,
         'comentario': comentario,
       });
-      if (response.statusCode == 201) return true;
+      if (response.statusCode == 201 || response.statusCode == 200) return true;
       // 409 = ya fue evaluado anteriormente; se considera éxito silencioso
       if (response.statusCode == 409) return true;
       return false;
@@ -71,7 +71,7 @@ class EncuestaService {
           'comentario': enc['comentario'],
         });
         // Eliminar de la cola si fue exitoso o si ya existía (409)
-        if (response.statusCode == 201 || response.statusCode == 409) {
+        if (response.statusCode == 201 || response.statusCode == 200 || response.statusCode == 409) {
           await _db.deleteEncuestaPendiente(enc['id'] as int);
           debugPrint('[EncuestaService] Encuesta ${enc['id']} sincronizada.');
         }

@@ -51,26 +51,23 @@ class EncuestaController extends Controller
         ]);
 
         try {
-            $encuesta = EncuestaSatisfaccion::create([
-                'reporte_id' => $request->reporte_id,
-                'usuario_id' => $request->usuario_id,
-                'puntuacion' => $request->puntuacion,
-                'comentario' => $request->comentario,
-            ]);
+            $encuesta = EncuestaSatisfaccion::updateOrCreate(
+                [
+                    'reporte_id' => $request->reporte_id,
+                    'usuario_id' => $request->usuario_id,
+                ],
+                [
+                    'puntuacion' => $request->puntuacion,
+                    'comentario' => $request->comentario,
+                ]
+            );
 
             return response()->json([
-                'message' => 'Encuesta guardada con éxito',
+                'message' => 'Encuesta guardada/actualizada con éxito',
                 'data' => $encuesta
-            ], 201);
+            ], 200);
 
         } catch (\Exception $e) {
-            // Verificar si es error por registro duplicado
-            if ($e->getCode() == 23505) { // Unique violation Postgres
-                return response()->json([
-                    'message' => 'Ya has evaluado este operativo anteriormente.'
-                ], 409);
-            }
-
             return response()->json([
                 'message' => 'Error al guardar la encuesta',
                 'error' => $e->getMessage()
