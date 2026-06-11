@@ -500,10 +500,11 @@ const NIVEL_EXPAN = calcularNivelDinamico(CREATED_AT, UPDATED_AT, ESTADO_REPORTE
 
     $tracksJs = [];
     foreach($reporte->voluntarios as $vol) {
-        if ($vol->recorrido_puntos && is_array($vol->recorrido_puntos) && count($vol->recorrido_puntos) > 0) {
+        $puntos = is_string($vol->recorrido_puntos) ? json_decode($vol->recorrido_puntos, true) : $vol->recorrido_puntos;
+        if ($puntos && is_array($puntos) && count($puntos) > 0) {
             $tracksJs[] = [
                 'nombre' => $vol->usuario->nombre ?? 'Voluntario',
-                'puntos' => $vol->recorrido_puntos
+                'puntos' => $puntos
             ];
         }
     }
