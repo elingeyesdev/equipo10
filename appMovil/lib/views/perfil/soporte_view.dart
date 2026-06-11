@@ -48,7 +48,7 @@ class SoporteView extends StatelessWidget {
 
   Future<void> _procesarEliminacion(BuildContext context) async {
     final vm = context.read<AuthViewModel>();
-    
+
     // Mostrar un dialog de carga de barrera
     showDialog(
       context: context,
@@ -59,14 +59,15 @@ class SoporteView extends StatelessWidget {
     final success = await vm.eliminarCuenta();
 
     if (!context.mounted) return;
-    
+
     // Quitar el dialog de carga
     Navigator.of(context).pop();
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Tu cuenta ha sido eliminada. Lamentamos verte partir.'),
+          content:
+              Text('Tu cuenta ha sido eliminada. Lamentamos verte partir.'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -90,7 +91,8 @@ class SoporteView extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Soporte y legal', style: TextStyle(color: AppTheme.textPrimary)),
+        title: const Text('Soporte y legal',
+            style: TextStyle(color: AppTheme.textPrimary)),
         backgroundColor: Colors.white,
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
@@ -110,24 +112,26 @@ class SoporteView extends StatelessWidget {
             child: Column(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.policy_outlined, color: AppTheme.primary),
+                  leading: const Icon(Icons.policy_outlined,
+                      color: AppTheme.primary),
                   title: const Text('Política de privacidad',
                       style: TextStyle(fontWeight: FontWeight.w600)),
                   trailing: const Icon(Icons.open_in_new, size: 16),
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Abriendo enlace externo...')));
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Abriendo enlace externo...')));
                   },
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.description_outlined, color: AppTheme.primary),
+                  leading: const Icon(Icons.description_outlined,
+                      color: AppTheme.primary),
                   title: const Text('Términos de servicio',
                       style: TextStyle(fontWeight: FontWeight.w600)),
                   trailing: const Icon(Icons.open_in_new, size: 16),
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Abriendo enlace externo...')));
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Abriendo enlace externo...')));
                   },
                 ),
               ],
@@ -144,14 +148,15 @@ class SoporteView extends StatelessWidget {
               side: BorderSide(color: Colors.grey.shade200),
             ),
             child: ListTile(
-              leading: const Icon(Icons.email_outlined, color: AppTheme.primary),
+              leading:
+                  const Icon(Icons.email_outlined, color: AppTheme.primary),
               title: const Text('Contactar a soporte',
                   style: TextStyle(fontWeight: FontWeight.w600)),
               subtitle: const Text('soporte@echoesapp.com',
                   style: TextStyle(fontSize: 12)),
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Abriendo cliente de correo...')));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Abriendo cliente de correo...')));
               },
             ),
           ),

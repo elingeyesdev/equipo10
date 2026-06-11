@@ -4,37 +4,42 @@ class AppTheme {
   // ─── Paleta de identidad Echoes ────────────────────────────────────────────
 
   // Grises neutros — fondos y divisores
-  static const Color backgroundLight  = Color(0xFFF8F8F8); // Fondo principal
-  static const Color background       = Color(0xFFECECEC); // Fondo alternativo / divisores
-  static const Color backgroundDark   = Color(0xFFDFDFDF); // Bordes, chips
+  static const Color backgroundLight = Color(0xFFF8F8F8); // Fondo principal
+  static const Color background =
+      Color(0xFFECECEC); // Fondo alternativo / divisores
+  static const Color backgroundDark = Color(0xFFDFDFDF); // Bordes, chips
 
   // Dorado — accent, FAB, botones de acción
-  static const Color accent           = Color(0xFFE9C978); // Accent base
-  static const Color accentDark       = Color(0xFFE5C062); // Pressed / hover
-  static const Color accentLight      = Color(0xFFEDD28E); // Chips suaves / fondo destacado
+  static const Color accent = Color(0xFFE9C978); // Accent base
+  static const Color accentDark = Color(0xFFE5C062); // Pressed / hover
+  static const Color accentLight =
+      Color(0xFFEDD28E); // Chips suaves / fondo destacado
 
   // Azul — color primario interactivo
-  static const Color primary          = Color(0xFF3F7AC5); // Azul oscuro — nav activo, brand
-  static const Color primaryBase      = Color(0xFF5388CB); // Azul base — links, chips
-  static const Color primaryLight     = Color(0xFF6796D1); // Texto secundario azulado
+  static const Color primary =
+      Color(0xFF3F7AC5); // Azul oscuro — nav activo, brand
+  static const Color primaryBase =
+      Color(0xFF5388CB); // Azul base — links, chips
+  static const Color primaryLight =
+      Color(0xFF6796D1); // Texto secundario azulado
 
   // Carbón azulado — texto y AppBar
-  static const Color darkBase         = Color(0xFF353F4C); // AppBar, elementos oscuros
-  static const Color darkDark         = Color(0xFF2B333D); // Texto principal
-  static const Color darkLight        = Color(0xFF3F4B5B); // Texto secundario
+  static const Color darkBase = Color(0xFF353F4C); // AppBar, elementos oscuros
+  static const Color darkDark = Color(0xFF2B333D); // Texto principal
+  static const Color darkLight = Color(0xFF3F4B5B); // Texto secundario
 
   // Aliases para compatibilidad y semántica clara
-  static const Color textPrimary      = darkDark;
-  static const Color textSecondary    = darkLight;
-  static const Color secondary        = primaryLight;  // íconos inactivos nav
-  static const Color surface          = Colors.white;
-  static const Color border           = backgroundDark;
+  static const Color textPrimary = darkDark;
+  static const Color textSecondary = darkLight;
+  static const Color secondary = primaryLight; // íconos inactivos nav
+  static const Color surface = Colors.white;
+  static const Color border = backgroundDark;
 
   // ─── Semánticos (convenciones universales de color) ───────────────────────
   static const Color success = Color(0xFF16A34A); // Verde  — estado Activo
   static const Color warning = Color(0xFFF59E0B); // Ámbar  — estado Pausado
-  static const Color danger  = Color(0xFFEF4444); // Rojo   — errores y alertas
-  static const Color info    = Color(0xFF5388CB); // Azul   — información
+  static const Color danger = Color(0xFFEF4444); // Rojo   — errores y alertas
+  static const Color info = Color(0xFF5388CB); // Azul   — información
 
   // ─── ThemeData ────────────────────────────────────────────────────────────
   static ThemeData get theme => ThemeData(
@@ -68,7 +73,7 @@ class AppTheme {
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: accent,
-            foregroundColor: darkDark,      // texto oscuro sobre dorado
+            foregroundColor: darkDark, // texto oscuro sobre dorado
             minimumSize: const Size(double.infinity, 50),
             elevation: 2,
             shape: RoundedRectangleBorder(

@@ -24,9 +24,18 @@ class _HomeViewState extends State<HomeView> {
   int _currentIndex = 0;
 
   static const _tabs = [
-    _TabDef(label: 'Explorar',       icon: Icons.public_outlined,       activeIcon: Icons.public),
-    _TabDef(label: 'Mis reportes', icon: Icons.folder_shared_outlined, activeIcon: Icons.folder_shared),
-    _TabDef(label: 'Configuración',  icon: Icons.settings_outlined,      activeIcon: Icons.settings),
+    _TabDef(
+        label: 'Explorar',
+        icon: Icons.public_outlined,
+        activeIcon: Icons.public),
+    _TabDef(
+        label: 'Mis reportes',
+        icon: Icons.folder_shared_outlined,
+        activeIcon: Icons.folder_shared),
+    _TabDef(
+        label: 'Configuración',
+        icon: Icons.settings_outlined,
+        activeIcon: Icons.settings),
   ];
 
   @override
@@ -69,7 +78,8 @@ class _HomeViewState extends State<HomeView> {
                 if (notifVm.unreadCount > 0) ...[
                   const SizedBox(width: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                     decoration: BoxDecoration(
                       color: AppTheme.accentDark,
                       borderRadius: BorderRadius.circular(20),

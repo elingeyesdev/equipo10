@@ -33,7 +33,8 @@ class LppMarker extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.white,
-            border: Border.all(color: color ?? const Color(0xFFD32F2F), width: 3),
+            border:
+                Border.all(color: color ?? const Color(0xFFD32F2F), width: 3),
             boxShadow: const [
               BoxShadow(
                 color: Colors.black38,

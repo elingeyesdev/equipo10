@@ -13,15 +13,33 @@ class LugarSugerido {
 class NominatimService {
   // Tipos de elementos geográficos que NO queremos mostrar (ruido)
   static const _tiposRuidosos = {
-    'road', 'highway', 'path', 'footway', 'cycleway',
-    'tertiary', 'secondary', 'primary', 'trunk', 'unclassified',
-    'residential', 'service', 'track', 'motorway', 'living_street',
+    'road',
+    'highway',
+    'path',
+    'footway',
+    'cycleway',
+    'tertiary',
+    'secondary',
+    'primary',
+    'trunk',
+    'unclassified',
+    'residential',
+    'service',
+    'track',
+    'motorway',
+    'living_street',
   };
 
   // Palabras de relleno que queremos eliminar de los nombres mostrados
   static const _palabrasRuido = [
-    'Unnamed Road', 'Ende', 'Calle ', 'Avenida ', 'Pasaje ',
-    'Callejón ', 'Carretera ', 'Camino ',
+    'Unnamed Road',
+    'Ende',
+    'Calle ',
+    'Avenida ',
+    'Pasaje ',
+    'Callejón ',
+    'Carretera ',
+    'Camino ',
   ];
 
   /// Busca lugares en Santa Cruz, Bolivia usando Nominatim (sin API key).

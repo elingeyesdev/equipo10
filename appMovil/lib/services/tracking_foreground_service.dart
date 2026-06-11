@@ -114,6 +114,7 @@ class TrackingForegroundService {
         if (data == 'btn_terminar') onTerminar();
       }
     }
+
     FlutterForegroundTask.addTaskDataCallback(callback);
     return () => FlutterForegroundTask.removeTaskDataCallback(callback);
   }

@@ -48,10 +48,14 @@ class CuadranteModel {
       geometria: geo,
       centroLat: double.tryParse(map['centro_lat']?.toString() ?? '0') ?? 0,
       centroLng: double.tryParse(map['centro_lng']?.toString() ?? '0') ?? 0,
-      latMin: double.tryParse(map['lat_min']?.toString() ?? '') ?? double.tryParse(map['latmin']?.toString() ?? ''),
-      latMax: double.tryParse(map['lat_max']?.toString() ?? '') ?? double.tryParse(map['latmax']?.toString() ?? ''),
-      lngMin: double.tryParse(map['lng_min']?.toString() ?? '') ?? double.tryParse(map['lngmin']?.toString() ?? ''),
-      lngMax: double.tryParse(map['lng_max']?.toString() ?? '') ?? double.tryParse(map['lngmax']?.toString() ?? ''),
+      latMin: double.tryParse(map['lat_min']?.toString() ?? '') ??
+          double.tryParse(map['latmin']?.toString() ?? ''),
+      latMax: double.tryParse(map['lat_max']?.toString() ?? '') ??
+          double.tryParse(map['latmax']?.toString() ?? ''),
+      lngMin: double.tryParse(map['lng_min']?.toString() ?? '') ??
+          double.tryParse(map['lngmin']?.toString() ?? ''),
+      lngMax: double.tryParse(map['lng_max']?.toString() ?? '') ??
+          double.tryParse(map['lngmax']?.toString() ?? ''),
     );
   }
 }

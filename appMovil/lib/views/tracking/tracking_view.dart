@@ -70,8 +70,7 @@ class _TrackingViewState extends State<TrackingView> {
             if (geo['type'] == 'Polygon') {
               final coords = geo['coordinates'][0] as List;
               pts = coords
-                  .map((coord) => LatLng(
-                      double.parse(coord[1].toString()),
+                  .map((coord) => LatLng(double.parse(coord[1].toString()),
                       double.parse(coord[0].toString())))
                   .toList();
             }
@@ -145,7 +144,8 @@ class _TrackingViewState extends State<TrackingView> {
   /// - Si no hay búsqueda activa → sale normalmente.
   Future<bool> _onWillPop() async {
     final vm = context.read<TrackingViewModel>();
-    if (vm.estado == TrackingEstado.activo || vm.estado == TrackingEstado.pausado) {
+    if (vm.estado == TrackingEstado.activo ||
+        vm.estado == TrackingEstado.pausado) {
       // Salir sin interrumpir el tracking; el usuario puede volver desde notificación
       Navigator.of(context).pop();
       return false;
@@ -174,7 +174,8 @@ class _TrackingViewState extends State<TrackingView> {
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
-            child: const Text('Terminar', style: TextStyle(color: Colors.white)),
+            child:
+                const Text('Terminar', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -191,7 +192,8 @@ class _TrackingViewState extends State<TrackingView> {
       backgroundColor: ok ? AppTheme.success : Colors.orange,
     ));
     // Mostrar encuesta de satisfacción antes de salir
-    if (mounted) await EncuestaDialog.show(context, widget.ficha, widget.usuarioId);
+    if (mounted)
+      await EncuestaDialog.show(context, widget.ficha, widget.usuarioId);
     if (mounted) Navigator.of(context).pop(true);
   }
 
@@ -202,7 +204,9 @@ class _TrackingViewState extends State<TrackingView> {
     final polylinePoints = pts.map((p) => LatLng(p.lat, p.lng)).toList();
     final center = widget.ficha.latitud != null
         ? LatLng(widget.ficha.latitud!, widget.ficha.longitud!)
-        : (pts.isNotEmpty ? LatLng(pts.last.lat, pts.last.lng) : const LatLng(0, 0));
+        : (pts.isNotEmpty
+            ? LatLng(pts.last.lat, pts.last.lng)
+            : const LatLng(0, 0));
 
     return WillPopScope(
       onWillPop: _onWillPop,
@@ -230,7 +234,8 @@ class _TrackingViewState extends State<TrackingView> {
               SizedBox(
                 width: 108,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.pause_circle_outline, size: 18),
                     label: const Text('Pausar', style: TextStyle(fontSize: 13)),
@@ -239,7 +244,8 @@ class _TrackingViewState extends State<TrackingView> {
                       backgroundColor: Colors.orange,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 6),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
                     ),
                   ),
                 ),
@@ -248,16 +254,19 @@ class _TrackingViewState extends State<TrackingView> {
               SizedBox(
                 width: 120,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.play_circle_outline, size: 18),
-                    label: const Text('Reanudar', style: TextStyle(fontSize: 13)),
+                    label:
+                        const Text('Reanudar', style: TextStyle(fontSize: 13)),
                     onPressed: () async => vm.reanudarBusqueda(),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.success,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 6),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
                     ),
                   ),
                 ),
@@ -302,9 +311,12 @@ class _TrackingViewState extends State<TrackingView> {
                           color: AppTheme.primary,
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 3),
-                          boxShadow: const [BoxShadow(blurRadius: 6, color: Colors.black38)],
+                          boxShadow: const [
+                            BoxShadow(blurRadius: 6, color: Colors.black38)
+                          ],
                         ),
-                        child: const Icon(Icons.navigation, color: Colors.white, size: 18),
+                        child: const Icon(Icons.navigation,
+                            color: Colors.white, size: 18),
                       ),
                     ),
                   ]),
@@ -321,7 +333,12 @@ class _TrackingViewState extends State<TrackingView> {
                     ),
                   ),
                   if (vm.evidencias.isNotEmpty)
-                    ...vm.evidencias.where((e) => e.estado == 'approved' && e.lat != null && e.lng != null).map((evidencia) {
+                    ...vm.evidencias
+                        .where((e) =>
+                            e.estado == 'approved' &&
+                            e.lat != null &&
+                            e.lng != null)
+                        .map((evidencia) {
                       return Marker(
                         point: LatLng(evidencia.lat!, evidencia.lng!),
                         width: 80,
@@ -330,7 +347,8 @@ class _TrackingViewState extends State<TrackingView> {
                         child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: () {
-                            Future.delayed(const Duration(milliseconds: 150), () {
+                            Future.delayed(const Duration(milliseconds: 150),
+                                () {
                               if (!mounted) return;
                               WidgetsBinding.instance.addPostFrameCallback((_) {
                                 if (!mounted) return;
@@ -342,15 +360,19 @@ class _TrackingViewState extends State<TrackingView> {
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          if (evidencia.fotoUrl != null && evidencia.fotoUrl!.isNotEmpty)
+                                          if (evidencia.fotoUrl != null &&
+                                              evidencia.fotoUrl!.isNotEmpty)
                                             GestureDetector(
                                               onTap: () {
                                                 Navigator.push(
                                                   context,
                                                   MaterialPageRoute(
-                                                    builder: (_) => FullScreenImageView(
-                                                      imageUrl: evidencia.fotoUrl!,
-                                                      tag: 'track-ev-${evidencia.id}',
+                                                    builder: (_) =>
+                                                        FullScreenImageView(
+                                                      imageUrl:
+                                                          evidencia.fotoUrl!,
+                                                      tag:
+                                                          'track-ev-${evidencia.id}',
                                                     ),
                                                   ),
                                                 );
@@ -358,18 +380,27 @@ class _TrackingViewState extends State<TrackingView> {
                                               child: Hero(
                                                 tag: 'track-ev-${evidencia.id}',
                                                 child: ClipRRect(
-                                                  borderRadius: BorderRadius.circular(8),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
                                                   child: CachedNetworkImage(
-                                                    imageUrl: evidencia.fotoUrl!,
+                                                    imageUrl:
+                                                        evidencia.fotoUrl!,
                                                     height: 150,
                                                     width: 300,
                                                     fit: BoxFit.cover,
-                                                    errorWidget: (_, __, ___) => const Icon(Icons.broken_image, size: 50),
-                                                    placeholder: (_, __) => Container(
+                                                    errorWidget: (_, __, ___) =>
+                                                        const Icon(
+                                                            Icons.broken_image,
+                                                            size: 50),
+                                                    placeholder: (_, __) =>
+                                                        Container(
                                                       height: 150,
                                                       width: 300,
-                                                      color: const Color(0xFFF5F5F5),
-                                                      child: const Center(child: CircularProgressIndicator()),
+                                                      color: const Color(
+                                                          0xFFF5F5F5),
+                                                      child: const Center(
+                                                          child:
+                                                              CircularProgressIndicator()),
                                                     ),
                                                   ),
                                                 ),
@@ -393,7 +424,8 @@ class _TrackingViewState extends State<TrackingView> {
                           },
                           child: EvidenciaMarker(
                             fotoUrl: evidencia.fotoUrl,
-                            nombreVoluntario: evidencia.nombreUsuario ?? 'Evidencia',
+                            nombreVoluntario:
+                                evidencia.nombreUsuario ?? 'Evidencia',
                           ),
                         ),
                       );
@@ -476,7 +508,8 @@ class _TrackingViewState extends State<TrackingView> {
                     const SizedBox(height: 8),
                     Text(
                       '${vm.totalPuntos} puntos GPS registrados',
-                      style: const TextStyle(color: Color(0xFF5F6368), fontSize: 13),
+                      style: const TextStyle(
+                          color: Color(0xFF5F6368), fontSize: 13),
                     ),
                     const SizedBox(height: 16),
                     // Botón terminar
@@ -500,7 +533,8 @@ class _TrackingViewState extends State<TrackingView> {
                               )
                             : const Icon(Icons.flag),
                         label: const Text('Terminar Búsqueda',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],

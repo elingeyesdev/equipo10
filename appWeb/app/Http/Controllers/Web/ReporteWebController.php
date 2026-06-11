@@ -332,14 +332,6 @@ class ReporteWebController extends Controller
         $reporte->estado = 'activo';
         $reporte->save();
 
-        // Crear evento
-        ReporteTimeline::create([
-            'reporte_id' => $reporte->id,
-            'evento' => 'Búsqueda Reanudada',
-            'descripcion' => 'El operativo de búsqueda ha sido reanudado.',
-            'fecha' => now(),
-        ]);
-
         return redirect()->route('reportes.show', $reporte->id)
             ->with('success', 'Búsqueda reanudada exitosamente.');
     }

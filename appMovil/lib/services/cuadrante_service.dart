@@ -37,8 +37,7 @@ class CuadranteService {
 
       if (response.statusCode == 200) {
         final List data = response.data['data'] ?? [];
-        final cuadrantes =
-            data.map((m) => CuadranteModel.fromMap(m)).toList();
+        final cuadrantes = data.map((m) => CuadranteModel.fromMap(m)).toList();
 
         // E9.3 — Persistir en SQLite para uso offline futuro
         await _db.upsertCuadrantes(cuadrantes);
@@ -57,7 +56,8 @@ class CuadranteService {
   }
 
   /// Helper para buscar cuadrante localmente en base de datos.
-  Future<CuadranteModel?> _detectarCuadranteLocal(double lat, double lng) async {
+  Future<CuadranteModel?> _detectarCuadranteLocal(
+      double lat, double lng) async {
     final locales = await _db.getCuadrantes();
     try {
       return locales.firstWhere(

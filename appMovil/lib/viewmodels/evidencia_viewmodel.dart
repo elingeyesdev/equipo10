@@ -6,7 +6,15 @@ import '../models/evidencia_model.dart';
 import '../models/evidencia_offline_model.dart';
 import '../services/evidencia_service.dart';
 
-enum EvidenciaEstado { idle, capturando, subiendo, guardando, listo, listoOffline, error }
+enum EvidenciaEstado {
+  idle,
+  capturando,
+  subiendo,
+  guardando,
+  listo,
+  listoOffline,
+  error
+}
 
 class EvidenciaViewModel extends ChangeNotifier {
   final EvidenciaService _service = EvidenciaService();
@@ -14,7 +22,7 @@ class EvidenciaViewModel extends ChangeNotifier {
 
   List<EvidenciaModel> _evidencias = [];
   List<EvidenciaOfflineModel> _pendientes = [];
-  
+
   EvidenciaEstado _estado = EvidenciaEstado.idle;
   String? _errorMessage;
   bool _cargando = false;
@@ -57,7 +65,8 @@ class EvidenciaViewModel extends ChangeNotifier {
 
   /// Carga las evidencias. Si esCreador=true carga todas (incluyendo pending);
   /// si es voluntario carga solo las approved para no mostrar las rechazadas.
-  Future<void> cargarEvidencias(String reporteId, {bool esCreador = false}) async {
+  Future<void> cargarEvidencias(String reporteId,
+      {bool esCreador = false}) async {
     _esCreador = esCreador;
     _cargando = true;
     _errorMessage = null;
@@ -168,14 +177,14 @@ class EvidenciaViewModel extends ChangeNotifier {
       return true;
     } catch (e) {
       final msg = e.toString();
-      
+
       // Si es un error de red (no se pudo subir la foto o guardar la evidencia),
       // lo encolamos para después
-      final isNetworkError = msg.toLowerCase().contains('error de conexión') || 
-                             msg.toLowerCase().contains('error al subir') || 
-                             msg.toLowerCase().contains('connection error') || 
-                             msg.toLowerCase().contains('network is unreachable') ||
-                             msg.toLowerCase().contains('socket');
+      final isNetworkError = msg.toLowerCase().contains('error de conexión') ||
+          msg.toLowerCase().contains('error al subir') ||
+          msg.toLowerCase().contains('connection error') ||
+          msg.toLowerCase().contains('network is unreachable') ||
+          msg.toLowerCase().contains('socket');
 
       if (isNetworkError) {
         await _service.encolarEvidencia(
@@ -190,7 +199,7 @@ class EvidenciaViewModel extends ChangeNotifier {
         _fotoTemporal = null;
         _bytesPreview = null;
         _posicionTemporal = null;
-        
+
         _setState(EvidenciaEstado.listoOffline);
         return true;
       }

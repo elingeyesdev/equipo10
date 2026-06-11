@@ -36,8 +36,15 @@ class TrackingViewModel extends ChangeNotifier {
   List<PuntoRecorrido> get puntosActuales => _trackingService.puntos;
   List<EvidenciaModel> get evidencias => _evidencias;
 
-  void _setLoading(bool v) { _isLoading = v; notifyListeners(); }
-  void _setError(String? msg) { _errorMessage = msg; notifyListeners(); }
+  void _setLoading(bool v) {
+    _isLoading = v;
+    notifyListeners();
+  }
+
+  void _setError(String? msg) {
+    _errorMessage = msg;
+    notifyListeners();
+  }
 
   /// Verifica si el usuario está dentro del cuadrante. Retorna la posición si sí.
   Future<Position?> verificarGeofencing({
@@ -51,16 +58,19 @@ class TrackingViewModel extends ChangeNotifier {
     try {
       final pos = await _trackingService.obtenerPosicionActual();
       if (pos == null) {
-        _setError('No se pudo obtener tu ubicación. Activa el GPS e intenta de nuevo.');
+        _setError(
+            'No se pudo obtener tu ubicación. Activa el GPS e intenta de nuevo.');
         return null;
       }
       _posicionActual = pos;
-      final dentroDeCuadrante =
-          pos.latitude >= latMin && pos.latitude <= latMax &&
-          pos.longitude >= lngMin && pos.longitude <= lngMax;
+      final dentroDeCuadrante = pos.latitude >= latMin &&
+          pos.latitude <= latMax &&
+          pos.longitude >= lngMin &&
+          pos.longitude <= lngMax;
 
       if (!dentroDeCuadrante) {
-        _setError('Debes estar dentro del cuadrante asignado para iniciar la búsqueda.');
+        _setError(
+            'Debes estar dentro del cuadrante asignado para iniciar la búsqueda.');
         notifyListeners();
         return null;
       }
@@ -99,12 +109,14 @@ class TrackingViewModel extends ChangeNotifier {
         usuarioId: usuarioId,
       );
       if (!ok) {
-        _setError('No se pudo iniciar el tracking. Revisa los permisos de ubicación.');
+        _setError(
+            'No se pudo iniciar el tracking. Revisa los permisos de ubicación.');
         return false;
       }
       _estado = TrackingEstado.activo;
       // Refresca el contador de puntos cada 3 segundos en la UI
-      _refreshTimer = Timer.periodic(const Duration(seconds: 3), (_) => notifyListeners());
+      _refreshTimer =
+          Timer.periodic(const Duration(seconds: 3), (_) => notifyListeners());
 
       // Arrancar Foreground Service (Android) para mantener GPS en background
       if (!kIsWeb && Platform.isAndroid) {
@@ -140,7 +152,8 @@ class TrackingViewModel extends ChangeNotifier {
     );
     _estado = TrackingEstado.pausado;
     if (!kIsWeb && Platform.isAndroid) {
-      await TrackingForegroundService().updateText('GPS pausado — búsqueda en espera');
+      await TrackingForegroundService()
+          .updateText('GPS pausado — búsqueda en espera');
     }
     notifyListeners();
   }
@@ -150,7 +163,8 @@ class TrackingViewModel extends ChangeNotifier {
     _trackingService.reanudarTracking();
     _estado = TrackingEstado.activo;
     if (!kIsWeb && Platform.isAndroid) {
-      await TrackingForegroundService().updateText('GPS activo — grabando recorrido');
+      await TrackingForegroundService()
+          .updateText('GPS activo — grabando recorrido');
     }
     notifyListeners();
   }

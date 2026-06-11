@@ -122,8 +122,8 @@ class _GeofencingBloqueadoSheetState extends State<GeofencingBloqueadoSheet> {
                   color: Colors.red.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.location_off,
-                    color: Colors.red, size: 26),
+                child:
+                    const Icon(Icons.location_off, color: Colors.red, size: 26),
               ),
               const SizedBox(width: 14),
               const Expanded(
@@ -167,8 +167,7 @@ class _GeofencingBloqueadoSheetState extends State<GeofencingBloqueadoSheet> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.near_me,
-                      size: 16, color: Color(0xFFE65100)),
+                  const Icon(Icons.near_me, size: 16, color: Color(0xFFE65100)),
                   const SizedBox(width: 6),
                   Text(
                     distancia < 1000
@@ -262,8 +261,7 @@ class _GeofencingBloqueadoSheetState extends State<GeofencingBloqueadoSheet> {
                         _LegendItem(
                             color: AppTheme.primary, label: 'Zona objetivo'),
                         if (pos != null)
-                          _LegendItem(
-                              color: Colors.blue, label: 'Tu posición'),
+                          _LegendItem(color: Colors.blue, label: 'Tu posición'),
                       ],
                     ),
                   ),
@@ -324,8 +322,7 @@ class _GeofencingBloqueadoSheetState extends State<GeofencingBloqueadoSheet> {
                     borderRadius: BorderRadius.circular(14)),
               ),
               child: const Text('Entendido',
-                  style:
-                      TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
             ),
           ),
         ],

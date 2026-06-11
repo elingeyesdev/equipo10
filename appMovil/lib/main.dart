@@ -5,9 +5,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+
 import 'services/api_service.dart';
 import 'services/notification_service.dart';
 import 'services/connectivity_service.dart';
+import 'services/firebase_service.dart';
+import 'services/api_service.dart';
+import 'services/notification_service.dart';
+import 'services/connectivity_service.dart';
+import 'services/firebase_service.dart';
 import 'theme/app_theme.dart';
 import 'viewmodels/auth_viewmodel.dart';
 import 'viewmodels/feed_viewmodel.dart';
@@ -26,6 +34,12 @@ import 'views/auth/login_view.dart';
 import 'views/auth/onboarding_view.dart';
 import 'views/home/home_view.dart';
 
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  debugPrint("Handling a background message: ${message.messageId}");
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -33,6 +47,15 @@ Future<void> main() async {
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
+  }
+
+  // Inicializar Firebase
+  try {
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    await FCMService().init();
+  } catch (e) {
+    debugPrint('Error inicializando Firebase: $e');
   }
 
   try {
@@ -63,7 +86,8 @@ Future<void> main() async {
 class EchoesApp extends StatelessWidget {
   final bool hasToken;
   final bool onboardingDone;
-  const EchoesApp({super.key, required this.hasToken, required this.onboardingDone});
+  const EchoesApp(
+      {super.key, required this.hasToken, required this.onboardingDone});
 
   @override
   Widget build(BuildContext context) {

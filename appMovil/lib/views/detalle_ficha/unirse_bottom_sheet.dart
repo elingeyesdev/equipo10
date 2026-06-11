@@ -52,7 +52,12 @@ class _UnirseBottomSheetState extends State<UnirseBottomSheet> {
   bool _aceptoResponsabilidad = false;
   bool _isLoading = false;
 
-  static const _opcionesDisponibilidad = ['1 hora', '2 horas', '4 horas', 'Todo el día'];
+  static const _opcionesDisponibilidad = [
+    '1 hora',
+    '2 horas',
+    '4 horas',
+    'Todo el día'
+  ];
 
   @override
   void initState() {
@@ -110,7 +115,8 @@ class _UnirseBottomSheetState extends State<UnirseBottomSheet> {
             usuarioId: widget.usuarioId,
           ),
           transitionsBuilder: (_, animation, __, child) => FadeTransition(
-            opacity: CurvedAnimation(parent: animation, curve: Curves.easeInOut),
+            opacity:
+                CurvedAnimation(parent: animation, curve: Curves.easeInOut),
             child: child,
           ),
           transitionDuration: const Duration(milliseconds: 400),
@@ -119,7 +125,8 @@ class _UnirseBottomSheetState extends State<UnirseBottomSheet> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(vm.errorMessage ?? 'Error al unirse. Intenta de nuevo.'),
+          content:
+              Text(vm.errorMessage ?? 'Error al unirse. Intenta de nuevo.'),
           backgroundColor: Colors.red.shade700,
         ),
       );
@@ -172,7 +179,8 @@ class _UnirseBottomSheetState extends State<UnirseBottomSheet> {
                   const SizedBox(height: 4),
                   const Text(
                     'Revisa los detalles y completa tu información antes de confirmar.',
-                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                    style:
+                        TextStyle(fontSize: 13, color: AppTheme.textSecondary),
                   ),
                   const SizedBox(height: 20),
 
@@ -201,7 +209,8 @@ class _UnirseBottomSheetState extends State<UnirseBottomSheet> {
                       ),
                       child: const Text(
                         'No tienes habilidades registradas. Puedes añadirlas en tu perfil → Tu Actividad.',
-                        style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                        style: TextStyle(
+                            color: AppTheme.textSecondary, fontSize: 13),
                       ),
                     )
                   else
@@ -209,7 +218,8 @@ class _UnirseBottomSheetState extends State<UnirseBottomSheet> {
                       spacing: 8,
                       runSpacing: 8,
                       children: habilidadesPerfil.map((hab) {
-                        final selected = _habilidadesSeleccionadas.contains(hab);
+                        final selected =
+                            _habilidadesSeleccionadas.contains(hab);
                         return FilterChip(
                           label: Text(hab),
                           selected: selected,
@@ -225,11 +235,16 @@ class _UnirseBottomSheetState extends State<UnirseBottomSheet> {
                           selectedColor: AppTheme.primary.withOpacity(0.12),
                           checkmarkColor: AppTheme.primary,
                           labelStyle: TextStyle(
-                            color: selected ? AppTheme.primary : AppTheme.textSecondary,
-                            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                            color: selected
+                                ? AppTheme.primary
+                                : AppTheme.textSecondary,
+                            fontWeight:
+                                selected ? FontWeight.bold : FontWeight.normal,
                           ),
                           side: BorderSide(
-                            color: selected ? AppTheme.primary : const Color(0xFFE0E0E0),
+                            color: selected
+                                ? AppTheme.primary
+                                : const Color(0xFFE0E0E0),
                           ),
                         );
                       }).toList(),
@@ -242,22 +257,28 @@ class _UnirseBottomSheetState extends State<UnirseBottomSheet> {
                   const _SectionTitle(
                     icon: Icons.directions_car_outlined,
                     label: '¿Tienes vehículo disponible?',
-                    subtitle: 'Ayuda al coordinador a asignarte la zona correcta',
+                    subtitle:
+                        'Ayuda al coordinador a asignarte la zona correcta',
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
                       Switch(
                         value: _tieneVehiculo,
-                        onChanged: (val) => setState(() => _tieneVehiculo = val),
+                        onChanged: (val) =>
+                            setState(() => _tieneVehiculo = val),
                         activeColor: AppTheme.primary,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         _tieneVehiculo ? 'Sí, tengo vehículo' : 'No, iré a pie',
                         style: TextStyle(
-                          color: _tieneVehiculo ? AppTheme.primary : AppTheme.textSecondary,
-                          fontWeight: _tieneVehiculo ? FontWeight.bold : FontWeight.normal,
+                          color: _tieneVehiculo
+                              ? AppTheme.primary
+                              : AppTheme.textSecondary,
+                          fontWeight: _tieneVehiculo
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                       ),
                     ],
@@ -300,11 +321,16 @@ class _UnirseBottomSheetState extends State<UnirseBottomSheet> {
                         selectedColor: AppTheme.primary.withOpacity(0.12),
                         checkmarkColor: AppTheme.primary,
                         labelStyle: TextStyle(
-                          color: selected ? AppTheme.primary : AppTheme.textSecondary,
-                          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                          color: selected
+                              ? AppTheme.primary
+                              : AppTheme.textSecondary,
+                          fontWeight:
+                              selected ? FontWeight.bold : FontWeight.normal,
                         ),
                         side: BorderSide(
-                          color: selected ? AppTheme.primary : const Color(0xFFE0E0E0),
+                          color: selected
+                              ? AppTheme.primary
+                              : const Color(0xFFE0E0E0),
                         ),
                       );
                     }).toList(),
@@ -316,7 +342,8 @@ class _UnirseBottomSheetState extends State<UnirseBottomSheet> {
                   // ── Checkbox de responsabilidad ────────────────────────
                   _ResponsabilidadCheckbox(
                     value: _aceptoResponsabilidad,
-                    onChanged: (val) => setState(() => _aceptoResponsabilidad = val ?? false),
+                    onChanged: (val) =>
+                        setState(() => _aceptoResponsabilidad = val ?? false),
                   ),
                   const SizedBox(height: 24),
 
@@ -399,7 +426,8 @@ class _ResumenOperativo extends StatelessWidget {
                   color: AppTheme.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.radar, color: AppTheme.primary, size: 20),
+                child:
+                    const Icon(Icons.radar, color: AppTheme.primary, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -430,7 +458,8 @@ class _ResumenOperativo extends StatelessWidget {
             children: [
               _InfoChip(
                 icon: Icons.group_outlined,
-                label: '$voluntariosActivos voluntario${voluntariosActivos != 1 ? 's' : ''}',
+                label:
+                    '$voluntariosActivos voluntario${voluntariosActivos != 1 ? 's' : ''}',
               ),
               const SizedBox(width: 8),
               const _InfoChip(

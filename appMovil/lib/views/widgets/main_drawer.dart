@@ -30,7 +30,10 @@ class MainDrawer extends StatelessWidget {
                 SizedBox(height: 12),
                 Text(
                   'Echoes',
-                  style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold),
                 ),
               ],
             ),

@@ -25,9 +25,9 @@ class NotificacionModel {
       mensaje: json['mensaje'] ?? '',
       leida: json['leida'] == 1 || json['leida'] == true,
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
-      datosJson: json['datos_json'] is Map<String, dynamic> 
-                 ? json['datos_json'] 
-                 : null,
+      datosJson: json['datos_json'] is Map<String, dynamic>
+          ? json['datos_json']
+          : null,
     );
   }
 }

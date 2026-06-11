@@ -87,15 +87,19 @@ class FeedViewModel extends ChangeNotifier {
       return distancia <= radioKm;
     }).toList()
       ..sort((a, b) {
-        final da = _distanciaKm(_posicionActual!.latitude, _posicionActual!.longitude, a.latitud!, a.longitud!);
-        final db = _distanciaKm(_posicionActual!.latitude, _posicionActual!.longitude, b.latitud!, b.longitud!);
+        final da = _distanciaKm(_posicionActual!.latitude,
+            _posicionActual!.longitude, a.latitud!, a.longitud!);
+        final db = _distanciaKm(_posicionActual!.latitude,
+            _posicionActual!.longitude, b.latitud!, b.longitud!);
         return da.compareTo(db);
       });
   }
 
   double distanciaKmDesde(ReporteModel r) {
-    if (_posicionActual == null || r.latitud == null || r.longitud == null) return double.infinity;
-    return _distanciaKm(_posicionActual!.latitude, _posicionActual!.longitude, r.latitud!, r.longitud!);
+    if (_posicionActual == null || r.latitud == null || r.longitud == null)
+      return double.infinity;
+    return _distanciaKm(_posicionActual!.latitude, _posicionActual!.longitude,
+        r.latitud!, r.longitud!);
   }
 
   double _distanciaKm(double lat1, double lon1, double lat2, double lon2) {
@@ -103,7 +107,10 @@ class FeedViewModel extends ChangeNotifier {
     final dLat = _deg2rad(lat2 - lat1);
     final dLon = _deg2rad(lon2 - lon1);
     final a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(_deg2rad(lat1)) * cos(_deg2rad(lat2)) * sin(dLon / 2) * sin(dLon / 2);
+        cos(_deg2rad(lat1)) *
+            cos(_deg2rad(lat2)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
     final c = 2 * atan2(sqrt(a), sqrt(1 - a));
     return R * c;
   }
@@ -111,7 +118,8 @@ class FeedViewModel extends ChangeNotifier {
   double _deg2rad(double deg) => deg * (pi / 180);
 
   // ── Estadísticas del feed ──────────────────────────────────────────
-  int get totalActivos => _reportes.where((r) => r.estado.toLowerCase() == 'activo').length;
+  int get totalActivos =>
+      _reportes.where((r) => r.estado.toLowerCase() == 'activo').length;
 
   // ── Carga datos ────────────────────────────────────────────────────
   Future<void> cargarFichas() async {
@@ -123,7 +131,8 @@ class FeedViewModel extends ChangeNotifier {
     if (_filtroDistanciaRadioKm != null) {
       await _obtenerUbicacion();
       if (_posicionActual == null) {
-        _errorMessage = 'No se pudo obtener la ubicación para aplicar el filtro de distancia.';
+        _errorMessage =
+            'No se pudo obtener la ubicación para aplicar el filtro de distancia.';
         _isLoading = false;
         notifyListeners();
         return;
@@ -193,7 +202,8 @@ class FeedViewModel extends ChangeNotifier {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) return;
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) return;
 
       // Obtener posición — en web no se usa LocationSettings sino desiredAccuracy
       _posicionActual = await Geolocator.getCurrentPosition(

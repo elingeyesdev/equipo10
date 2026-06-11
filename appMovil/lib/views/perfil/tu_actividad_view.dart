@@ -56,7 +56,8 @@ class _TuActividadViewState extends State<TuActividadView> {
                     }
                   },
                   decoration: InputDecoration(
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
                 if (opcionSeleccionada == 'Otro') ...[
@@ -66,14 +67,17 @@ class _TuActividadViewState extends State<TuActividadView> {
                     textCapitalization: TextCapitalization.sentences,
                     decoration: InputDecoration(
                       labelText: 'Especifica la habilidad',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                   )
                 ]
               ],
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancelar')),
               const SizedBox(width: 8),
               ElevatedButton(
                 onPressed: () async {
@@ -82,18 +86,23 @@ class _TuActividadViewState extends State<TuActividadView> {
                     nuevaHabilidad = otroCtrl.text.trim();
                     if (nuevaHabilidad.isEmpty) return;
                   }
-                  
+
                   Navigator.pop(ctx);
                   final success = await vm.agregarHabilidad(nuevaHabilidad);
-                  
+
                   if (!mounted) return;
                   if (success) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Habilidad agregada.'), backgroundColor: AppTheme.primary),
+                      const SnackBar(
+                          content: Text('Habilidad agregada.'),
+                          backgroundColor: AppTheme.primary),
                     );
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(vm.errorMessage ?? 'Error al agregar habilidad.'), backgroundColor: Colors.red),
+                      SnackBar(
+                          content: Text(
+                              vm.errorMessage ?? 'Error al agregar habilidad.'),
+                          backgroundColor: Colors.red),
                     );
                   }
                 },
@@ -166,11 +175,9 @@ class _TuActividadViewState extends State<TuActividadView> {
                 ),
               ],
             ),
-
             const SizedBox(height: 32),
             const Divider(),
             const SizedBox(height: 16),
-
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -191,7 +198,6 @@ class _TuActividadViewState extends State<TuActividadView> {
               style: TextStyle(color: Color(0xFF5F6368)),
             ),
             const SizedBox(height: 16),
-            
             if (perfil.habilidades.isEmpty)
               Container(
                 padding: const EdgeInsets.all(16),
@@ -215,7 +221,8 @@ class _TuActividadViewState extends State<TuActividadView> {
                   return Chip(
                     label: Text(hab),
                     backgroundColor: AppTheme.primary.withValues(alpha: 0.08),
-                    labelStyle: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
+                    labelStyle: const TextStyle(
+                        color: AppTheme.primary, fontWeight: FontWeight.bold),
                     deleteIconColor: AppTheme.primary,
                     onDeleted: () async {
                       final confirm = await showDialog<bool>(
@@ -224,15 +231,18 @@ class _TuActividadViewState extends State<TuActividadView> {
                           title: const Text('Eliminar habilidad'),
                           content: Text('¿Seguro que deseas eliminar "$hab"?'),
                           actions: [
-                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
                             TextButton(
-                              onPressed: () => Navigator.pop(ctx, true), 
-                              child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('Cancelar')),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text('Eliminar',
+                                  style: TextStyle(color: Colors.red)),
                             ),
                           ],
                         ),
                       );
-                      
+
                       if (confirm == true) {
                         await vm.eliminarHabilidad(hab);
                       }

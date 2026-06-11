@@ -63,9 +63,9 @@ class _PistaInfo {
   final int nivelExpansion;
   _PistaInfo({
     this.id,
-    required this.punto, 
-    required this.etiqueta, 
-    required this.fecha, 
+    required this.punto,
+    required this.etiqueta,
+    required this.fecha,
     required this.hora,
     this.descripcion,
     this.cuadranteId,
@@ -121,7 +121,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     _cargarRecorridos();
     _cargarPistas();
     _cargarEvidencias();
-    
+
     // Iniciar Smart Polling cada 15 segundos
     _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       _recargarDatosSilencioso();
@@ -160,7 +160,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
 
     // Radio del bounding box en grados (~2 km latitudinal)
     const delta = 0.018;
-    final center = _lpp ?? LatLng(widget.ficha.latitud ?? 0, widget.ficha.longitud ?? 0);
+    final center =
+        _lpp ?? LatLng(widget.ficha.latitud ?? 0, widget.ficha.longitud ?? 0);
 
     final mapboxToken = dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '';
     final useMapbox = mapboxToken.isNotEmpty && mapboxToken.startsWith('pk.');
@@ -229,7 +230,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               if (geometry['type'] == 'Polygon') {
                 final coords = geometry['coordinates'][0] as List;
                 _cuadrantePoints[c.id] = coords.map((coord) {
-                  return LatLng(double.parse(coord[1].toString()), double.parse(coord[0].toString()));
+                  return LatLng(double.parse(coord[1].toString()),
+                      double.parse(coord[0].toString()));
                 }).toList();
               }
             } catch (_) {
@@ -247,7 +249,10 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   }
 
   void _usarBoundingBoxParaCuadrante(CuadranteModel c) {
-    if (c.latMin != null && c.latMax != null && c.lngMin != null && c.lngMax != null) {
+    if (c.latMin != null &&
+        c.latMax != null &&
+        c.lngMin != null &&
+        c.lngMax != null) {
       _cuadrantePoints[c.id] = [
         LatLng(c.latMin!, c.lngMin!),
         LatLng(c.latMin!, c.lngMax!),
@@ -257,25 +262,29 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
       ];
     }
   }
+
   // ── Algoritmo Ray-Casting para detectar punto en polígono ───────────────
   bool _puntoEnPoligono(LatLng punto, List<LatLng> poligono) {
     if (poligono.isEmpty) return false;
     bool inside = false;
     int n = poligono.length;
     for (int i = 0, j = n - 1; i < n; j = i++) {
-      if (((poligono[i].latitude > punto.latitude) != (poligono[j].latitude > punto.latitude)) &&
-          (punto.longitude < (poligono[j].longitude - poligono[i].longitude) * (punto.latitude - poligono[i].latitude) / (poligono[j].latitude - poligono[i].latitude) + poligono[i].longitude)) {
+      if (((poligono[i].latitude > punto.latitude) !=
+              (poligono[j].latitude > punto.latitude)) &&
+          (punto.longitude <
+              (poligono[j].longitude - poligono[i].longitude) *
+                      (punto.latitude - poligono[i].latitude) /
+                      (poligono[j].latitude - poligono[i].latitude) +
+                  poligono[i].longitude)) {
         inside = !inside;
       }
     }
     return inside;
   }
 
-
-
   void _actualizarCachePoligonos() {
     if (_cuadrantes.isEmpty) return;
-    
+
     setState(() {
       final List<Polygon> finalPolygons = [];
       const double radioGrados = 0.0009; // Mismo tamaño que en la web
@@ -285,20 +294,25 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
         final points = _cuadrantePoints[c.id];
         if (points == null || points.isEmpty) continue;
 
-        bool esOficial = widget.ficha.cuadranteId != null && widget.ficha.cuadranteId == c.id;
-        
+        bool esOficial = widget.ficha.cuadranteId != null &&
+            widget.ficha.cuadranteId == c.id;
+
         // Rejilla base (MÁS FUERTE como pidió el usuario)
         finalPolygons.add(Polygon(
           points: points,
           color: Colors.transparent, // NUNCA rellenar de azul
-          borderColor: Colors.blue.withOpacity(0.5), // Azul más fuerte y visible
-          borderStrokeWidth: esOficial ? 2.5 : 1.5, // El oficial tiene un borde ligeramente más firme
+          borderColor:
+              Colors.blue.withOpacity(0.5), // Azul más fuerte y visible
+          borderStrokeWidth: esOficial
+              ? 2.5
+              : 1.5, // El oficial tiene un borde ligeramente más firme
         ));
       }
 
       // 2. Dibujar mini-cuadrantes verdes dinámicos con expansión CONTROLADA por la BD
-      const double radioBase = 0.0007; // Reducido un poco para que no sea tan gigante
-      
+      const double radioBase =
+          0.0007; // Reducido un poco para que no sea tan gigante
+
       // 2.1 Dibujar zona del LPP — nivel calculado dinámicamente igual que en la web
       if (_lpp != null) {
         final int nivelLPP = _calcularNivelDinamico(
@@ -327,18 +341,20 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
 
         finalPolygons.add(Polygon(
           points: [
-            LatLng(p.punto.latitude - radioPista, p.punto.longitude - radioPista),
-            LatLng(p.punto.latitude - radioPista, p.punto.longitude + radioPista),
-            LatLng(p.punto.latitude + radioPista, p.punto.longitude + radioPista),
-            LatLng(p.punto.latitude + radioPista, p.punto.longitude - radioPista),
+            LatLng(
+                p.punto.latitude - radioPista, p.punto.longitude - radioPista),
+            LatLng(
+                p.punto.latitude - radioPista, p.punto.longitude + radioPista),
+            LatLng(
+                p.punto.latitude + radioPista, p.punto.longitude + radioPista),
+            LatLng(
+                p.punto.latitude + radioPista, p.punto.longitude - radioPista),
           ],
           color: const Color(0xFF10B981).withOpacity(0.25),
           borderColor: const Color(0xFF059669),
           borderStrokeWidth: 2.5,
         ));
       }
-
-
 
       _cachedPolygons = finalPolygons;
     });
@@ -351,10 +367,16 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
         if (_puntoEnPoligono(LatLng(lat, lng), _cuadrantePoints[c.id]!)) {
           return c;
         }
-      } 
+      }
       // Prioridad 2: Bounding box (Rejilla base)
-      else if (c.latMin != null && c.latMax != null && c.lngMin != null && c.lngMax != null) {
-        if (lat >= c.latMin! && lat <= c.latMax! && lng >= c.lngMin! && lng <= c.lngMax!) {
+      else if (c.latMin != null &&
+          c.latMax != null &&
+          c.lngMin != null &&
+          c.lngMax != null) {
+        if (lat >= c.latMin! &&
+            lat <= c.latMax! &&
+            lng >= c.lngMin! &&
+            lng <= c.lngMax!) {
           return c;
         }
       }
@@ -365,7 +387,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   Future<void> _detectarCuadranteTemporal(double lat, double lng) async {
     // Primero intentamos detección local (Instantánea y sin internet)
     final localMatch = _encontrarCuadranteLocal(lat, lng);
-    
+
     if (localMatch != null) {
       setState(() {
         _cuadranteTemporal = localMatch;
@@ -395,12 +417,12 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             final idx = e.key;
             final item = e.value as Map<String, dynamic>;
             final puntos = (item['puntos'] as List?)
-                    ?.map((p) => LatLng(
-                        (p['lat'] as num).toDouble(),
+                    ?.map((p) => LatLng((p['lat'] as num).toDouble(),
                         (p['lng'] as num).toDouble()))
                     .toList() ??
                 [];
-            final nombre = item['usuario']?['nombre']?.toString() ?? 'Voluntario';
+            final nombre =
+                item['usuario']?['nombre']?.toString() ?? 'Voluntario';
             final terminado = item['estado_busqueda'] == 'terminado';
             return _VoluntarioRecorrido(
               nombre: nombre,
@@ -424,21 +446,24 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
         final pistasLocales = await _localDb.getPistas(widget.ficha.id);
         if (pistasLocales.isNotEmpty && mounted) {
           setState(() {
-            _pistas = pistasLocales.map((p) {
-              return _PistaInfo(
-                id: p['id']?.toString(),
-                punto: LatLng(
-                  (p['lat'] as num).toDouble(),
-                  (p['lng'] as num).toDouble(),
-                ),
-                etiqueta: p['etiqueta']?.toString() ?? 'Pista',
-                fecha: p['fecha']?.toString() ?? '',
-                hora: p['hora']?.toString() ?? '',
-                descripcion: p['descripcion']?.toString(),
-                cuadranteId: p['cuadrante_id']?.toString(),
-                nivelExpansion: widget.ficha.nivelExpansion,
-              );
-            }).where((p) => p.punto.latitude != 0).toList();
+            _pistas = pistasLocales
+                .map((p) {
+                  return _PistaInfo(
+                    id: p['id']?.toString(),
+                    punto: LatLng(
+                      (p['lat'] as num).toDouble(),
+                      (p['lng'] as num).toDouble(),
+                    ),
+                    etiqueta: p['etiqueta']?.toString() ?? 'Pista',
+                    fecha: p['fecha']?.toString() ?? '',
+                    hora: p['hora']?.toString() ?? '',
+                    descripcion: p['descripcion']?.toString(),
+                    cuadranteId: p['cuadrante_id']?.toString(),
+                    nivelExpansion: widget.ficha.nivelExpansion,
+                  );
+                })
+                .where((p) => p.punto.latitude != 0)
+                .toList();
             _actualizarCachePoligonos();
           });
         }
@@ -450,14 +475,17 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
 
     // Con red: cargar del API y persistir
     try {
-      final response = await _api.client.get('/reportes/${widget.ficha.id}/pistas');
+      final response =
+          await _api.client.get('/reportes/${widget.ficha.id}/pistas');
       if (response.statusCode == 200 && response.data['success'] == true) {
         final List<dynamic> raw = response.data['data'] ?? [];
 
         // E9.3 — Persistir en SQLite para uso offline
         final pistasMaps = raw.map((p) {
-          final lat = double.tryParse(p['ubicacion_lat']?.toString() ?? '0') ?? 0.0;
-          final lng = double.tryParse(p['ubicacion_lng']?.toString() ?? '0') ?? 0.0;
+          final lat =
+              double.tryParse(p['ubicacion_lat']?.toString() ?? '0') ?? 0.0;
+          final lng =
+              double.tryParse(p['ubicacion_lng']?.toString() ?? '0') ?? 0.0;
           final fullDate = p['created_at']?.toString() ?? '';
           return {
             'id': p['id']?.toString(),
@@ -477,27 +505,33 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
 
         if (mounted) {
           setState(() {
-            _pistas = pistasMaps.map((p) {
-              final String fullDate = (p['fecha']?.toString() ?? '') + ' ' + (p['hora']?.toString() ?? '') + ':00';
-              final int nivelDin = _calcularNivelDinamico(
-                fullDate.trim().length > 5 ? fullDate : null, 
-                widget.ficha.estado, 
-                null // Not saving resolution date in offline for now, or assume it continues
-              );
-              return _PistaInfo(
-                id: p['id']?.toString(),
-                punto: LatLng(
-                  (p['lat'] as num).toDouble(),
-                  (p['lng'] as num).toDouble(),
-                ),
-                etiqueta: p['etiqueta']?.toString() ?? 'Pista',
-                fecha: p['fecha']?.toString() ?? '',
-                hora: p['hora']?.toString() ?? '',
-                descripcion: p['descripcion']?.toString(),
-                cuadranteId: p['cuadrante_id']?.toString(),
-                nivelExpansion: nivelDin,
-              );
-            }).where((p) => p.punto.latitude != 0).toList();
+            _pistas = pistasMaps
+                .map((p) {
+                  final String fullDate = (p['fecha']?.toString() ?? '') +
+                      ' ' +
+                      (p['hora']?.toString() ?? '') +
+                      ':00';
+                  final int nivelDin = _calcularNivelDinamico(
+                      fullDate.trim().length > 5 ? fullDate : null,
+                      widget.ficha.estado,
+                      null // Not saving resolution date in offline for now, or assume it continues
+                      );
+                  return _PistaInfo(
+                    id: p['id']?.toString(),
+                    punto: LatLng(
+                      (p['lat'] as num).toDouble(),
+                      (p['lng'] as num).toDouble(),
+                    ),
+                    etiqueta: p['etiqueta']?.toString() ?? 'Pista',
+                    fecha: p['fecha']?.toString() ?? '',
+                    hora: p['hora']?.toString() ?? '',
+                    descripcion: p['descripcion']?.toString(),
+                    cuadranteId: p['cuadrante_id']?.toString(),
+                    nivelExpansion: nivelDin,
+                  );
+                })
+                .where((p) => p.punto.latitude != 0)
+                .toList();
             _actualizarCachePoligonos();
           });
         }
@@ -509,27 +543,32 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
         final pistasLocales = await _localDb.getPistas(widget.ficha.id);
         if (pistasLocales.isNotEmpty && mounted) {
           setState(() {
-            _pistas = pistasLocales.map((p) {
-              final String fullDate = (p['fecha']?.toString() ?? '') + ' ' + (p['hora']?.toString() ?? '') + ':00';
-              final int nivelDin = _calcularNivelDinamico(
-                fullDate.trim().length > 5 ? fullDate : null, 
-                widget.ficha.estado, 
-                null
-              );
-              return _PistaInfo(
-                id: p['id']?.toString(),
-                punto: LatLng(
-                  (p['lat'] as num).toDouble(),
-                  (p['lng'] as num).toDouble(),
-                ),
-                etiqueta: p['etiqueta']?.toString() ?? 'Pista',
-                fecha: p['fecha']?.toString() ?? '',
-                hora: p['hora']?.toString() ?? '',
-                descripcion: p['descripcion']?.toString(),
-                cuadranteId: p['cuadrante_id']?.toString(),
-                nivelExpansion: nivelDin,
-              );
-            }).where((p) => p.punto.latitude != 0).toList();
+            _pistas = pistasLocales
+                .map((p) {
+                  final String fullDate = (p['fecha']?.toString() ?? '') +
+                      ' ' +
+                      (p['hora']?.toString() ?? '') +
+                      ':00';
+                  final int nivelDin = _calcularNivelDinamico(
+                      fullDate.trim().length > 5 ? fullDate : null,
+                      widget.ficha.estado,
+                      null);
+                  return _PistaInfo(
+                    id: p['id']?.toString(),
+                    punto: LatLng(
+                      (p['lat'] as num).toDouble(),
+                      (p['lng'] as num).toDouble(),
+                    ),
+                    etiqueta: p['etiqueta']?.toString() ?? 'Pista',
+                    fecha: p['fecha']?.toString() ?? '',
+                    hora: p['hora']?.toString() ?? '',
+                    descripcion: p['descripcion']?.toString(),
+                    cuadranteId: p['cuadrante_id']?.toString(),
+                    nivelExpansion: nivelDin,
+                  );
+                })
+                .where((p) => p.punto.latitude != 0)
+                .toList();
           });
         }
       } catch (_) {}
@@ -546,14 +585,18 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     }
   }
 
-  int _calcularNivelDinamico(String? fechaStr, String estado, String? fechaFinStr) {
+  int _calcularNivelDinamico(
+      String? fechaStr, String estado, String? fechaFinStr) {
     if (fechaStr == null || fechaStr.isEmpty) return 1;
     final fecha = DateTime.tryParse(fechaStr.replaceAll(' ', 'T'));
     if (fecha == null) return 1;
 
     DateTime fin = DateTime.now();
-    if ((estado == 'resuelto' || estado == 'encontrado' || estado == 'terminado') &&
-        fechaFinStr != null && fechaFinStr.isNotEmpty) {
+    if ((estado == 'resuelto' ||
+            estado == 'encontrado' ||
+            estado == 'terminado') &&
+        fechaFinStr != null &&
+        fechaFinStr.isNotEmpty) {
       fin = DateTime.tryParse(fechaFinStr) ?? DateTime.now();
     }
 
@@ -579,7 +622,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
         _editandoPista = true;
         _modoPista = true;
         _pinTemporal = pista.punto;
-        _etiquetaSeleccionada = pista.etiqueta; // Mantiene 'Visto por última vez'
+        _etiquetaSeleccionada =
+            pista.etiqueta; // Mantiene 'Visto por última vez'
         _pistaTooltip = null;
       });
       _detectarCuadranteTemporal(pista.punto.latitude, pista.punto.longitude);
@@ -603,9 +647,12 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('¿Eliminar pista?'),
-        content: const Text('Esta acción quitará el punto de información del mapa definitivamente.'),
+        content: const Text(
+            'Esta acción quitará el punto de información del mapa definitivamente.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar')),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
@@ -651,12 +698,15 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             children: [
               Icon(Icons.warning_amber_rounded, color: Colors.white),
               SizedBox(width: 10),
-              Expanded(child: Text('Ubicación fuera de límites. Debes colocar el punto dentro de la zona de cuadrantes.')),
+              Expanded(
+                  child: Text(
+                      'Ubicación fuera de límites. Debes colocar el punto dentro de la zona de cuadrantes.')),
             ],
           ),
           backgroundColor: Colors.red.shade800,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ));
       }
       return;
@@ -695,7 +745,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             ));
           }
         } else {
-          throw Exception(response.data['message'] ?? 'Error al mover el punto original');
+          throw Exception(
+              response.data['message'] ?? 'Error al mover el punto original');
         }
         return;
       }
@@ -712,10 +763,13 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
       };
 
       final response = _editandoPista
-        ? await _api.client.put('/reportes/pistas/${_pistaEnEdicion!.id}', data: data)
-        : await _api.client.post('/reportes/${widget.ficha.id}/pistas', data: data);
+          ? await _api.client
+              .put('/reportes/pistas/${_pistaEnEdicion!.id}', data: data)
+          : await _api.client
+              .post('/reportes/${widget.ficha.id}/pistas', data: data);
 
-      if ((response.statusCode == 200 || response.statusCode == 201) && response.data['success'] == true) {
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          response.data['success'] == true) {
         setState(() {
           _pinTemporal = null;
           _cuadranteTemporal = null;
@@ -724,23 +778,29 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
           _pistaEnEdicion = null;
           _descripcionPistaCtrl.clear();
         });
-        
+
         await _cargarPistas();
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Row(children: [
               const Icon(Icons.check_circle, color: Colors.white),
               const SizedBox(width: 10),
-              Expanded(child: Text(_editandoPista ? 'Cambios guardados' : 'Nueva pista guardada')),
+              Expanded(
+                  child: Text(_editandoPista
+                      ? 'Cambios guardados'
+                      : 'Nueva pista guardada')),
             ]),
             backgroundColor: AppTheme.primary,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ));
         }
       } else {
-        throw Exception(response.data['message'] ?? response.data['error'] ?? 'Error al guardar');
+        throw Exception(response.data['message'] ??
+            response.data['error'] ??
+            'Error al guardar');
       }
     } catch (e) {
       if (mounted) {
@@ -766,7 +826,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        icon: const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 48),
+        icon: const Icon(Icons.warning_amber_rounded,
+            color: Colors.orange, size: 48),
         title: const Text(
           '¿Mover punto original?',
           textAlign: TextAlign.center,
@@ -779,7 +840,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               'Estás a punto de cambiar la ubicación del punto original de la búsqueda '
               '(Último Punto Visto). Este es el punto más importante del operativo.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.black87, height: 1.4),
+              style:
+                  TextStyle(fontSize: 13, color: Colors.black87, height: 1.4),
             ),
             const SizedBox(height: 12),
             Container(
@@ -791,13 +853,15 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline, color: Colors.orange, size: 18),
+                  const Icon(Icons.info_outline,
+                      color: Colors.orange, size: 18),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Nueva ubicación: ${_pinTemporal!.latitude.toStringAsFixed(5)}, '
                       '${_pinTemporal!.longitude.toStringAsFixed(5)}',
-                      style: const TextStyle(fontSize: 11, color: Colors.black54),
+                      style:
+                          const TextStyle(fontSize: 11, color: Colors.black54),
                     ),
                   ),
                 ],
@@ -821,7 +885,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
             ),
           ),
         ],
@@ -831,11 +896,16 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
 
   Color _getColorParaEtiqueta(String etiqueta) {
     switch (etiqueta) {
-      case 'Visto por última vez': return Colors.purple;
-      case 'Nueva pista': return Colors.grey;
-      case 'Última señal': return Colors.white;
-      case 'Zona de interés': return Colors.yellow;
-      default: return const Color(0xFFF59E0B);
+      case 'Visto por última vez':
+        return Colors.purple;
+      case 'Nueva pista':
+        return Colors.grey;
+      case 'Última señal':
+        return Colors.white;
+      case 'Zona de interés':
+        return Colors.yellow;
+      default:
+        return const Color(0xFFF59E0B);
     }
   }
 
@@ -860,7 +930,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                 children: [
                   Center(
                     child: Container(
-                      width: 40, height: 4,
+                      width: 40,
+                      height: 4,
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
                         color: Colors.grey[300],
@@ -874,13 +945,15 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                         child: widget.ficha.fotoUrl != null
                             ? CachedNetworkImage(
                                 imageUrl: widget.ficha.fotoUrl!,
-                                width: 44, height: 44,
+                                width: 44,
+                                height: 44,
                                 fit: BoxFit.cover,
                                 memCacheWidth: 88,
                                 memCacheHeight: 88,
                                 fadeInDuration: Duration.zero,
                                 fadeOutDuration: Duration.zero,
-                                errorWidget: (_, __, ___) => _avatarPlaceholder(),
+                                errorWidget: (_, __, ___) =>
+                                    _avatarPlaceholder(),
                                 placeholder: (_, __) => _avatarPlaceholder(),
                               )
                             : _avatarPlaceholder(),
@@ -893,7 +966,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                             Text(widget.ficha.titulo,
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold, fontSize: 14),
-                                maxLines: 1, overflow: TextOverflow.ellipsis),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
                             Text(
                               _cuadranteTemporal != null
                                   ? 'Cuadrante: ${_cuadranteTemporal!.codigo}'
@@ -907,14 +981,18 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Text(_editandoPista ? 'Editar información' : 'Tipo de pista o información',
+                  Text(
+                      _editandoPista
+                          ? 'Editar información'
+                          : 'Tipo de pista o información',
                       style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                           color: AppTheme.primary)),
                   const SizedBox(height: 10),
                   Wrap(
-                    spacing: 8, runSpacing: 8,
+                    spacing: 8,
+                    runSpacing: 8,
                     children: _etiquetasPista.map((e) {
                       final label = e['label']!;
                       final selected = etiquetaLocal == label;
@@ -926,8 +1004,10 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                                     ? FontWeight.bold
                                     : FontWeight.normal)),
                         selected: selected,
-                        onSelected: (_) => setModalState(() => etiquetaLocal = label),
-                        selectedColor: AppTheme.primaryLight.withValues(alpha: 0.2),
+                        onSelected: (_) =>
+                            setModalState(() => etiquetaLocal = label),
+                        selectedColor:
+                            AppTheme.primaryLight.withValues(alpha: 0.2),
                         checkmarkColor: AppTheme.primary,
                         backgroundColor: Colors.grey[100],
                         side: BorderSide(
@@ -942,13 +1022,22 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                     controller: _descripcionPistaCtrl,
                     decoration: InputDecoration(
                       labelText: 'Descripción o detalles (opcional)',
-                      labelStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                      labelStyle:
+                          const TextStyle(fontSize: 13, color: Colors.grey),
                       filled: true,
                       fillColor: Colors.grey[50],
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey[300]!)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey[300]!)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.primary)),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey[300]!)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey[300]!)),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              const BorderSide(color: AppTheme.primary)),
                     ),
                     style: const TextStyle(fontSize: 13),
                     maxLines: 2,
@@ -975,7 +1064,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
-                            setState(() => _etiquetaSeleccionada = etiquetaLocal);
+                            setState(
+                                () => _etiquetaSeleccionada = etiquetaLocal);
                             Navigator.pop(ctx);
                             _guardarPista();
                           },
@@ -987,7 +1077,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                           ),
                           child: _guardandoPista
                               ? const SizedBox(
-                                  width: 20, height: 20,
+                                  width: 20,
+                                  height: 20,
                                   child: CircularProgressIndicator(
                                       strokeWidth: 2, color: Colors.white))
                               : const Text('Guardar'),
@@ -1005,7 +1096,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   }
 
   Widget _avatarPlaceholder() => Container(
-        width: 44, height: 44,
+        width: 44,
+        height: 44,
         color: Colors.grey[200],
         child: const Icon(Icons.person, color: Colors.grey),
       );
@@ -1031,7 +1123,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             children: [
               Center(
                 child: Container(
-                  width: 40, height: 4,
+                  width: 40,
+                  height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
                     color: Colors.grey[300],
@@ -1045,7 +1138,10 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                   SizedBox(width: 10),
                   Text(
                     'Voluntarios Activos',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primary),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: AppTheme.primary),
                   ),
                 ],
               ),
@@ -1067,12 +1163,18 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                           shape: BoxShape.circle,
                         ),
                       ),
-                      title: Text(r.nombre, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      title: Text(r.nombre,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 14)),
                       trailing: r.terminado
-                          ? const Icon(Icons.check_circle, color: AppTheme.success, size: 20)
-                          : const Icon(Icons.radio_button_checked, color: Colors.orange, size: 20),
+                          ? const Icon(Icons.check_circle,
+                              color: AppTheme.success, size: 20)
+                          : const Icon(Icons.radio_button_checked,
+                              color: Colors.orange, size: 20),
                       subtitle: Text(
-                        r.terminado ? 'Búsqueda finalizada' : 'Buscando en vivo',
+                        r.terminado
+                            ? 'Búsqueda finalizada'
+                            : 'Buscando en vivo',
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     );
@@ -1105,7 +1207,10 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               const Expanded(
                 child: Text(
                   'Evidencia Fotográfica',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -1142,12 +1247,15 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                           height: 200,
                           width: 300,
                           color: Colors.grey[200],
-                          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                          child: const Center(
+                              child: CircularProgressIndicator(strokeWidth: 2)),
                         ),
                         errorWidget: (_, __, ___) => Container(
                           height: 120,
                           color: Colors.grey[200],
-                          child: const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+                          child: const Center(
+                              child: Icon(Icons.broken_image,
+                                  size: 50, color: Colors.grey)),
                         ),
                       ),
                     ),
@@ -1158,12 +1266,14 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               if (evidencia.nombreUsuario != null)
                 Row(
                   children: [
-                    const Icon(Icons.person, size: 16, color: Color(0xFFFF6F00)),
+                    const Icon(Icons.person,
+                        size: 16, color: Color(0xFFFF6F00)),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         evidencia.nombreUsuario!,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                     ),
                   ],
@@ -1198,7 +1308,10 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                   const SizedBox(width: 4),
                   Text(
                     '${evidencia.lat!.toStringAsFixed(5)}, ${evidencia.lng!.toStringAsFixed(5)}',
-                    style: TextStyle(fontSize: 10, color: Colors.grey[500], fontFamily: 'monospace'),
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey[500],
+                        fontFamily: 'monospace'),
                   ),
                 ],
               ),
@@ -1220,7 +1333,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     if (_lpp == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Mapa Operativo')),
-        body: const Center(child: Text('La ficha no tiene un punto LPP establecido.')),
+        body: const Center(
+            child: Text('La ficha no tiene un punto LPP establecido.')),
       );
     }
 
@@ -1256,7 +1370,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               if (!mounted) return;
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (!mounted) return;
-                setState(() => _pistaTooltip = _pistaTooltip == lppInfo ? null : lppInfo);
+                setState(() =>
+                    _pistaTooltip = _pistaTooltip == lppInfo ? null : lppInfo);
               });
             });
           },
@@ -1275,7 +1390,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     for (var pista in _pistas) {
       todosLosMarkers.add(
         Marker(
-          key: ValueKey('pista_${pista.punto.latitude}_${pista.punto.longitude}'),
+          key: ValueKey(
+              'pista_${pista.punto.latitude}_${pista.punto.longitude}'),
           point: pista.punto,
           width: 32,
           height: 32,
@@ -1287,7 +1403,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                 if (!mounted) return;
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (!mounted) return;
-                  setState(() => _pistaTooltip = _pistaTooltip == pista ? null : pista);
+                  setState(() =>
+                      _pistaTooltip = _pistaTooltip == pista ? null : pista);
                 });
               });
             },
@@ -1299,10 +1416,14 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                 color: const Color(0xFFF59E0B), // amarillo/ámbar
                 border: Border.all(color: Colors.white, width: 2.5),
                 boxShadow: const [
-                  BoxShadow(color: Colors.black38, blurRadius: 5, offset: Offset(0, 2)),
+                  BoxShadow(
+                      color: Colors.black38,
+                      blurRadius: 5,
+                      offset: Offset(0, 2)),
                 ],
               ),
-              child: const Icon(Icons.location_on, color: Colors.white, size: 12),
+              child:
+                  const Icon(Icons.location_on, color: Colors.white, size: 12),
             ),
           ),
         ),
@@ -1340,12 +1461,16 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(4),
                     boxShadow: const [
-                      BoxShadow(color: Colors.black26, blurRadius: 3, offset: Offset(0, 1))
+                      BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 3,
+                          offset: Offset(0, 1))
                     ],
                   ),
                   child: Text(
@@ -1373,7 +1498,9 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     }
 
     // 5. Evidencias fotográficas — punto morado con ícono de cámara
-    todosLosMarkers.addAll(_evidencias.where((e) => e.lat != null && e.lng != null).map((evidencia) {
+    todosLosMarkers.addAll(_evidencias
+        .where((e) => e.lat != null && e.lng != null)
+        .map((evidencia) {
       return Marker(
         key: ValueKey('evidencia_${evidencia.id}'),
         point: LatLng(evidencia.lat!, evidencia.lng!),
@@ -1393,7 +1520,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
           },
           child: EvidenciaMarker(
             fotoUrl: evidencia.fotoUrl,
-            nombreVoluntario: null, // Sin etiqueta en mapa — ver detalle al tocar
+            nombreVoluntario:
+                null, // Sin etiqueta en mapa — ver detalle al tocar
           ),
         ),
       );
@@ -1419,7 +1547,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                     ? Badge(
                         label: Text('${_evidencias.length}'),
                         backgroundColor: const Color(0xFFFF6F00),
-                        child: const Icon(Icons.photo_library_outlined, size: 24),
+                        child:
+                            const Icon(Icons.photo_library_outlined, size: 24),
                       )
                     : const Icon(Icons.photo_library_outlined, size: 24),
                 tooltip: 'Galería de evidencias',
@@ -1430,16 +1559,18 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             TextButton.icon(
               onPressed: () => setState(() {
                 _modoPista = !_modoPista;
-                if (!_modoPista) { 
-                  _pinTemporal = null; 
-                  _cuadranteTemporal = null; 
-                  _actualizarCachePoligonos(); 
+                if (!_modoPista) {
+                  _pinTemporal = null;
+                  _cuadranteTemporal = null;
+                  _actualizarCachePoligonos();
                 }
               }),
-              icon: Icon(_modoPista ? Icons.close : Icons.add_location_alt, 
-                        color: _modoPista ? Colors.red : Colors.white),
-              label: Text(_modoPista ? 'Cerrar' : 'Añadir', 
-                         style: TextStyle(color: _modoPista ? Colors.red : Colors.white, fontWeight: FontWeight.bold)),
+              icon: Icon(_modoPista ? Icons.close : Icons.add_location_alt,
+                  color: _modoPista ? Colors.red : Colors.white),
+              label: Text(_modoPista ? 'Cerrar' : 'Añadir',
+                  style: TextStyle(
+                      color: _modoPista ? Colors.red : Colors.white,
+                      fontWeight: FontWeight.bold)),
             ),
         ],
       ),
@@ -1455,7 +1586,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                       color: AppTheme.primary.withOpacity(0.08),
                       child: Row(
                         children: [
-                          const Icon(Icons.photo_library, color: AppTheme.primary),
+                          const Icon(Icons.photo_library,
+                              color: AppTheme.primary),
                           const SizedBox(width: 10),
                           const Expanded(
                             child: Column(
@@ -1463,11 +1595,15 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                               children: [
                                 Text(
                                   'Galería de Evidencias',
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.primary),
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: AppTheme.primary),
                                 ),
                                 Text(
                                   'Orden cronológico (más reciente primero)',
-                                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                                  style: TextStyle(
+                                      fontSize: 11, color: Colors.grey),
                                 ),
                               ],
                             ),
@@ -1485,23 +1621,33 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                           ? const Center(
                               child: Text(
                                 'Aún no hay evidencias aprobadas.',
-                                style: TextStyle(color: Colors.grey, fontSize: 13),
+                                style:
+                                    TextStyle(color: Colors.grey, fontSize: 13),
                               ),
                             )
                           : ListView.separated(
                               padding: const EdgeInsets.all(12),
                               itemCount: _evidencias.length,
-                              separatorBuilder: (_, __) => const SizedBox(height: 10),
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 10),
                               itemBuilder: (ctx, i) {
                                 final listaOrdenada = _evidencias.toList()
-                                  ..sort((a, b) => (b.creadoEn ?? DateTime.now()).compareTo(a.creadoEn ?? DateTime.now()));
+                                  ..sort((a, b) => (b.creadoEn ??
+                                          DateTime.now())
+                                      .compareTo(a.creadoEn ?? DateTime.now()));
                                 final evidencia = listaOrdenada[i];
                                 return InkWell(
                                   onTap: () {
                                     Navigator.pop(context);
-                                    if (evidencia.lat != null && evidencia.lng != null) {
-                                      _mapController.move(LatLng(evidencia.lat!, evidencia.lng!), 16.5);
-                                      Future.delayed(const Duration(milliseconds: 250), () {
+                                    if (evidencia.lat != null &&
+                                        evidencia.lng != null) {
+                                      _mapController.move(
+                                          LatLng(
+                                              evidencia.lat!, evidencia.lng!),
+                                          16.5);
+                                      Future.delayed(
+                                          const Duration(milliseconds: 250),
+                                          () {
                                         if (!mounted) return;
                                         _mostrarDetallesEvidencia(evidencia);
                                       });
@@ -1509,14 +1655,18 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                                   },
                                   child: Card(
                                     elevation: 2,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
                                     child: Padding(
                                       padding: const EdgeInsets.all(8.0),
                                       child: Row(
                                         children: [
-                                          if (evidencia.fotoUrl != null && evidencia.fotoUrl!.isNotEmpty)
+                                          if (evidencia.fotoUrl != null &&
+                                              evidencia.fotoUrl!.isNotEmpty)
                                             ClipRRect(
-                                              borderRadius: BorderRadius.circular(8),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                               child: CachedNetworkImage(
                                                 imageUrl: evidencia.fotoUrl!,
                                                 width: 60,
@@ -1524,12 +1674,21 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                                                 fit: BoxFit.cover,
                                                 fadeInDuration: Duration.zero,
                                                 fadeOutDuration: Duration.zero,
-                                                placeholder: (_, __) => Container(width: 60, height: 60, color: Colors.grey[100]),
-                                                errorWidget: (_, __, ___) => Container(
+                                                placeholder: (_, __) =>
+                                                    Container(
+                                                        width: 60,
+                                                        height: 60,
+                                                        color:
+                                                            Colors.grey[100]),
+                                                errorWidget: (_, __, ___) =>
+                                                    Container(
                                                   width: 60,
                                                   height: 60,
                                                   color: Colors.grey[200],
-                                                  child: const Icon(Icons.broken_image, size: 20, color: Colors.grey),
+                                                  child: const Icon(
+                                                      Icons.broken_image,
+                                                      size: 20,
+                                                      color: Colors.grey),
                                                 ),
                                               ),
                                             )
@@ -1538,39 +1697,61 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                                               width: 60,
                                               height: 60,
                                               decoration: BoxDecoration(
-                                                color: Colors.orange.withOpacity(0.1),
-                                                borderRadius: BorderRadius.circular(8),
+                                                color: Colors.orange
+                                                    .withOpacity(0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                               ),
-                                              child: const Icon(Icons.photo_camera, color: Colors.orange, size: 24),
+                                              child: const Icon(
+                                                  Icons.photo_camera,
+                                                  color: Colors.orange,
+                                                  size: 24),
                                             ),
                                           const SizedBox(width: 12),
                                           Expanded(
                                             child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  evidencia.nombreUsuario ?? 'Voluntario',
-                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                                  evidencia.nombreUsuario ??
+                                                      'Voluntario',
+                                                  style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 13),
                                                   maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
                                                 const SizedBox(height: 2),
                                                 Text(
-                                                  evidencia.descripcion.isNotEmpty ? evidencia.descripcion : 'Sin descripción.',
-                                                  style: TextStyle(fontSize: 11, color: Colors.grey[700]),
+                                                  evidencia.descripcion
+                                                          .isNotEmpty
+                                                      ? evidencia.descripcion
+                                                      : 'Sin descripción.',
+                                                  style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: Colors.grey[700]),
                                                   maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
                                                 const SizedBox(height: 4),
                                                 Row(
                                                   children: [
-                                                    const Icon(Icons.access_time, size: 10, color: Colors.grey),
+                                                    const Icon(
+                                                        Icons.access_time,
+                                                        size: 10,
+                                                        color: Colors.grey),
                                                     const SizedBox(width: 3),
                                                     Text(
                                                       evidencia.creadoEn != null
                                                           ? '${evidencia.creadoEn!.day}/${evidencia.creadoEn!.month} a las ${evidencia.creadoEn!.hour.toString().padLeft(2, '0')}:${evidencia.creadoEn!.minute.toString().padLeft(2, '0')}'
                                                           : 'Hace un momento',
-                                                      style: const TextStyle(fontSize: 9, color: Colors.grey),
+                                                      style: const TextStyle(
+                                                          fontSize: 9,
+                                                          color: Colors.grey),
                                                     ),
                                                   ],
                                                 ),
@@ -1605,19 +1786,21 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             ),
             children: [
               MapTileLayer(useSatellite: _useSatellite),
-              if (_cachedPolygons != null) PolygonLayer(polygons: _cachedPolygons!),
+              if (_cachedPolygons != null)
+                PolygonLayer(polygons: _cachedPolygons!),
               if (_recorridos.isNotEmpty)
                 PolylineLayer(
-                  polylines: _recorridos.map((r) => Polyline(
-                    points: r.puntos,
-                    color: r.color.withOpacity(r.terminado ? 0.8 : 0.4),
-                    strokeWidth: r.terminado ? 4 : 3,
-                  )).toList(),
+                  polylines: _recorridos
+                      .map((r) => Polyline(
+                            points: r.puntos,
+                            color: r.color.withOpacity(r.terminado ? 0.8 : 0.4),
+                            strokeWidth: r.terminado ? 4 : 3,
+                          ))
+                      .toList(),
                 ),
               MarkerLayer(markers: todosLosMarkers),
             ],
           ),
-
 
           if (_modoPista && _pinTemporal == null)
             Positioned(
@@ -1625,11 +1808,17 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               left: 12,
               right: 12,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF59E0B),
                   borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 2))],
+                  boxShadow: const [
+                    BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 8,
+                        offset: Offset(0, 2))
+                  ],
                 ),
                 child: const Row(
                   children: [
@@ -1638,7 +1827,10 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                     Expanded(
                       child: Text(
                         'Toca el mapa para agregar una pista',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13),
                       ),
                     ),
                   ],
@@ -1655,7 +1847,9 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                 backgroundColor: Colors.white,
                 foregroundColor: AppTheme.primary,
                 icon: const Icon(Icons.people_alt, size: 20),
-                label: Text('Voluntarios (${_recorridos.length})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                label: Text('Voluntarios (${_recorridos.length})',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 13)),
                 onPressed: _mostrarLeyendaVoluntarios,
               ),
             ),
@@ -1668,19 +1862,25 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               child: SizedBox(
                 height: 36,
                 child: ElevatedButton.icon(
-                  onPressed: () => setState(() => _useSatellite = !_useSatellite),
+                  onPressed: () =>
+                      setState(() => _useSatellite = !_useSatellite),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: AppTheme.primary,
                     elevation: 4,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18)),
                     shadowColor: Colors.black26,
                   ),
-                  icon: Icon(_useSatellite ? Icons.map_outlined : Icons.satellite_alt, size: 16),
+                  icon: Icon(
+                      _useSatellite ? Icons.map_outlined : Icons.satellite_alt,
+                      size: 16),
                   label: Text(
                     _useSatellite ? 'Callejero' : 'Satélite',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -1694,86 +1894,109 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               left: 12,
               right: 80, // No solapar con los FABs de la derecha
               child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.95),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2))
-                    ],
-                  ),
-                  child: _descargaCompletada
-                      ? const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.offline_pin, color: Color(0xFF10B981), size: 16),
-                            SizedBox(width: 6),
-                            Text(
-                              'Área guardada offline',
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF10B981)),
-                            ),
-                          ],
-                        )
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const SizedBox(
-                                  width: 12,
-                                  height: 12,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 1.5,
-                                    valueColor: AlwaysStoppedAnimation(AppTheme.primary),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Guardando mapa offline... $_tilesCompletados/$_tilesTotal',
-                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            if (_tilesTotal > 0)
-                              LinearProgressIndicator(
-                                value: _tilesTotal > 0 ? _tilesCompletados / _tilesTotal : 0,
-                                backgroundColor: Colors.grey[200],
-                                valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
-                                minHeight: 3,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                          ],
-                        ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [
+                    BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 6,
+                        offset: Offset(0, 2))
+                  ],
                 ),
+                child: _descargaCompletada
+                    ? const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.offline_pin,
+                              color: Color(0xFF10B981), size: 16),
+                          SizedBox(width: 6),
+                          Text(
+                            'Área guardada offline',
+                            style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF10B981)),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(
+                                width: 12,
+                                height: 12,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 1.5,
+                                  valueColor:
+                                      AlwaysStoppedAnimation(AppTheme.primary),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Guardando mapa offline... $_tilesCompletados/$_tilesTotal',
+                                style: const TextStyle(
+                                    fontSize: 11, fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          if (_tilesTotal > 0)
+                            LinearProgressIndicator(
+                              value: _tilesTotal > 0
+                                  ? _tilesCompletados / _tilesTotal
+                                  : 0,
+                              backgroundColor: Colors.grey[200],
+                              valueColor: const AlwaysStoppedAnimation(
+                                  AppTheme.primary),
+                              minHeight: 3,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                        ],
+                      ),
+              ),
             ),
 
           // Botón manual de re-descarga (visible cuando no está descargando)
-          if (!_descargandoTiles && !_descargaCompletada && ConnectivityService().isOnline)
+          if (!_descargandoTiles &&
+              !_descargaCompletada &&
+              ConnectivityService().isOnline)
             Positioned(
               bottom: _modoPista ? 76 : 128,
               left: 12,
               child: GestureDetector(
                 onTap: _preDescargarTiles,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.92),
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: const [
-                      BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+                      BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 4,
+                          offset: Offset(0, 2))
                     ],
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.download_for_offline_outlined, size: 16, color: AppTheme.primary),
+                      Icon(Icons.download_for_offline_outlined,
+                          size: 16, color: AppTheme.primary),
                       SizedBox(width: 5),
                       Text(
                         'Guardar offline',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.primary),
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primary),
                       ),
                     ],
                   ),
@@ -1800,17 +2023,23 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               left: 20,
               right: 20,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.92),
                   borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black26)],
+                  boxShadow: const [
+                    BoxShadow(blurRadius: 4, color: Colors.black26)
+                  ],
                 ),
                 child: _cargandoRecorridos
                     ? const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                          SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2)),
                           SizedBox(width: 10),
                           Text('Cargando recorridos...'),
                         ],
@@ -1820,7 +2049,9 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                             ? 'Aún no hay recorridos registrados en este operativo.'
                             : '${_recorridos.length} recorrido(s) de voluntarios registrado(s).',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.primary),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primary),
                       ),
               ),
             ),
@@ -1835,7 +2066,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                 elevation: 8,
                 borderRadius: BorderRadius.circular(18),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(18),
@@ -1877,15 +2109,20 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                           ),
                           GestureDetector(
                             onTap: () => setState(() => _pistaTooltip = null),
-                            child: const Icon(Icons.close, size: 18, color: Color(0xFF94A3B8)),
+                            child: const Icon(Icons.close,
+                                size: 18, color: Color(0xFF94A3B8)),
                           ),
                         ],
                       ),
-                      if (_pistaTooltip!.descripcion != null && _pistaTooltip!.descripcion!.isNotEmpty) ...[
+                      if (_pistaTooltip!.descripcion != null &&
+                          _pistaTooltip!.descripcion!.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Text(
                           _pistaTooltip!.descripcion!,
-                          style: const TextStyle(fontSize: 13, color: Color(0xFF475569), height: 1.4),
+                          style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF475569),
+                              height: 1.4),
                         ),
                       ],
                       const SizedBox(height: 10),
@@ -1894,13 +2131,15 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.schedule, size: 13, color: Color(0xFF94A3B8)),
+                              const Icon(Icons.schedule,
+                                  size: 13, color: Color(0xFF94A3B8)),
                               const SizedBox(width: 4),
                               Text(
                                 _pistaTooltip!.fecha.isNotEmpty
                                     ? '${_pistaTooltip!.fecha}${_pistaTooltip!.hora.isNotEmpty ? " · ${_pistaTooltip!.hora}" : ""}'
                                     : 'Fecha desconocida',
-                                style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                                style: const TextStyle(
+                                    fontSize: 11, color: Color(0xFF94A3B8)),
                               ),
                             ],
                           ),
@@ -1909,23 +2148,30 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 TextButton.icon(
-                                  onPressed: () => _iniciarEdicionPista(_pistaTooltip!),
+                                  onPressed: () =>
+                                      _iniciarEdicionPista(_pistaTooltip!),
                                   icon: const Icon(Icons.open_with, size: 14),
-                                  label: const Text('Mover', style: TextStyle(fontSize: 11)),
+                                  label: const Text('Mover',
+                                      style: TextStyle(fontSize: 11)),
                                   style: TextButton.styleFrom(
                                     foregroundColor: const Color(0xFF2563EB),
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 4),
                                     minimumSize: Size.zero,
                                   ),
                                 ),
                                 if (_pistaTooltip!.id != 'LPP')
                                   TextButton.icon(
-                                    onPressed: () => _confirmarEliminarPista(_pistaTooltip!),
-                                    icon: const Icon(Icons.delete_outline, size: 14),
-                                    label: const Text('Eliminar', style: TextStyle(fontSize: 11)),
+                                    onPressed: () =>
+                                        _confirmarEliminarPista(_pistaTooltip!),
+                                    icon: const Icon(Icons.delete_outline,
+                                        size: 14),
+                                    label: const Text('Eliminar',
+                                        style: TextStyle(fontSize: 11)),
                                     style: TextButton.styleFrom(
                                       foregroundColor: Colors.red.shade400,
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 4),
                                       minimumSize: Size.zero,
                                     ),
                                   ),
@@ -1949,7 +2195,10 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                   color: Colors.white.withOpacity(0.94),
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: const [
-                    BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 2)),
+                    BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 8,
+                        offset: Offset(0, 2)),
                   ],
                 ),
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),
@@ -1960,8 +2209,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                     _buildPanelDot(
                       color: const Color(0xFFD32F2F),
                       icon: Icons.person,
-                      onTap: () => setState(() =>
-                          _pistaTooltip = _pistaTooltip == lppInfo ? null : lppInfo),
+                      onTap: () => setState(() => _pistaTooltip =
+                          _pistaTooltip == lppInfo ? null : lppInfo),
                     ),
                     // Pistas (amarillo)
                     ..._pistas.map((p) => _buildPanelDot(
@@ -1995,13 +2244,19 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               left: 20,
               right: 20,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: (_editandoPista && _pistaEnEdicion?.id == 'LPP')
                       ? Colors.orange.withOpacity(0.95)
                       : AppTheme.primary.withOpacity(0.95),
                   borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [BoxShadow(blurRadius: 8, color: Colors.black38, offset: Offset(0, 4))],
+                  boxShadow: const [
+                    BoxShadow(
+                        blurRadius: 8,
+                        color: Colors.black38,
+                        offset: Offset(0, 4))
+                  ],
                 ),
                 child: Row(
                   children: [
@@ -2016,13 +2271,17 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                                 : _cuadranteTemporal != null
                                     ? 'En cuadrante: ${_cuadranteTemporal!.codigo}'
                                     : 'Ubicación seleccionada',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13),
                           ),
                           Text(
                             (_editandoPista && _pistaEnEdicion?.id == 'LPP')
                                 ? 'Toca en el mapa para elegir la nueva posición'
                                 : 'Puedes seguir moviendo el pin',
-                            style: const TextStyle(color: Colors.white70, fontSize: 11),
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 11),
                           ),
                         ],
                       ),
@@ -2031,21 +2290,26 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                       width: 130,
                       height: 40,
                       child: ElevatedButton(
-                        onPressed: (_editandoPista && _pistaEnEdicion?.id == 'LPP')
-                            ? _mostrarConfirmacionMoverLPP
-                            : _mostrarSelectorEtiqueta,
+                        onPressed:
+                            (_editandoPista && _pistaEnEdicion?.id == 'LPP')
+                                ? _mostrarConfirmacionMoverLPP
+                                : _mostrarSelectorEtiqueta,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: AppTheme.primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 0),
                         ),
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.check, size: 18),
                             SizedBox(width: 6),
-                            Text('Confirmar', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                            Text('Confirmar',
+                                style: TextStyle(
+                                    fontSize: 13, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),

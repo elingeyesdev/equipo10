@@ -56,7 +56,8 @@ class _BienvenidaOperativoViewState extends State<BienvenidaOperativoView>
 
   Future<void> _cargarVoluntarios() async {
     try {
-      final lista = await VinculacionService().obtenerVoluntarios(widget.ficha.id);
+      final lista =
+          await VinculacionService().obtenerVoluntarios(widget.ficha.id);
       if (mounted) setState(() => _voluntarios = lista);
     } catch (_) {
       // No bloqueamos la pantalla si falla la carga de voluntarios
@@ -345,17 +346,20 @@ class _MapaCuadranteState extends State<_MapaCuadrante> {
           await _api.client.get('/reportes/${widget.ficha.id}/pistas');
       if (response.statusCode == 200 && response.data['success'] == true) {
         final List<dynamic> raw = response.data['data'] ?? [];
-        final pistas = raw.map((p) {
-          final lat =
-              double.tryParse(p['ubicacion_lat']?.toString() ?? '0') ?? 0.0;
-          final lng =
-              double.tryParse(p['ubicacion_lng']?.toString() ?? '0') ?? 0.0;
-          return {
-            'lat': lat,
-            'lng': lng,
-            'created_at': p['created_at']?.toString() ?? '',
-          };
-        }).where((p) => (p['lat'] as double) != 0).toList();
+        final pistas = raw
+            .map((p) {
+              final lat =
+                  double.tryParse(p['ubicacion_lat']?.toString() ?? '0') ?? 0.0;
+              final lng =
+                  double.tryParse(p['ubicacion_lng']?.toString() ?? '0') ?? 0.0;
+              return {
+                'lat': lat,
+                'lng': lng,
+                'created_at': p['created_at']?.toString() ?? '',
+              };
+            })
+            .where((p) => (p['lat'] as double) != 0)
+            .toList();
         if (mounted) setState(() => _pistas = pistas);
       }
     } catch (_) {}
@@ -402,8 +406,7 @@ class _MapaCuadranteState extends State<_MapaCuadrante> {
 
     // Zona de expansión del LPP
     if (widget.ficha.latitud != null && widget.ficha.longitud != null) {
-      final nivel =
-          _calcularNivel(widget.ficha.createdAt?.toIso8601String());
+      final nivel = _calcularNivel(widget.ficha.createdAt?.toIso8601String());
       final r = radioBase * nivel;
       final lat = widget.ficha.latitud!;
       final lng = widget.ficha.longitud!;
@@ -460,8 +463,8 @@ class _MapaCuadranteState extends State<_MapaCuadrante> {
                 options: MapOptions(
                   initialCenter: center,
                   initialZoom: 14.5,
-                  interactionOptions: const InteractionOptions(
-                      flags: InteractiveFlag.none),
+                  interactionOptions:
+                      const InteractionOptions(flags: InteractiveFlag.none),
                 ),
                 children: [
                   MapTileLayer(useSatellite: true),
@@ -483,8 +486,7 @@ class _MapaCuadranteState extends State<_MapaCuadrante> {
                               border:
                                   Border.all(color: Colors.white, width: 2.5),
                               boxShadow: const [
-                                BoxShadow(
-                                    color: Colors.black38, blurRadius: 5)
+                                BoxShadow(color: Colors.black38, blurRadius: 5)
                               ],
                             ),
                             child: const Icon(Icons.person,
@@ -493,16 +495,16 @@ class _MapaCuadranteState extends State<_MapaCuadrante> {
                         ),
                       // Pistas — puntos ámbar
                       ..._pistas.map((p) => Marker(
-                            point: LatLng(
-                                p['lat'] as double, p['lng'] as double),
+                            point:
+                                LatLng(p['lat'] as double, p['lng'] as double),
                             width: 22,
                             height: 22,
                             child: Container(
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF59E0B),
                                 shape: BoxShape.circle,
-                                border: Border.all(
-                                    color: Colors.white, width: 2),
+                                border:
+                                    Border.all(color: Colors.white, width: 2),
                                 boxShadow: const [
                                   BoxShadow(
                                       color: Colors.black26, blurRadius: 3)
@@ -637,8 +639,7 @@ class _EquipoActivo extends StatelessWidget {
           child: Text(
             'Eres el primero en unirte. ¡Lidera el equipo!',
             style: TextStyle(
-                color: AppTheme.textSecondary,
-                fontStyle: FontStyle.italic),
+                color: AppTheme.textSecondary, fontStyle: FontStyle.italic),
             textAlign: TextAlign.center,
           ),
         ),
@@ -710,7 +711,8 @@ class _Instrucciones extends StatelessWidget {
       icon: Icons.camera_alt_outlined,
       color: AppTheme.warning,
       titulo: 'Reporta hallazgos',
-      desc: 'Usa el botón de evidencias en el mapa para fotografiar cualquier pista.',
+      desc:
+          'Usa el botón de evidencias en el mapa para fotografiar cualquier pista.',
     ),
   ];
 
@@ -733,8 +735,7 @@ class _Instrucciones extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: paso.color.withOpacity(0.1),
                       shape: BoxShape.circle,
-                      border: Border.all(
-                          color: paso.color.withOpacity(0.4)),
+                      border: Border.all(color: paso.color.withOpacity(0.4)),
                     ),
                     child: Icon(paso.icon, size: 18, color: paso.color),
                   ),

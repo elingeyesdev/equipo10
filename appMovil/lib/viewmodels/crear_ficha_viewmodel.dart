@@ -18,7 +18,8 @@ class CrearFichaViewModel extends ChangeNotifier {
 
   double? _latitudLPP;
   double? _longitudLPP;
-  List<dynamic>? _cuadrantes; // Mantenido temporalmente para compatibilidad LPP, pero ya no se envía
+  List<dynamic>?
+      _cuadrantes; // Mantenido temporalmente para compatibilidad LPP, pero ya no se envía
 
   List<CategoriaModel> categorias = [];
   String? categoriaSeleccionadaId;
@@ -148,8 +149,8 @@ class CrearFichaViewModel extends ChangeNotifier {
         descripcion: descripcion.trim(),
         latitud: _latitudLPP!,
         longitud: _longitudLPP!,
-        cuadranteId: (_cuadrantes != null && _cuadrantes!.isNotEmpty) 
-            ? _cuadrantes!.first.toString() 
+        cuadranteId: (_cuadrantes != null && _cuadrantes!.isNotEmpty)
+            ? _cuadrantes!.first.toString()
             : null,
         fotoUrl: fotoUrl,
         telefonoContacto: telefonoContacto,
@@ -170,7 +171,6 @@ class CrearFichaViewModel extends ChangeNotifier {
       caracteristicas.clear();
       if (categorias.isNotEmpty) categoriaSeleccionadaId = categorias.first.id;
 
-      
       return true;
     } catch (e) {
       _errorMessage = e.toString();

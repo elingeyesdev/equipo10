@@ -58,13 +58,15 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
         title: const Text('Revision de Evidencias'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.download_for_offline_outlined, color: Colors.white),
+            icon: const Icon(Icons.download_for_offline_outlined,
+                color: Colors.white),
             tooltip: 'Descargar Evidencias',
             onPressed: () {
               if (vm.evidencias.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('No hay evidencias disponibles en este operativo para descargar.'),
+                    content: Text(
+                        'No hay evidencias disponibles en este operativo para descargar.'),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -141,7 +143,8 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
     );
   }
 
-  void _mostrarDialogoDescarga(BuildContext context, List<EvidenciaModel> evidencias) {
+  void _mostrarDialogoDescarga(
+      BuildContext context, List<EvidenciaModel> evidencias) {
     String filtro = 'approved';
     String formato = 'dossier';
 
@@ -157,7 +160,8 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
               ),
               title: const Row(
                 children: [
-                  Icon(Icons.download_for_offline, color: AppTheme.primary, size: 28),
+                  Icon(Icons.download_for_offline,
+                      color: AppTheme.primary, size: 28),
                   SizedBox(width: 10),
                   Text(
                     'Descarga de Evidencias',
@@ -176,11 +180,15 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
                   children: [
                     const Text(
                       'Filtro de Evidencias:',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black54),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.black54),
                     ),
                     const SizedBox(height: 8),
                     RadioListTile<String>(
-                      title: const Text('Solo Aprobadas (Recomendado)', style: TextStyle(fontSize: 13)),
+                      title: const Text('Solo Aprobadas (Recomendado)',
+                          style: TextStyle(fontSize: 13)),
                       value: 'approved',
                       groupValue: filtro,
                       activeColor: AppTheme.primary,
@@ -189,7 +197,9 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
                       },
                     ),
                     RadioListTile<String>(
-                      title: const Text('Todas (Aprobadas, Pendientes y Rechazadas)', style: TextStyle(fontSize: 13)),
+                      title: const Text(
+                          'Todas (Aprobadas, Pendientes y Rechazadas)',
+                          style: TextStyle(fontSize: 13)),
                       value: 'all',
                       groupValue: filtro,
                       activeColor: AppTheme.primary,
@@ -200,11 +210,15 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
                     const Divider(),
                     const Text(
                       'Formato de Descarga:',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black54),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.black54),
                     ),
                     const SizedBox(height: 8),
                     RadioListTile<String>(
-                      title: const Text('Ficha de Evidencias (HTML imprimible)', style: TextStyle(fontSize: 13)),
+                      title: const Text('Ficha de Evidencias (HTML imprimible)',
+                          style: TextStyle(fontSize: 13)),
                       value: 'dossier',
                       groupValue: formato,
                       activeColor: AppTheme.primary,
@@ -213,7 +227,8 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
                       },
                     ),
                     RadioListTile<String>(
-                      title: const Text('Fotos individuales (.jpg)', style: TextStyle(fontSize: 13)),
+                      title: const Text('Fotos individuales (.jpg)',
+                          style: TextStyle(fontSize: 13)),
                       value: 'photos',
                       groupValue: formato,
                       activeColor: AppTheme.primary,
@@ -222,7 +237,8 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
                       },
                     ),
                     RadioListTile<String>(
-                      title: const Text('Ficha + Fotos individuales', style: TextStyle(fontSize: 13)),
+                      title: const Text('Ficha + Fotos individuales',
+                          style: TextStyle(fontSize: 13)),
                       value: 'both',
                       groupValue: formato,
                       activeColor: AppTheme.primary,
@@ -236,7 +252,8 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+                  child: const Text('Cancelar',
+                      style: TextStyle(color: Colors.grey)),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -249,7 +266,8 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
                     Navigator.pop(ctx);
                     _procesarDescarga(context, evidencias, filtro, formato);
                   },
-                  child: const Text('Descargar', style: TextStyle(color: Colors.white)),
+                  child: const Text('Descargar',
+                      style: TextStyle(color: Colors.white)),
                 ),
               ],
             );
@@ -272,7 +290,8 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
     if (filtradas.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No hay evidencias disponibles para descargar con el filtro seleccionado.'),
+          content: Text(
+              'No hay evidencias disponibles para descargar con el filtro seleccionado.'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -347,14 +366,18 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
     }
   }
 
-  void _mostrarDialogoExito(BuildContext context, int exitosas, int fallidas, String formato) {
+  void _mostrarDialogoExito(
+      BuildContext context, int exitosas, int fallidas, String formato) {
     String mensaje = '';
     if (formato == 'dossier') {
-      mensaje = 'La ficha de evidencias HTML del operativo ha sido generada y descargada correctamente.';
+      mensaje =
+          'La ficha de evidencias HTML del operativo ha sido generada y descargada correctamente.';
     } else if (formato == 'photos') {
-      mensaje = 'Se completó la descarga de imágenes individuales.\n\n• Descargas exitosas: $exitosas\n• Errores: $fallidas';
+      mensaje =
+          'Se completó la descarga de imágenes individuales.\n\n• Descargas exitosas: $exitosas\n• Errores: $fallidas';
     } else {
-      mensaje = 'Se descargaron exitosamente tanto la ficha de evidencias HTML como las fotos individuales.\n\n• Descargas exitosas: $exitosas\n• Errores: $fallidas';
+      mensaje =
+          'Se descargaron exitosamente tanto la ficha de evidencias HTML como las fotos individuales.\n\n• Descargas exitosas: $exitosas\n• Errores: $fallidas';
     }
 
     showDialog(
@@ -388,7 +411,8 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
                 ),
               ),
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Entendido', style: TextStyle(color: Colors.white)),
+              child: const Text('Entendido',
+                  style: TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -408,7 +432,7 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
       final String coords = e.lat != null && e.lng != null
           ? '${e.lat!.toStringAsFixed(6)}, ${e.lng!.toStringAsFixed(6)}'
           : 'Sin coordenadas';
-      
+
       String badgeClass = 'badge-pending';
       String estadoText = 'Pendiente';
       if (e.estado == 'approved') {
@@ -675,7 +699,8 @@ class _EvidenciaCardState extends State<_EvidenciaCard> {
             padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 14),
             decoration: BoxDecoration(
               color: badgeColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(14)),
             ),
             child: Row(
               children: [
@@ -755,7 +780,8 @@ class _EvidenciaCardState extends State<_EvidenciaCard> {
                 ),
                 const SizedBox(height: 10),
                 // GPS
-                if (widget.evidencia.lat != null && widget.evidencia.lng != null)
+                if (widget.evidencia.lat != null &&
+                    widget.evidencia.lng != null)
                   Row(
                     children: [
                       const Icon(Icons.location_on,
@@ -786,7 +812,8 @@ class _EvidenciaCardState extends State<_EvidenciaCard> {
                     else
                       CircleAvatar(
                         radius: 14,
-                        backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                        backgroundColor:
+                            AppTheme.primary.withValues(alpha: 0.1),
                         child: const Icon(Icons.person,
                             size: 16, color: AppTheme.primary),
                       ),

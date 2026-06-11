@@ -28,7 +28,8 @@ class MapboxStaticService {
       }
       final polylineStr = encodePolyline(puntosPoligono);
       // path-strokeWidth+strokeColor-strokeOpacity+fillColor-fillOpacity
-      overlays.add('path-2+2196F3-0.8+2196F3-0.15(${Uri.encodeComponent(polylineStr)})');
+      overlays.add(
+          'path-2+2196F3-0.8+2196F3-0.15(${Uri.encodeComponent(polylineStr)})');
     }
 
     // 2. Agregar Polylines de voluntarios (amarillo/naranja)

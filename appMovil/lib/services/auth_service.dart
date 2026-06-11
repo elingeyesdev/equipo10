@@ -43,13 +43,16 @@ class AuthService {
         final errors = data?['errors'];
         if (errors is Map && errors.isNotEmpty) {
           final firstField = errors.values.first;
-          final firstMsg = firstField is List ? firstField.first : firstField.toString();
+          final firstMsg =
+              firstField is List ? firstField.first : firstField.toString();
           throw Exception(firstMsg.toString());
         }
-        throw Exception('Datos inválidos. Verifica que tu correo no esté ya registrado.');
+        throw Exception(
+            'Datos inválidos. Verifica que tu correo no esté ya registrado.');
       }
 
-      throw Exception(data?['message'] ?? 'Error de conexión. Intenta nuevamente.');
+      throw Exception(
+          data?['message'] ?? 'Error de conexión. Intenta nuevamente.');
     }
   }
 
@@ -76,13 +79,16 @@ class AuthService {
       final data = e.response?.data;
 
       if (statusCode == 401) {
-        throw Exception('Correo o contraseña incorrectos. Verifica tus datos e intenta de nuevo.');
+        throw Exception(
+            'Correo o contraseña incorrectos. Verifica tus datos e intenta de nuevo.');
       }
       if (statusCode == 403) {
-        throw Exception('Tu cuenta está desactivada. Contacta al administrador.');
+        throw Exception(
+            'Tu cuenta está desactivada. Contacta al administrador.');
       }
 
-      throw Exception(data?['message'] ?? 'Error de conexión. Intenta nuevamente.');
+      throw Exception(
+          data?['message'] ?? 'Error de conexión. Intenta nuevamente.');
     }
   }
 
@@ -93,12 +99,14 @@ class AuthService {
   }
 
   /// Cambia la contraseña del usuario.
-  Future<bool> cambiarContrasena(String contrasenaActual, String nuevaContrasena) async {
+  Future<bool> cambiarContrasena(
+      String contrasenaActual, String nuevaContrasena) async {
     final id = currentUserId;
     if (id == null) throw Exception('No hay sesión activa.');
 
     try {
-      final response = await _api.client.put('/auth/perfil/$id/password', data: {
+      final response =
+          await _api.client.put('/auth/perfil/$id/password', data: {
         'contrasena_actual': contrasenaActual,
         'nueva_contrasena': nuevaContrasena,
       });
@@ -107,7 +115,8 @@ class AuthService {
       if (e.response?.statusCode == 401) {
         throw Exception('La contraseña actual es incorrecta.');
       }
-      throw Exception(e.response?.data?['message'] ?? 'Error de conexión. Intenta nuevamente.');
+      throw Exception(e.response?.data?['message'] ??
+          'Error de conexión. Intenta nuevamente.');
     }
   }
 
@@ -118,7 +127,7 @@ class AuthService {
 
     try {
       final response = await _api.client.get('/auth/perfil/$id');
-      
+
       if (response.statusCode == 200 && response.data['success'] == true) {
         final userData = response.data['data'];
         return PerfilModel.fromMap(userData);
@@ -161,13 +170,15 @@ class AuthService {
       }
       return null;
     } on DioException catch (e) {
-      debugPrint('[ERROR] Error subiendo avatar: ${e.response?.statusCode} - ${e.message}');
+      debugPrint(
+          '[ERROR] Error subiendo avatar: ${e.response?.statusCode} - ${e.message}');
       return null;
     } catch (e) {
       debugPrint('[ERROR] Error inesperado: $e');
       return null;
     }
   }
+
   /// Elimina la cuenta del usuario en el backend y cierra la sesión local.
   Future<void> eliminarCuenta() async {
     final id = currentUserId;
@@ -181,7 +192,8 @@ class AuthService {
         throw Exception(response.data['message'] ?? 'Error al eliminar cuenta');
       }
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ?? 'Error de conexión. Intenta nuevamente.');
+      throw Exception(e.response?.data?['message'] ??
+          'Error de conexión. Intenta nuevamente.');
     }
   }
 }

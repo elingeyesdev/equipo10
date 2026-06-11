@@ -154,11 +154,14 @@ class TileCacheService {
             return;
           }
           try {
-            final url = _buildUrl(urlTemplate, t.z, t.x, t.y, additionalOptions);
-            final resp =
-                await client.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+            final url =
+                _buildUrl(urlTemplate, t.z, t.x, t.y, additionalOptions);
+            final resp = await client
+                .get(Uri.parse(url))
+                .timeout(const Duration(seconds: 10));
             if (resp.statusCode == 200) {
-              await saveTile(t.z, t.x, t.y, resp.bodyBytes, storeName: storeName);
+              await saveTile(t.z, t.x, t.y, resp.bodyBytes,
+                  storeName: storeName);
               completados++;
             }
           } catch (_) {}
@@ -169,7 +172,8 @@ class TileCacheService {
       client.close();
     }
 
-    debugPrint('[TileCache] Pre-descarga finalizada: $completados/$total tiles OK');
+    debugPrint(
+        '[TileCache] Pre-descarga finalizada: $completados/$total tiles OK');
     return completados;
   }
 
@@ -189,18 +193,17 @@ class TileCacheService {
     final n = 1 << z;
     final latRad = lat * math.pi / 180.0;
     final x = ((lng + 180.0) / 360.0 * n).floor().clamp(0, n - 1);
-    final y = ((1.0 -
-                    math.log(math.tan(latRad) + 1.0 / math.cos(latRad)) /
-                        math.pi) /
+    final y =
+        ((1.0 - math.log(math.tan(latRad) + 1.0 / math.cos(latRad)) / math.pi) /
                 2.0 *
                 n)
-        .floor()
-        .clamp(0, n - 1);
+            .floor()
+            .clamp(0, n - 1);
     return _TileCoord(z, x, y);
   }
 
-  String _buildUrl(String template, int z, int x, int y,
-      Map<String, String> options) {
+  String _buildUrl(
+      String template, int z, int x, int y, Map<String, String> options) {
     String url = template
         .replaceAll('{z}', '$z')
         .replaceAll('{x}', '$x')
@@ -245,12 +248,12 @@ class CachingTileProvider extends TileProvider {
         coordinates.y,
         options.urlTemplate ?? '',
       ),
-      cacheKey: '${storeName}_${coordinates.z}_${coordinates.x}_${coordinates.y}',
+      cacheKey:
+          '${storeName}_${coordinates.z}_${coordinates.x}_${coordinates.y}',
     );
   }
 
-  Future<Uint8List> _fetchBytes(
-      int z, int x, int y, String urlTemplate) async {
+  Future<Uint8List> _fetchBytes(int z, int x, int y, String urlTemplate) async {
     // 1. Caché
     final cached = await _cache.getTile(z, x, y, storeName: storeName);
     if (cached != null) return cached;

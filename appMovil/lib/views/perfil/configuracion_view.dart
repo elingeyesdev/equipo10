@@ -91,7 +91,8 @@ class _ConfiguracionViewState extends State<ConfiguracionView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Configuración', style: TextStyle(color: AppTheme.textPrimary)),
+        title: const Text('Configuración',
+            style: TextStyle(color: AppTheme.textPrimary)),
         backgroundColor: Colors.white,
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
@@ -141,7 +142,8 @@ class _ConfiguracionViewState extends State<ConfiguracionView> {
                   const SizedBox(height: 12),
                   const Text(
                     'La aplicación requiere permisos "Todo el tiempo" para poder trazar tu recorrido de búsqueda correctamente aunque apagues la pantalla.',
-                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                    style:
+                        TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
@@ -190,7 +192,8 @@ class _ConfiguracionViewState extends State<ConfiguracionView> {
                   activeColor: AppTheme.primary,
                   title: const Text('Alertas sonoras',
                       style: TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: const Text('Sonido al recibir notificaciones en la app',
+                  subtitle: const Text(
+                      'Sonido al recibir notificaciones en la app',
                       style: TextStyle(fontSize: 12)),
                   value: _alertasSonoras,
                   onChanged: _guardarAlertas,
@@ -209,14 +212,16 @@ class _ConfiguracionViewState extends State<ConfiguracionView> {
               side: BorderSide(color: Colors.grey.shade200),
             ),
             child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               leading: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: AppTheme.accent.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.cleaning_services, color: AppTheme.accentDark),
+                child: const Icon(Icons.cleaning_services,
+                    color: AppTheme.accentDark),
               ),
               title: const Text('Limpiar caché',
                   style: TextStyle(fontWeight: FontWeight.w600)),

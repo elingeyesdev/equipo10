@@ -6,6 +6,7 @@ import '../../services/encuesta_service.dart';
 class EncuestaDialog extends StatefulWidget {
   final ReporteModel reporte;
   final String usuarioId;
+
   /// true = coordinador que cerró la búsqueda; false = voluntario participante.
   final bool isCoordinador;
 
@@ -52,7 +53,8 @@ class _EncuestaDialogState extends State<EncuestaDialog> {
   Future<void> _enviar() async {
     if (_puntuacion == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecciona al menos una estrella antes de enviar.')),
+        const SnackBar(
+            content: Text('Selecciona al menos una estrella antes de enviar.')),
       );
       return;
     }
@@ -108,7 +110,8 @@ class _EncuestaDialogState extends State<EncuestaDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(descripcion, style: const TextStyle(fontSize: 13, height: 1.4)),
+            Text(descripcion,
+                style: const TextStyle(fontSize: 13, height: 1.4)),
             const SizedBox(height: 20),
             const Text(
               '¿Qué tan satisfecho/a estás con el operativo?',
@@ -124,7 +127,8 @@ class _EncuestaDialogState extends State<EncuestaDialog> {
                   return IconButton(
                     onPressed: () => setState(() => _puntuacion = index + 1),
                     padding: const EdgeInsets.symmetric(horizontal: 4),
-                    constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                    constraints:
+                        const BoxConstraints(minWidth: 40, minHeight: 40),
                     icon: Icon(
                       index < _puntuacion
                           ? Icons.star_rounded
@@ -140,7 +144,14 @@ class _EncuestaDialogState extends State<EncuestaDialog> {
               const SizedBox(height: 4),
               Center(
                 child: Text(
-                  ['', 'Muy mal', 'Regular', 'Bien', 'Muy bien', 'Excelente'][_puntuacion],
+                  [
+                    '',
+                    'Muy mal',
+                    'Regular',
+                    'Bien',
+                    'Muy bien',
+                    'Excelente'
+                  ][_puntuacion],
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.amber.shade700,
@@ -162,7 +173,8 @@ class _EncuestaDialogState extends State<EncuestaDialog> {
               decoration: InputDecoration(
                 hintText: '¿Algo que mejorar?',
                 hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 contentPadding: const EdgeInsets.all(12),
               ),
             ),
@@ -179,13 +191,15 @@ class _EncuestaDialogState extends State<EncuestaDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppTheme.primary,
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
           child: _isLoading
               ? const SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                      color: Colors.white, strokeWidth: 2),
                 )
               : const Text('Enviar'),
         ),

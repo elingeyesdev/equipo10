@@ -19,7 +19,8 @@ class EditarFichaViewModel extends ChangeNotifier {
   Uint8List? get imageBytes => _imageBytes;
   String? get fotoUrlExistente => _fotoUrlExistente;
   bool get tieneImagenNueva => _xFile != null;
-  bool get tieneImagen => _xFile != null || (_fotoUrlExistente?.isNotEmpty == true);
+  bool get tieneImagen =>
+      _xFile != null || (_fotoUrlExistente?.isNotEmpty == true);
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 

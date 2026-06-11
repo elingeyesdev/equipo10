@@ -139,7 +139,8 @@ class _RegisterViewState extends State<RegisterView> {
                     prefixIcon: Icon(Icons.email_outlined, size: 20),
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Ingresa tu correo';
+                    if (v == null || v.trim().isEmpty)
+                      return 'Ingresa tu correo';
                     if (!v.contains('@')) return 'Correo inválido';
                     return null;
                   },

@@ -8,7 +8,8 @@ class PuntoRecorrido {
   final double lng;
   final int ts; // timestamp en milisegundos
 
-  const PuntoRecorrido({required this.lat, required this.lng, required this.ts});
+  const PuntoRecorrido(
+      {required this.lat, required this.lng, required this.ts});
 
   Map<String, dynamic> toMap() => {'lat': lat, 'lng': lng, 'ts': ts};
 }
@@ -59,7 +60,8 @@ class TrackingService {
       final permitted = await solicitarPermisos();
       if (!permitted) return null;
       return await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
       );
     } catch (_) {
       return null;
@@ -78,7 +80,8 @@ class TrackingService {
 
     // Notificar al backend
     try {
-      await _api.client.put('/reportes/$reporteId/voluntarios/iniciar/$usuarioId');
+      await _api.client
+          .put('/reportes/$reporteId/voluntarios/iniciar/$usuarioId');
     } catch (_) {
       // Continuar de todas formas — modo offline-first
     }
@@ -89,8 +92,9 @@ class TrackingService {
     _isPaused = false;
 
     // Iniciar stream de posición
-    _positionSub = Geolocator.getPositionStream(locationSettings: _locationSettings)
-        .listen((pos) {
+    _positionSub =
+        Geolocator.getPositionStream(locationSettings: _locationSettings)
+            .listen((pos) {
       if (!_isPaused) {
         final nuevoPunto = PuntoRecorrido(
           lat: pos.latitude,
@@ -118,7 +122,8 @@ class TrackingService {
     if (!_isTracking) return;
     _isPaused = true;
     try {
-      await _api.client.put('/reportes/$reporteId/voluntarios/pausar/$usuarioId');
+      await _api.client
+          .put('/reportes/$reporteId/voluntarios/pausar/$usuarioId');
     } catch (_) {}
   }
 
@@ -136,16 +141,18 @@ class TrackingService {
 
     _isTracking = false;
     _isPaused = false;
-    
+
     _burstTimer?.cancel();
     _burstTimer = null;
-    
+
     await _positionSub?.cancel();
     _positionSub = null;
 
     try {
       // Subir los pendientes en la llamada final a "terminar"
-      final payload = {'puntos': _puntosPendientes.map((p) => p.toMap()).toList()};
+      final payload = {
+        'puntos': _puntosPendientes.map((p) => p.toMap()).toList()
+      };
       await _api.client.put(
         '/reportes/$reporteId/voluntarios/terminar/$usuarioId',
         data: payload,
@@ -164,8 +171,8 @@ class TrackingService {
     if (_isSyncing || _puntosPendientes.isEmpty) return;
 
     _isSyncing = true;
-    
-    // Hacemos una copia de los pendientes para enviarlos, de modo que 
+
+    // Hacemos una copia de los pendientes para enviarlos, de modo que
     // si llegan nuevos puntos durante la petición, no se pierdan al borrar.
     final puntosAEnviar = List<PuntoRecorrido>.from(_puntosPendientes);
 

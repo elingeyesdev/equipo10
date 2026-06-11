@@ -244,8 +244,7 @@ class LocalDatabase {
   Future<List<ReporteModel>> getReportes() async {
     if (kIsWeb) return [];
     final db = await database;
-    final rows =
-        await db.query('reportes', orderBy: 'created_at DESC');
+    final rows = await db.query('reportes', orderBy: 'created_at DESC');
     return rows.map((r) {
       Map<String, dynamic>? chars;
       if (r['caracteristicas_json'] != null) {
@@ -331,12 +330,15 @@ class LocalDatabase {
   Future<ReporteModel?> getReporteById(String id) async {
     if (kIsWeb) return null;
     final db = await database;
-    final rows = await db.query('reportes', where: 'id = ?', whereArgs: [id], limit: 1);
+    final rows =
+        await db.query('reportes', where: 'id = ?', whereArgs: [id], limit: 1);
     if (rows.isEmpty) return null;
     final r = rows.first;
     Map<String, dynamic>? chars;
     if (r['caracteristicas_json'] != null) {
-      try { chars = jsonDecode(r['caracteristicas_json'] as String); } catch (_) {}
+      try {
+        chars = jsonDecode(r['caracteristicas_json'] as String);
+      } catch (_) {}
     }
     return ReporteModel(
       id: r['id'] as String,
@@ -353,9 +355,12 @@ class LocalDatabase {
       nombreCategoria: r['nombre_categoria'] as String?,
       nombreUsuario: r['nombre_usuario'] as String?,
       fechaPerdida: r['fecha_perdida'] as String?,
-      nivelExpansion: r['nivel_expansion'] != null ? (r['nivel_expansion'] as int) : 1,
+      nivelExpansion:
+          r['nivel_expansion'] != null ? (r['nivel_expansion'] as int) : 1,
       caracteristicas: chars,
-      createdAt: r['created_at'] != null ? DateTime.tryParse(r['created_at'] as String) : null,
+      createdAt: r['created_at'] != null
+          ? DateTime.tryParse(r['created_at'] as String)
+          : null,
     );
   }
 
@@ -412,8 +417,8 @@ class LocalDatabase {
         await db.rawQuery('SELECT COUNT(*) FROM cuadrantes'));
     final r = Sqflite.firstIntValue(
         await db.rawQuery('SELECT COUNT(*) FROM reportes'));
-    final pi = Sqflite.firstIntValue(
-        await db.rawQuery('SELECT COUNT(*) FROM pistas'));
+    final pi =
+        Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM pistas'));
     return {'cuadrantes': c ?? 0, 'reportes': r ?? 0, 'pistas': pi ?? 0};
   }
 

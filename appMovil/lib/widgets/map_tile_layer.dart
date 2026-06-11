@@ -20,9 +20,8 @@ class MapTileLayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mapboxToken = dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '';
-    final useMapbox = useSatellite &&
-        mapboxToken.isNotEmpty &&
-        mapboxToken.startsWith('pk.');
+    final useMapbox =
+        useSatellite && mapboxToken.isNotEmpty && mapboxToken.startsWith('pk.');
 
     if (useMapbox) {
       return TileLayer(
@@ -36,21 +35,24 @@ class MapTileLayer extends StatelessWidget {
           additionalOptions: {'accessToken': mapboxToken},
         ),
         errorTileCallback: (tile, error, stackTrace) {
-          debugPrint('[MapTileLayer] Tile ${tile.coordinates} no disponible: $error');
+          debugPrint(
+              '[MapTileLayer] Tile ${tile.coordinates} no disponible: $error');
         },
       );
     }
 
     // OpenStreetMap — también con caché
     return TileLayer(
-      urlTemplate: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+      urlTemplate:
+          'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
       subdomains: const ['a', 'b', 'c', 'd'],
       userAgentPackageName: 'com.elingeyesdev.equipo10.app.v3',
       tileProvider: CachingTileProvider(
         storeName: '${TileCacheService.defaultStore}_carto_v1',
       ),
       errorTileCallback: (tile, error, stackTrace) {
-        debugPrint('[MapTileLayer] Tile OSM ${tile.coordinates} no disponible: $error');
+        debugPrint(
+            '[MapTileLayer] Tile OSM ${tile.coordinates} no disponible: $error');
       },
     );
   }
@@ -80,7 +82,8 @@ class MapLayerToggleButton extends StatelessWidget {
         useSatellite ? 'Callejero' : 'Satélite',
         style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
       ),
-      icon: Icon(useSatellite ? Icons.map_outlined : Icons.satellite_alt, size: 18),
+      icon: Icon(useSatellite ? Icons.map_outlined : Icons.satellite_alt,
+          size: 18),
       onPressed: onToggle,
     );
   }

@@ -19,9 +19,9 @@ class EvidenciaMarker extends StatelessWidget {
   });
 
   // Colores de la paleta de evidencias (Morado)
-  static const Color _colorBorde = Color(0xFF8B5CF6);   // Purple-500
-  static const Color _colorFondo = Color(0xFFF5F3FF);   // Purple-50
-  static const Color _colorBadge = Color(0xFFA78BFA);   // Purple-400
+  static const Color _colorBorde = Color(0xFF8B5CF6); // Purple-500
+  static const Color _colorFondo = Color(0xFFF5F3FF); // Purple-50
+  static const Color _colorBadge = Color(0xFFA78BFA); // Purple-400
 
   @override
   Widget build(BuildContext context) {

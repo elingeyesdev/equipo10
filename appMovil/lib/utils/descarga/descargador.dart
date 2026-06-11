@@ -10,7 +10,8 @@ class Descargador {
     return _impl.descargarArchivo(url, nombreArchivo);
   }
 
-  static Future<void> descargarTexto(String contenido, String nombreArchivo, String mimeType) {
+  static Future<void> descargarTexto(
+      String contenido, String nombreArchivo, String mimeType) {
     return _impl.descargarTexto(contenido, nombreArchivo, mimeType);
   }
 }

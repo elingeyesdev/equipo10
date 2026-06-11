@@ -12,7 +12,8 @@ String _formatRelativo(DateTime? fecha) {
   final diff = DateTime.now().difference(fecha);
   if (diff.inMinutes < 60) return 'hace ${diff.inMinutes} min';
   if (diff.inHours < 24) return 'hace ${diff.inHours} h';
-  if (diff.inDays < 7) return 'hace ${diff.inDays} día${diff.inDays > 1 ? 's' : ''}';
+  if (diff.inDays < 7)
+    return 'hace ${diff.inDays} día${diff.inDays > 1 ? 's' : ''}';
   if (diff.inDays < 30) {
     final semanas = (diff.inDays / 7).floor();
     return 'hace $semanas sem.';
@@ -34,7 +35,7 @@ class _MisBusquedasViewState extends State<MisBusquedasView> {
   String _query = '';
   String? _filtroEstado;
   String? _filtroTipo;
-  
+
   List<dynamic>? _todasMisFichas;
   bool _isLoading = true;
 
@@ -87,27 +88,28 @@ class _MisBusquedasViewState extends State<MisBusquedasView> {
       builder: (ctx) {
         String? tipoTemp = _filtroTipo;
         String? estadoTemp = _filtroEstado;
-        
+
         return StatefulBuilder(
           builder: (context, setState) {
             return Padding(
               padding: EdgeInsets.only(
-                top: 20, 
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20
-              ),
+                  top: 20,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 20),
-                    child: Text('Filtros avanzados', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    child: Text('Filtros avanzados',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(height: 16),
-                  
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 20),
-                    child: Text('Estado del reporte:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text('Estado del reporte:',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -117,18 +119,22 @@ class _MisBusquedasViewState extends State<MisBusquedasView> {
                       hint: const Text('Cualquier estado'),
                       items: const [
                         DropdownMenuItem(value: null, child: Text('Todos')),
-                        DropdownMenuItem(value: 'activo', child: Text('Activo')),
-                        DropdownMenuItem(value: 'pausado', child: Text('Pausado')),
-                        DropdownMenuItem(value: 'resuelto', child: Text('Terminado/Resuelto')),
+                        DropdownMenuItem(
+                            value: 'activo', child: Text('Activo')),
+                        DropdownMenuItem(
+                            value: 'pausado', child: Text('Pausado')),
+                        DropdownMenuItem(
+                            value: 'resuelto',
+                            child: Text('Terminado/Resuelto')),
                       ],
                       onChanged: (val) => setState(() => estadoTemp = val),
                     ),
                   ),
                   const SizedBox(height: 12),
-                  
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 20),
-                    child: Text('Tipo de reporte:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text('Tipo de reporte:',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -138,15 +144,19 @@ class _MisBusquedasViewState extends State<MisBusquedasView> {
                       hint: const Text('Cualquier tipo'),
                       items: const [
                         DropdownMenuItem(value: null, child: Text('Todos')),
-                        DropdownMenuItem(value: 'desaparicion', child: Text('Desaparición de persona')),
-                        DropdownMenuItem(value: 'mascota', child: Text('Mascota extraviada')),
-                        DropdownMenuItem(value: 'objeto', child: Text('Objeto perdido')),
+                        DropdownMenuItem(
+                            value: 'desaparicion',
+                            child: Text('Desaparición de persona')),
+                        DropdownMenuItem(
+                            value: 'mascota',
+                            child: Text('Mascota extraviada')),
+                        DropdownMenuItem(
+                            value: 'objeto', child: Text('Objeto perdido')),
                       ],
                       onChanged: (val) => setState(() => tipoTemp = val),
                     ),
                   ),
                   const SizedBox(height: 24),
-
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Row(
@@ -195,7 +205,7 @@ class _MisBusquedasViewState extends State<MisBusquedasView> {
   @override
   Widget build(BuildContext context) {
     final currentUserId = context.read<AuthViewModel>().currentUserId ?? '';
-    
+
     final listaBase = _todasMisFichas ?? [];
 
     // Filtrado local
@@ -211,25 +221,40 @@ class _MisBusquedasViewState extends State<MisBusquedasView> {
       if (_filtroEstado != null) {
         if (f.estado?.toLowerCase() != _filtroEstado) {
           // Si el filtro es resuelto, también consideramos terminado
-          if (!(_filtroEstado == 'resuelto' && (f.estado?.toLowerCase() == 'terminado' || f.estado?.toLowerCase() == 'resuelto'))) {
+          if (!(_filtroEstado == 'resuelto' &&
+              (f.estado?.toLowerCase() == 'terminado' ||
+                  f.estado?.toLowerCase() == 'resuelto'))) {
             return false;
           }
         }
       }
-      if (_filtroTipo != null && f.nombreCategoria?.toLowerCase() != _filtroTipo) {
+      if (_filtroTipo != null &&
+          f.nombreCategoria?.toLowerCase() != _filtroTipo) {
         final cat = f.nombreCategoria?.toLowerCase() ?? '';
-        if (_filtroTipo == 'desaparicion' && !cat.contains('persona')) return false;
+        if (_filtroTipo == 'desaparicion' && !cat.contains('persona'))
+          return false;
         if (_filtroTipo == 'mascota' && !cat.contains('mascota')) return false;
-        if (_filtroTipo == 'objeto' && !(cat.contains('veh') || cat.contains('document') || cat.contains('electr') || cat.contains('objeto'))) return false;
-        if (!['desaparicion', 'mascota', 'objeto'].contains(_filtroTipo) && cat != _filtroTipo) return false;
+        if (_filtroTipo == 'objeto' &&
+            !(cat.contains('veh') ||
+                cat.contains('document') ||
+                cat.contains('electr') ||
+                cat.contains('objeto'))) return false;
+        if (!['desaparicion', 'mascota', 'objeto'].contains(_filtroTipo) &&
+            cat != _filtroTipo) return false;
       }
       return true;
     }).toList();
 
     // Contadores originales (sin filtrar)
-    final activos = listaBase.where((f) => f.estado?.toLowerCase() == 'activo').length;
-    final pausados = listaBase.where((f) => f.estado?.toLowerCase() == 'pausado').length;
-    final terminados = listaBase.where((f) => f.estado?.toLowerCase() == 'resuelto' || f.estado?.toLowerCase() == 'terminado').length;
+    final activos =
+        listaBase.where((f) => f.estado?.toLowerCase() == 'activo').length;
+    final pausados =
+        listaBase.where((f) => f.estado?.toLowerCase() == 'pausado').length;
+    final terminados = listaBase
+        .where((f) =>
+            f.estado?.toLowerCase() == 'resuelto' ||
+            f.estado?.toLowerCase() == 'terminado')
+        .length;
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -267,7 +292,6 @@ class _MisBusquedasViewState extends State<MisBusquedasView> {
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
                     child: Row(
                       children: [
-
                         Text(
                           '$activos activos • $pausados pausados • $terminados terminados',
                           style: const TextStyle(
@@ -310,9 +334,11 @@ class _MisBusquedasViewState extends State<MisBusquedasView> {
                           ),
                           const SizedBox(height: 32),
                           Text(
-                            (_query.isNotEmpty || _filtroEstado != null || _filtroTipo != null) 
-                              ? 'No hay resultados' 
-                              : 'Tu radar está vacío',
+                            (_query.isNotEmpty ||
+                                    _filtroEstado != null ||
+                                    _filtroTipo != null)
+                                ? 'No hay resultados'
+                                : 'Tu radar está vacío',
                             style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
@@ -321,9 +347,11 @@ class _MisBusquedasViewState extends State<MisBusquedasView> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            (_query.isNotEmpty || _filtroEstado != null || _filtroTipo != null)
-                              ? 'No se encontraron reportes con los filtros aplicados.'
-                              : 'Crea tu primer reporte para mantener un registro de tus búsquedas y colaborar con la comunidad.',
+                            (_query.isNotEmpty ||
+                                    _filtroEstado != null ||
+                                    _filtroTipo != null)
+                                ? 'No se encontraron reportes con los filtros aplicados.'
+                                : 'Crea tu primer reporte para mantener un registro de tus búsquedas y colaborar con la comunidad.',
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 15,
@@ -336,7 +364,8 @@ class _MisBusquedasViewState extends State<MisBusquedasView> {
                             onPressed: () async {
                               final feedVm = context.read<FeedViewModel>();
                               final result = await Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const CrearFichaView()),
+                                MaterialPageRoute(
+                                    builder: (_) => const CrearFichaView()),
                               );
                               if (result == true) {
                                 feedVm.cargarFichas();
@@ -351,7 +380,8 @@ class _MisBusquedasViewState extends State<MisBusquedasView> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.primary,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
@@ -376,10 +406,12 @@ class _MisBusquedasViewState extends State<MisBusquedasView> {
                               child: InkWell(
                                 onTap: () async {
                                   final feedVm = context.read<FeedViewModel>();
-                                  final result = await Navigator.of(context).push<bool>(
+                                  final result =
+                                      await Navigator.of(context).push<bool>(
                                     MaterialPageRoute(
                                       builder: (_) => DetalleFichaView(
-                                          fichaId: ficha.id, currentUserId: currentUserId),
+                                          fichaId: ficha.id,
+                                          currentUserId: currentUserId),
                                     ),
                                   );
                                   if (result == true) {
@@ -423,8 +455,7 @@ class _SearchBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => 52;
 
   @override
-  bool shouldRebuild(_SearchBarDelegate old) =>
-      old.query != query;
+  bool shouldRebuild(_SearchBarDelegate old) => old.query != query;
 
   @override
   Widget build(
@@ -456,13 +487,11 @@ class _SearchBarDelegate extends SliverPersistentHeaderDelegate {
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(100),
-                  borderSide:
-                      const BorderSide(color: AppTheme.border),
+                  borderSide: const BorderSide(color: AppTheme.border),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(100),
-                  borderSide:
-                      const BorderSide(color: AppTheme.border),
+                  borderSide: const BorderSide(color: AppTheme.border),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(100),
@@ -535,31 +564,40 @@ class _MiBusquedaTile extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   ficha.descripcion ?? '',
-                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                  style: const TextStyle(
+                      fontSize: 12, color: AppTheme.textSecondary),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6),
-                if (ficha.nombreCategoria != null || ficha.createdAt != null) ...[
+                if (ficha.nombreCategoria != null ||
+                    ficha.createdAt != null) ...[
                   Row(
                     children: [
                       if (ficha.nombreCategoria != null) ...[
-                        const Icon(Icons.category_outlined, size: 12, color: AppTheme.textSecondary),
+                        const Icon(Icons.category_outlined,
+                            size: 12, color: AppTheme.textSecondary),
                         const SizedBox(width: 4),
-                        Text(ficha.nombreCategoria!, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                        Text(ficha.nombreCategoria!,
+                            style: const TextStyle(
+                                fontSize: 11, color: AppTheme.textSecondary)),
                         const SizedBox(width: 12),
                       ],
                       if (ficha.createdAt != null) ...[
-                        const Icon(Icons.access_time, size: 12, color: AppTheme.textSecondary),
+                        const Icon(Icons.access_time,
+                            size: 12, color: AppTheme.textSecondary),
                         const SizedBox(width: 4),
-                        Text(_formatRelativo(ficha.createdAt), style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                        Text(_formatRelativo(ficha.createdAt),
+                            style: const TextStyle(
+                                fontSize: 11, color: AppTheme.textSecondary)),
                       ],
                     ],
                   ),
                   const SizedBox(height: 6),
                 ],
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -569,8 +607,10 @@ class _MiBusquedaTile extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        width: 6, height: 6,
-                        decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                            color: statusColor, shape: BoxShape.circle),
                       ),
                       const SizedBox(width: 4),
                       Text(

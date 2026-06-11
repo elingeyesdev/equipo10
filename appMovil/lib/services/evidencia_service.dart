@@ -33,14 +33,16 @@ class EvidenciaService {
   bool _isSyncing = false;
 
   // Stream para notificar a los ViewModels cuando la cola cambia
-  final _colaController = StreamController<List<EvidenciaOfflineModel>>.broadcast();
+  final _colaController =
+      StreamController<List<EvidenciaOfflineModel>>.broadcast();
   Stream<List<EvidenciaOfflineModel>> get colaStream => _colaController.stream;
-  List<EvidenciaOfflineModel> get colaOffline => List.unmodifiable(_colaOffline);
+  List<EvidenciaOfflineModel> get colaOffline =>
+      List.unmodifiable(_colaOffline);
 
   Future<void> _initOfflineQueue() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonList = prefs.getStringList(_prefsKey) ?? [];
-    
+
     _colaOffline.clear();
     for (final jsonStr in jsonList) {
       try {
@@ -49,14 +51,14 @@ class EvidenciaService {
         // Ignorar items corruptos
       }
     }
-    
+
     _colaController.add(_colaOffline);
 
     // Iniciar timer de sincronización (cada 30 segundos)
     _syncTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       sincronizarColaOffline();
     });
-    
+
     // Intentar subir inmediatamente si hay algo
     sincronizarColaOffline();
   }
@@ -82,7 +84,7 @@ class EvidenciaService {
     final dir = await getApplicationDocumentsDirectory();
     final fileName = '${_uuid.v4()}.jpg';
     final savedImage = File('${dir.path}/$fileName');
-    
+
     final bytes = await xFile.readAsBytes();
     await savedImage.writeAsBytes(bytes);
 
@@ -122,10 +124,10 @@ class EvidenciaService {
         }
 
         final xFile = XFile(file.path);
-        
+
         // Intentamos subir
         final fotoUrl = await subirFoto(xFile);
-        
+
         // Intentamos crear la evidencia
         await crearEvidencia(
           reporteId: offline.reporteId,
@@ -139,7 +141,7 @@ class EvidenciaService {
         // Si tuvo éxito, lo quitamos de la cola y borramos el archivo local
         _colaOffline.removeWhere((e) => e.id == offline.id);
         await _guardarCola();
-        
+
         try {
           await file.delete();
         } catch (_) {}
@@ -193,7 +195,8 @@ class EvidenciaService {
         return null;
       }
       return await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
       );
     } catch (_) {
       return null;
@@ -252,7 +255,8 @@ class EvidenciaService {
       if (response.statusCode == 201 && response.data['success'] == true) {
         return EvidenciaModel.fromMap(response.data['data']);
       }
-      throw Exception(response.data['message'] ?? 'Error al guardar la evidencia.');
+      throw Exception(
+          response.data['message'] ?? 'Error al guardar la evidencia.');
     } on DioException catch (e) {
       final body = e.response?.data;
       final errors = body?['errors'];
@@ -285,19 +289,20 @@ class EvidenciaService {
 
   // Aprobar una evidencia por su ID de respuesta
   Future<void> aprobarEvidencia(String respuestaId) async {
-    final response = await _api.client
-        .post('/evidencias/$respuestaId/aprobar');
+    final response = await _api.client.post('/evidencias/$respuestaId/aprobar');
     if (response.statusCode != 200 || response.data['success'] != true) {
-      throw Exception(response.data['message'] ?? 'Error al aprobar evidencia.');
+      throw Exception(
+          response.data['message'] ?? 'Error al aprobar evidencia.');
     }
   }
 
   // Rechazar una evidencia por su ID de respuesta
   Future<void> rechazarEvidencia(String respuestaId) async {
-    final response = await _api.client
-        .post('/evidencias/$respuestaId/rechazar');
+    final response =
+        await _api.client.post('/evidencias/$respuestaId/rechazar');
     if (response.statusCode != 200 || response.data['success'] != true) {
-      throw Exception(response.data['message'] ?? 'Error al rechazar evidencia.');
+      throw Exception(
+          response.data['message'] ?? 'Error al rechazar evidencia.');
     }
   }
 }

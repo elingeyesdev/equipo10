@@ -5,10 +5,12 @@ import 'api_service.dart';
 class NotificacionApiService {
   final ApiService _api = ApiService();
 
-  Future<List<NotificacionModel>> obtenerNotificacionesUsuario(String usuarioId) async {
+  Future<List<NotificacionModel>> obtenerNotificacionesUsuario(
+      String usuarioId) async {
     try {
-      final response = await _api.client.get('/notificaciones/usuario/$usuarioId');
-      
+      final response =
+          await _api.client.get('/notificaciones/usuario/$usuarioId');
+
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = response.data['data'] ?? {};
         final List<dynamic> list = responseData['notificaciones'] ?? [];
@@ -22,7 +24,8 @@ class NotificacionApiService {
 
   Future<bool> marcarComoLeida(String notificacionId) async {
     try {
-      final response = await _api.client.put('/notificaciones/$notificacionId/leida');
+      final response =
+          await _api.client.put('/notificaciones/$notificacionId/leida');
       return response.statusCode == 200;
     } catch (e) {
       return false;

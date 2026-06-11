@@ -44,7 +44,8 @@ class EvidenciaModel {
       imgUrl = imgUrl.startsWith('/') ? host + imgUrl : '$host/storage/$imgUrl';
     } else if (imgUrl != null) {
       final host = ApiService().apiHost;
-      imgUrl = imgUrl.replaceFirst(RegExp(r'http://[0-9a-zA-Z\.]+(:[0-9]+)?'), host);
+      imgUrl =
+          imgUrl.replaceFirst(RegExp(r'http://[0-9a-zA-Z\.]+(:[0-9]+)?'), host);
     }
 
     // Extraer datos del usuario
@@ -56,10 +57,12 @@ class EvidenciaModel {
       uAvatar = u['avatar_url']?.toString();
       if (uAvatar != null && !uAvatar.startsWith('http')) {
         final host = ApiService().apiHost;
-        uAvatar = uAvatar.startsWith('/') ? host + uAvatar : '$host/storage/$uAvatar';
+        uAvatar =
+            uAvatar.startsWith('/') ? host + uAvatar : '$host/storage/$uAvatar';
       } else if (uAvatar != null) {
         final host = ApiService().apiHost;
-        uAvatar = uAvatar.replaceFirst(RegExp(r'http://[0-9a-zA-Z\.]+(:[0-9]+)?'), host);
+        uAvatar = uAvatar.replaceFirst(
+            RegExp(r'http://[0-9a-zA-Z\.]+(:[0-9]+)?'), host);
       }
     }
 

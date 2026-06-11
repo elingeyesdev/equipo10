@@ -26,14 +26,20 @@ class FullScreenImageView extends StatelessWidget {
           icon: const Icon(Icons.close, color: Colors.white, size: 30),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: title != null ? Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title!, style: const TextStyle(color: Colors.white, fontSize: 16)),
-            if (subtitle != null)
-              Text(subtitle!, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-          ],
-        ) : null,
+        title: title != null
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title!,
+                      style:
+                          const TextStyle(color: Colors.white, fontSize: 16)),
+                  if (subtitle != null)
+                    Text(subtitle!,
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 12)),
+                ],
+              )
+            : null,
       ),
       body: Center(
         child: InteractiveViewer(

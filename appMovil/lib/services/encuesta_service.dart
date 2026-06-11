@@ -11,7 +11,8 @@ class EncuestaService {
   /// Verifica si el usuario tiene encuestas pendientes de operativos cerrados.
   Future<List<ReporteModel>> getEncuestasPendientes(String usuarioId) async {
     try {
-      final response = await _api.client.get('/encuestas/pendientes/$usuarioId');
+      final response =
+          await _api.client.get('/encuestas/pendientes/$usuarioId');
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         return data.map((json) => ReporteModel.fromMap(json)).toList();
@@ -61,7 +62,8 @@ class EncuestaService {
     final pendientes = await _db.getEncuestasPendientes();
     if (pendientes.isEmpty) return;
 
-    debugPrint('[EncuestaService] Sincronizando ${pendientes.length} encuesta(s) pendiente(s)...');
+    debugPrint(
+        '[EncuestaService] Sincronizando ${pendientes.length} encuesta(s) pendiente(s)...');
     for (final enc in pendientes) {
       try {
         final response = await _api.client.post('/encuestas', data: {
@@ -71,7 +73,9 @@ class EncuestaService {
           'comentario': enc['comentario'],
         });
         // Eliminar de la cola si fue exitoso o si ya existía (409)
-        if (response.statusCode == 201 || response.statusCode == 200 || response.statusCode == 409) {
+        if (response.statusCode == 201 ||
+            response.statusCode == 200 ||
+            response.statusCode == 409) {
           await _db.deleteEncuestaPendiente(enc['id'] as int);
           debugPrint('[EncuestaService] Encuesta ${enc['id']} sincronizada.');
         }

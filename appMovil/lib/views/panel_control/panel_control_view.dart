@@ -63,8 +63,7 @@ class _PanelControlViewState extends State<PanelControlView> {
             if (geo['type'] == 'Polygon') {
               final coords = geo['coordinates'][0] as List;
               pts = coords
-                  .map((coord) => LatLng(
-                      double.parse(coord[1].toString()),
+                  .map((coord) => LatLng(double.parse(coord[1].toString()),
                       double.parse(coord[0].toString())))
                   .toList();
             }
@@ -128,12 +127,16 @@ class _PanelControlViewState extends State<PanelControlView> {
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('Confirmar Reanudación'),
-          content: const Text('¿Deseas volver a poner la búsqueda en estado Activa? Los voluntarios podrán unirse nuevamente.'),
+          content: const Text(
+              '¿Deseas volver a poner la búsqueda en estado Activa? Los voluntarios podrán unirse nuevamente.'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancelar')),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1B5E20)),
               child: const Text('Reanudar'),
             ),
           ],
@@ -142,7 +145,8 @@ class _PanelControlViewState extends State<PanelControlView> {
       if (confirmar != true) return;
     }
 
-    final success = await vm.cambiarEstado(widget.fichaId, nuevoEstado, justificacion: justificacion);
+    final success = await vm.cambiarEstado(widget.fichaId, nuevoEstado,
+        justificacion: justificacion);
     if (!mounted) return;
 
     if (success) {
@@ -153,9 +157,12 @@ class _PanelControlViewState extends State<PanelControlView> {
         ),
       );
       // Mostrar encuesta de satisfacción al finalizar la búsqueda
-      if ((nuevoEstado == 'cerrado' || nuevoEstado == 'resuelto') && mounted && vm.ficha != null) {
+      if ((nuevoEstado == 'cerrado' || nuevoEstado == 'resuelto') &&
+          mounted &&
+          vm.ficha != null) {
         final userId = AuthService().currentUserId ?? '';
-        await EncuestaDialog.show(context, vm.ficha!, userId, isCoordinador: true);
+        await EncuestaDialog.show(context, vm.ficha!, userId,
+            isCoordinador: true);
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -167,7 +174,8 @@ class _PanelControlViewState extends State<PanelControlView> {
     }
   }
 
-  Future<String?> _mostrarDialogoJustificacion(BuildContext context, String nuevoEstado) {
+  Future<String?> _mostrarDialogoJustificacion(
+      BuildContext context, String nuevoEstado) {
     final TextEditingController ctrl = TextEditingController();
     return showDialog<String>(
       context: context,
@@ -178,32 +186,39 @@ class _PanelControlViewState extends State<PanelControlView> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Por favor, indica la justificación o razón para $actionTitle esta búsqueda.'),
+              Text(
+                  'Por favor, indica la justificación o razón para $actionTitle esta búsqueda.'),
               const SizedBox(height: 12),
               TextField(
                 controller: ctrl,
                 maxLines: 3,
                 decoration: InputDecoration(
                   hintText: 'Escribe la justificación aquí...',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, null), child: const Text('Cancelar')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, null),
+                child: const Text('Cancelar')),
             ElevatedButton(
               onPressed: () {
                 if (ctrl.text.trim().isEmpty) {
                   ScaffoldMessenger.of(ctx).showSnackBar(
-                    const SnackBar(content: Text('La justificación es obligatoria.')),
+                    const SnackBar(
+                        content: Text('La justificación es obligatoria.')),
                   );
                 } else {
                   Navigator.pop(ctx, ctrl.text.trim());
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: nuevoEstado == 'cerrado' ? Colors.red : const Color(0xFFFF9800),
+                backgroundColor: nuevoEstado == 'cerrado'
+                    ? Colors.red
+                    : const Color(0xFFFF9800),
               ),
               child: Text(actionTitle),
             ),
@@ -216,7 +231,7 @@ class _PanelControlViewState extends State<PanelControlView> {
   Future<void> _mostrarDialogoAlertaMasiva(BuildContext context) async {
     final vm = context.read<PanelControlViewModel>();
     final TextEditingController ctrl = TextEditingController();
-    
+
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -240,22 +255,27 @@ class _PanelControlViewState extends State<PanelControlView> {
               maxLines: 4,
               maxLength: 500,
               decoration: InputDecoration(
-                hintText: 'Ej: Atención equipo, concentremos la búsqueda en la zona norte del cuadrante...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                hintText:
+                    'Ej: Atención equipo, concentremos la búsqueda en la zona norte del cuadrante...',
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar')),
           ElevatedButton(
             onPressed: () async {
               if (ctrl.text.trim().isEmpty) return;
               Navigator.pop(ctx); // Cerrar diálogo
-              
-              final success = await vm.enviarAlertaMasiva(widget.fichaId, ctrl.text.trim());
+
+              final success =
+                  await vm.enviarAlertaMasiva(widget.fichaId, ctrl.text.trim());
               if (!mounted) return;
-              
+
               if (success) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -272,7 +292,8 @@ class _PanelControlViewState extends State<PanelControlView> {
                 );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1B5E20)),
             child: const Text('Enviar Alerta'),
           ),
         ],
@@ -281,14 +302,14 @@ class _PanelControlViewState extends State<PanelControlView> {
   }
 
   Future<void> _mostrarDialogoMensajeDirecto(
-    BuildContext context, 
-    String usuarioId, 
+    BuildContext context,
+    String usuarioId,
     String nombreVoluntario,
     String? estadoBusqueda,
   ) async {
     final vm = context.read<PanelControlViewModel>();
     final TextEditingController ctrl = TextEditingController();
-    
+
     String estadoTxt = 'Desconocido';
     Color estadoColor = Colors.grey;
     if (estadoBusqueda == 'buscando') {
@@ -301,7 +322,7 @@ class _PanelControlViewState extends State<PanelControlView> {
       estadoTxt = 'Inactivo / Finalizado';
       estadoColor = Colors.grey;
     }
-    
+
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -309,7 +330,9 @@ class _PanelControlViewState extends State<PanelControlView> {
           children: [
             Icon(Icons.message, color: Color(0xFF1B5E20)),
             SizedBox(width: 8),
-            Expanded(child: Text('Mensaje Directo', overflow: TextOverflow.ellipsis)),
+            Expanded(
+                child:
+                    Text('Mensaje Directo', overflow: TextOverflow.ellipsis)),
           ],
         ),
         content: SingleChildScrollView(
@@ -321,51 +344,61 @@ class _PanelControlViewState extends State<PanelControlView> {
                 'Para: $nombreVoluntario',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                const Text('Estado: ', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: estadoColor,
-                    borderRadius: BorderRadius.circular(8),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Text('Estado: ',
+                      style:
+                          TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: estadoColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      estadoTxt,
+                      style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold),
+                    ),
                   ),
-                  child: Text(
-                    estadoTxt,
-                    style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Este mensaje será enviado únicamente a este voluntario.',
-              style: TextStyle(fontSize: 13, color: Colors.black54),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: ctrl,
-              maxLines: 4,
-              maxLength: 500,
-              decoration: InputDecoration(
-                hintText: 'Escribe el mensaje aquí...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ],
               ),
-            ),
-          ],
-        ),
+              const SizedBox(height: 12),
+              const Text(
+                'Este mensaje será enviado únicamente a este voluntario.',
+                style: TextStyle(fontSize: 13, color: Colors.black54),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: ctrl,
+                maxLines: 4,
+                maxLength: 500,
+                decoration: InputDecoration(
+                  hintText: 'Escribe el mensaje aquí...',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar')),
           ElevatedButton(
             onPressed: () async {
               if (ctrl.text.trim().isEmpty) return;
               Navigator.pop(ctx);
-              
-              final success = await vm.enviarMensajeDirecto(widget.fichaId, usuarioId, ctrl.text.trim());
+
+              final success = await vm.enviarMensajeDirecto(
+                  widget.fichaId, usuarioId, ctrl.text.trim());
               if (!mounted) return;
-              
+
               if (success) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -376,13 +409,15 @@ class _PanelControlViewState extends State<PanelControlView> {
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(vm.errorMessage ?? 'Error al enviar mensaje.'),
+                    content:
+                        Text(vm.errorMessage ?? 'Error al enviar mensaje.'),
                     backgroundColor: Colors.red.shade700,
                   ),
                 );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1B5E20)),
             child: const Text('Enviar'),
           ),
         ],
@@ -407,14 +442,14 @@ class _PanelControlViewState extends State<PanelControlView> {
 
     final ficha = vm.ficha!;
     final bool isActive = ficha.estado == 'activo';
-    final bool isClosed = ficha.estado == 'cerrado' || ficha.estado == 'resuelto';
+    final bool isClosed =
+        ficha.estado == 'cerrado' || ficha.estado == 'resuelto';
 
     return DefaultTabController(
       length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Panel de Comando'),
-
           bottom: const TabBar(
             tabs: [
               Tab(icon: Icon(Icons.dashboard), text: 'General'),
@@ -427,7 +462,8 @@ class _PanelControlViewState extends State<PanelControlView> {
           ),
         ),
         body: TabBarView(
-          physics: const NeverScrollableScrollPhysics(), // Evita conflicto con gestos del mapa
+          physics:
+              const NeverScrollableScrollPhysics(), // Evita conflicto con gestos del mapa
           children: [
             _buildTabGeneral(context, vm, ficha, isActive),
             _buildTabMapa(vm, ficha),
@@ -440,13 +476,16 @@ class _PanelControlViewState extends State<PanelControlView> {
                 onPressed: () => _mostrarDialogoAlertaMasiva(context),
                 backgroundColor: const Color(0xFF0277BD),
                 icon: const Icon(Icons.campaign, color: Colors.white),
-                label: const Text('Alerta Masiva', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                label: const Text('Alerta Masiva',
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold)),
               ),
       ),
     );
   }
 
-  Widget _buildTabGeneral(BuildContext context, PanelControlViewModel vm, dynamic ficha, bool isActive) {
+  Widget _buildTabGeneral(BuildContext context, PanelControlViewModel vm,
+      dynamic ficha, bool isActive) {
     return SingleChildScrollView(
       padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 80),
       child: Column(
@@ -459,7 +498,8 @@ class _PanelControlViewState extends State<PanelControlView> {
           ),
           const SizedBox(height: 8),
           _EstadoBadge(estado: ficha.estado),
-          if (ficha.justificacion != null && ficha.justificacion!.isNotEmpty) ...[
+          if (ficha.justificacion != null &&
+              ficha.justificacion!.isNotEmpty) ...[
             const SizedBox(height: 12),
             Container(
               width: double.infinity,
@@ -472,7 +512,10 @@ class _PanelControlViewState extends State<PanelControlView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Justificación / Resolución:', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF5F6368))),
+                  const Text('Justificación / Resolución:',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF5F6368))),
                   const SizedBox(height: 4),
                   Text(ficha.justificacion!),
                 ],
@@ -482,36 +525,48 @@ class _PanelControlViewState extends State<PanelControlView> {
           const SizedBox(height: 24),
           const Text(
             'Acciones Rápidas',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF374151)),
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF374151)),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
               if (!isActive)
-                Expanded(child: _buildActionButton(
+                Expanded(
+                    child: _buildActionButton(
                   label: 'Reanudar',
                   icon: Icons.play_arrow_rounded,
                   color: const Color(0xFF166534),
                   shadowColor: const Color(0x3316653A),
-                  onPressed: vm.isChangingState ? null : () => _cambiarEstado(context, 'activo'),
+                  onPressed: vm.isChangingState
+                      ? null
+                      : () => _cambiarEstado(context, 'activo'),
                   isLoading: vm.isChangingState,
                 ))
               else
-                Expanded(child: _buildActionButton(
+                Expanded(
+                    child: _buildActionButton(
                   label: 'Pausar',
                   icon: Icons.pause_rounded,
                   color: const Color(0xFF92400E),
                   shadowColor: const Color(0x3392400E),
-                  onPressed: vm.isChangingState ? null : () => _cambiarEstado(context, 'pausado'),
+                  onPressed: vm.isChangingState
+                      ? null
+                      : () => _cambiarEstado(context, 'pausado'),
                   isLoading: vm.isChangingState,
                 )),
               const SizedBox(width: 12),
-              Expanded(child: _buildActionButton(
+              Expanded(
+                  child: _buildActionButton(
                 label: 'Finalizar',
                 icon: Icons.flag_rounded,
                 color: const Color(0xFF7F1D1D),
                 shadowColor: const Color(0x337F1D1D),
-                onPressed: vm.isChangingState || ficha.estado == 'cerrado' || ficha.estado == 'resuelto'
+                onPressed: vm.isChangingState ||
+                        ficha.estado == 'cerrado' ||
+                        ficha.estado == 'resuelto'
                     ? null
                     : () => _cambiarEstado(context, 'cerrado'),
                 isLoading: vm.isChangingState,
@@ -541,7 +596,8 @@ class _PanelControlViewState extends State<PanelControlView> {
               const SizedBox(width: 8),
               Text(
                 'Voluntarios (${vm.voluntarios.length})',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -550,7 +606,8 @@ class _PanelControlViewState extends State<PanelControlView> {
             const Center(
               child: Padding(
                 padding: EdgeInsets.all(16.0),
-                child: Text('Aún no hay voluntarios en esta búsqueda.', style: TextStyle(color: Color(0xFF757575))),
+                child: Text('Aún no hay voluntarios en esta búsqueda.',
+                    style: TextStyle(color: Color(0xFF757575))),
               ),
             )
           else
@@ -564,18 +621,26 @@ class _PanelControlViewState extends State<PanelControlView> {
                   leading: CircleAvatar(
                     backgroundColor: const Color(0xFFE8F5E9),
                     child: Text(
-                      v.nombreCompleto.isNotEmpty ? v.nombreCompleto[0].toUpperCase() : '?',
+                      v.nombreCompleto.isNotEmpty
+                          ? v.nombreCompleto[0].toUpperCase()
+                          : '?',
                       style: const TextStyle(color: Color(0xFF1B5E20)),
                     ),
                   ),
-                  title: Text(v.nombreCompleto.isNotEmpty ? v.nombreCompleto : 'Sin Nombre'),
-                  subtitle: Text(v.telefono.isNotEmpty ? v.telefono : 'Sin teléfono'),
+                  title: Text(v.nombreCompleto.isNotEmpty
+                      ? v.nombreCompleto
+                      : 'Sin Nombre'),
+                  subtitle:
+                      Text(v.telefono.isNotEmpty ? v.telefono : 'Sin teléfono'),
                   trailing: IconButton(
                     icon: const Icon(Icons.message, color: Color(0xFF1B5E20)),
                     onPressed: () {
                       // Buscar el estado de este voluntario en las rutas
-                      final ruta = vm.rutasVoluntarios.where((r) => r.usuarioId == v.id).firstOrNull;
-                      _mostrarDialogoMensajeDirecto(context, v.id, v.nombreCompleto, ruta?.estadoBusqueda);
+                      final ruta = vm.rutasVoluntarios
+                          .where((r) => r.usuarioId == v.id)
+                          .firstOrNull;
+                      _mostrarDialogoMensajeDirecto(context, v.id,
+                          v.nombreCompleto, ruta?.estadoBusqueda);
                     },
                     tooltip: 'Enviar mensaje directo',
                   ),
@@ -626,8 +691,10 @@ class _PanelControlViewState extends State<PanelControlView> {
               children: [
                 if (isLoading)
                   const SizedBox(
-                    width: 16, height: 16,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2),
                   )
                 else
                   Icon(icon, color: Colors.white, size: 18),
@@ -648,10 +715,12 @@ class _PanelControlViewState extends State<PanelControlView> {
     );
   }
 
-  Widget _buildBotonRevisionEvidencias(BuildContext context, PanelControlViewModel vm) {
+  Widget _buildBotonRevisionEvidencias(
+      BuildContext context, PanelControlViewModel vm) {
     final evVm = context.watch<EvidenciaViewModel>();
-    final pendingCount = evVm.evidencias.where((e) => e.estado == 'pending').length;
-    
+    final pendingCount =
+        evVm.evidencias.where((e) => e.estado == 'pending').length;
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -717,8 +786,12 @@ class _PanelControlViewState extends State<PanelControlView> {
                             : 'Ver todas las evidencias enviadas',
                         style: TextStyle(
                           fontSize: 13,
-                          color: pendingCount > 0 ? const Color(0xFFD32F2F) : const Color(0xFF5F6368),
-                          fontWeight: pendingCount > 0 ? FontWeight.w600 : FontWeight.normal,
+                          color: pendingCount > 0
+                              ? const Color(0xFFD32F2F)
+                              : const Color(0xFF5F6368),
+                          fontWeight: pendingCount > 0
+                              ? FontWeight.w600
+                              : FontWeight.normal,
                         ),
                       ),
                     ],
@@ -726,7 +799,8 @@ class _PanelControlViewState extends State<PanelControlView> {
                 ),
                 if (pendingCount > 0)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFFD32F2F),
                       borderRadius: BorderRadius.circular(20),
@@ -781,7 +855,8 @@ class _PanelControlViewState extends State<PanelControlView> {
             padding: EdgeInsets.symmetric(vertical: 16, horizontal: 20),
             child: Row(
               children: [
-                Icon(Icons.picture_as_pdf_rounded, color: Colors.white, size: 28),
+                Icon(Icons.picture_as_pdf_rounded,
+                    color: Colors.white, size: 28),
                 SizedBox(width: 14),
                 Expanded(
                   child: Column(
@@ -818,7 +893,8 @@ class _PanelControlViewState extends State<PanelControlView> {
   }
 
   /// Genera el reporte PDF mostrando un diálogo de progreso con porcentaje real.
-  Future<void> _generarReportePDF(BuildContext context, PanelControlViewModel vm) async {
+  Future<void> _generarReportePDF(
+      BuildContext context, PanelControlViewModel vm) async {
     if (vm.ficha == null) return;
     final ficha = vm.ficha!;
 
@@ -841,12 +917,36 @@ class _PanelControlViewState extends State<PanelControlView> {
     // Helper para actualizar el notificador con estado predefinido
     void actualizarPaso(String paso, String mensaje, double porcentaje) {
       final (icono, titulo, color) = switch (paso) {
-        'mapa'        => (Icons.map_rounded, 'Capturando mapa', const Color(0xFF16A34A)),
-        'recopilando' => (Icons.cloud_download_rounded, 'Recopilando datos', const Color(0xFF3F7AC5)),
-        'imagenes'    => (Icons.photo_library_rounded, 'Optimizando imágenes', const Color(0xFF8B5CF6)),
-        'ensamblando' => (Icons.picture_as_pdf_rounded, 'Generando PDF', const Color(0xFF3F7AC5)),
-        'error'       => (Icons.error_outline_rounded, 'Error', const Color(0xFFEF4444)),
-        _             => (Icons.hourglass_top_rounded, 'Procesando', const Color(0xFF3F7AC5)),
+        'mapa' => (
+            Icons.map_rounded,
+            'Capturando mapa',
+            const Color(0xFF16A34A)
+          ),
+        'recopilando' => (
+            Icons.cloud_download_rounded,
+            'Recopilando datos',
+            const Color(0xFF3F7AC5)
+          ),
+        'imagenes' => (
+            Icons.photo_library_rounded,
+            'Optimizando imágenes',
+            const Color(0xFF8B5CF6)
+          ),
+        'ensamblando' => (
+            Icons.picture_as_pdf_rounded,
+            'Generando PDF',
+            const Color(0xFF3F7AC5)
+          ),
+        'error' => (
+            Icons.error_outline_rounded,
+            'Error',
+            const Color(0xFFEF4444)
+          ),
+        _ => (
+            Icons.hourglass_top_rounded,
+            'Procesando',
+            const Color(0xFF3F7AC5)
+          ),
       };
       progressNotifier.value = _PdfProgreso(
         icono: icono,
@@ -861,7 +961,7 @@ class _PanelControlViewState extends State<PanelControlView> {
     try {
       // Paso 1: Capturar snapshot del mapa (3%)
       final evVm = context.read<EvidenciaViewModel>();
-      
+
       // Construir listas de coordenadas para los mapas estáticos
       final List<LatLng> cuadranteCoords = ficha.cuadranteLatMin != null
           ? [
@@ -871,7 +971,7 @@ class _PanelControlViewState extends State<PanelControlView> {
               LatLng(ficha.cuadranteLatMin!, ficha.cuadranteLngMin!),
             ]
           : [];
-          
+
       final List<List<LatLng>> rutasCoords = vm.rutasVoluntarios
           .where((r) => r.puntos.isNotEmpty)
           .map((r) => r.puntos)
@@ -882,7 +982,8 @@ class _PanelControlViewState extends State<PanelControlView> {
         datos = await ReporteService().obtenerDatosReporteFinal(ficha.id);
         actualizarPaso('recopilando', 'Datos del operativo obtenidos', 0.15);
       } catch (_) {
-        actualizarPaso('recopilando', 'Usando datos locales del operativo...', 0.12);
+        actualizarPaso(
+            'recopilando', 'Usando datos locales del operativo...', 0.12);
         datos = {
           'id': ficha.id,
           'titulo': ficha.titulo,
@@ -920,10 +1021,14 @@ class _PanelControlViewState extends State<PanelControlView> {
           'estadisticas': {
             'total_voluntarios': vm.voluntarios.length,
             'total_evidencias': evVm.evidencias.length,
-            'evidencias_aprobadas': evVm.evidencias.where((e) => e.estado == 'approved').length,
-            'evidencias_rechazadas': evVm.evidencias.where((e) => e.estado == 'rejected').length,
+            'evidencias_aprobadas':
+                evVm.evidencias.where((e) => e.estado == 'approved').length,
+            'evidencias_rechazadas':
+                evVm.evidencias.where((e) => e.estado == 'rejected').length,
             'cuadrantes_expandidos': ficha.nivelExpansion,
-            'tiempo_total_minutos': ficha.createdAt != null ? DateTime.now().difference(ficha.createdAt!).inMinutes : 0,
+            'tiempo_total_minutos': ficha.createdAt != null
+                ? DateTime.now().difference(ficha.createdAt!).inMinutes
+                : 0,
             'tiempo_activo_minutos': 0,
             'distancia_total_km': 0.0,
           },
@@ -931,9 +1036,11 @@ class _PanelControlViewState extends State<PanelControlView> {
       }
 
       // Inyectar las coordenadas en los datos para que el servicio PDF genere los mapas estáticos
-      
+
       // Inyectar datos simulados de recorridos (zigzag y espiral) si no hay rutas reales
-      if (rutasCoords.isEmpty && ficha.latitud != null && ficha.longitud != null) {
+      if (rutasCoords.isEmpty &&
+          ficha.latitud != null &&
+          ficha.longitud != null) {
         final lLat = ficha.latitud!;
         final lLng = ficha.longitud!;
         // Ruta 1: Zigzag
@@ -960,7 +1067,8 @@ class _PanelControlViewState extends State<PanelControlView> {
       datos['mapa_cuadrante'] = cuadranteCoords;
 
       // Paso 3: Generar el PDF con callback de progreso en tiempo real (15% - 95%)
-      actualizarPaso('imagenes', 'Descargando evidencias fotográficas...', 0.15);
+      actualizarPaso(
+          'imagenes', 'Descargando evidencias fotográficas...', 0.15);
       final pdfBytes = await PdfReporteService().generarReportePDF(
         datos: datos,
         onProgress: (paso, mensaje, porcentaje) {
@@ -988,7 +1096,8 @@ class _PanelControlViewState extends State<PanelControlView> {
         );
       }
     } catch (e) {
-      actualizarPaso('error', 'Ocurrió un error al generar el reporte.\nIntenta de nuevo.', 0.0);
+      actualizarPaso('error',
+          'Ocurrió un error al generar el reporte.\nIntenta de nuevo.', 0.0);
       await Future.delayed(const Duration(seconds: 2));
       if (context.mounted) {
         Navigator.of(context).pop();
@@ -1006,12 +1115,14 @@ class _PanelControlViewState extends State<PanelControlView> {
 
   Widget _buildTabMapa(PanelControlViewModel vm, dynamic ficha) {
     LatLng? center;
-    
+
     // Calcular el centro del mapa (Prioridad: LPP > Cuadrante > Recorridos)
     if (ficha.latitud != null && ficha.longitud != null) {
       center = LatLng(ficha.latitud!, ficha.longitud!);
-    } else if (ficha.cuadranteLatMin != null && ficha.cuadranteLatMax != null &&
-        ficha.cuadranteLngMin != null && ficha.cuadranteLngMax != null) {
+    } else if (ficha.cuadranteLatMin != null &&
+        ficha.cuadranteLatMax != null &&
+        ficha.cuadranteLngMin != null &&
+        ficha.cuadranteLngMax != null) {
       center = LatLng(
         (ficha.cuadranteLatMin! + ficha.cuadranteLatMax!) / 2,
         (ficha.cuadranteLngMin! + ficha.cuadranteLngMax!) / 2,
@@ -1031,7 +1142,10 @@ class _PanelControlViewState extends State<PanelControlView> {
               SizedBox(height: 16),
               Text(
                 'No hay datos de ubicación.',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey),
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey),
               ),
               SizedBox(height: 8),
               Text(
@@ -1047,35 +1161,39 @@ class _PanelControlViewState extends State<PanelControlView> {
 
     // Colores para diferenciar voluntarios (heat map simple)
     final List<Color> pathColors = [
-      Colors.blue, Colors.red, Colors.green, Colors.orange, Colors.purple, Colors.teal
+      Colors.blue,
+      Colors.red,
+      Colors.green,
+      Colors.orange,
+      Colors.purple,
+      Colors.teal
     ];
 
     // Combinar el LPP original con las pistas adicionales
     final List<Marker> markersPistas = [];
-    
+
     // 1. Agregar el punto original (LPP)
     if (ficha.latitud != null && ficha.longitud != null) {
-      markersPistas.add(
-        Marker(
-          point: LatLng(ficha.latitud!, ficha.longitud!),
-          width: 80,
-          height: 70,
-          alignment: Alignment.center,
-          child: LppMarker(
-            fotoUrl: ficha.fotoUrl,
-            nombre: 'Visto por última vez',
-            color: const Color(0xFFD32F2F), // Rojo para el LPP
-          ),
-        )
-      );
+      markersPistas.add(Marker(
+        point: LatLng(ficha.latitud!, ficha.longitud!),
+        width: 80,
+        height: 70,
+        alignment: Alignment.center,
+        child: LppMarker(
+          fotoUrl: ficha.fotoUrl,
+          nombre: 'Visto por última vez',
+          color: const Color(0xFFD32F2F), // Rojo para el LPP
+        ),
+      ));
     }
-    
+
     // 2. Agregar las evidencias fotograficas capturadas (solo approved)
     final evVm = context.read<EvidenciaViewModel>();
     final evidenciasAprobadas =
         evVm.evidencias.where((e) => e.estado == 'approved').toList();
-    markersPistas.addAll(
-        evidenciasAprobadas.where((e) => e.lat != null && e.lng != null).map((evidencia) {
+    markersPistas.addAll(evidenciasAprobadas
+        .where((e) => e.lat != null && e.lng != null)
+        .map((evidencia) {
       return Marker(
         point: LatLng(evidencia.lat!, evidencia.lng!),
         width: 80,
@@ -1096,7 +1214,8 @@ class _PanelControlViewState extends State<PanelControlView> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (evidencia.fotoUrl != null && evidencia.fotoUrl!.isNotEmpty)
+                          if (evidencia.fotoUrl != null &&
+                              evidencia.fotoUrl!.isNotEmpty)
                             GestureDetector(
                               onTap: () {
                                 Navigator.push(
@@ -1118,12 +1237,15 @@ class _PanelControlViewState extends State<PanelControlView> {
                                     height: 150,
                                     width: 300,
                                     fit: BoxFit.cover,
-                                    errorWidget: (_, __, ___) => const Icon(Icons.broken_image, size: 50),
+                                    errorWidget: (_, __, ___) => const Icon(
+                                        Icons.broken_image,
+                                        size: 50),
                                     placeholder: (_, __) => Container(
                                       height: 150,
                                       width: 300,
                                       color: const Color(0xFFF5F5F5),
-                                      child: const Center(child: CircularProgressIndicator()),
+                                      child: const Center(
+                                          child: CircularProgressIndicator()),
                                     ),
                                   ),
                                 ),
@@ -1152,7 +1274,7 @@ class _PanelControlViewState extends State<PanelControlView> {
         ),
       );
     }));
-    
+
     // 2. Agregar el resto de pistas — puntos ámbar simples
     markersPistas.addAll(vm.pistas.map((pista) {
       return Marker(
@@ -1165,7 +1287,10 @@ class _PanelControlViewState extends State<PanelControlView> {
             color: const Color(0xFFF59E0B),
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 2.5),
-            boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 4, offset: Offset(0, 2))],
+            boxShadow: const [
+              BoxShadow(
+                  color: Colors.black38, blurRadius: 4, offset: Offset(0, 2))
+            ],
           ),
           child: const Icon(Icons.location_on, color: Colors.white, size: 14),
         ),
@@ -1177,10 +1302,10 @@ class _PanelControlViewState extends State<PanelControlView> {
         FlutterMap(
           mapController: _mapController,
           options: MapOptions(
-              initialCenter: center,
-              initialZoom: 15.0,
-            ),
-            children: [
+            initialCenter: center,
+            initialZoom: 15.0,
+          ),
+          children: [
             MapTileLayer(useSatellite: _useSatellite),
             // Cuadrícula completa de cuadrantes + zona verde del LPP
             if (_cuadrantesPolygons.isNotEmpty)
@@ -1189,7 +1314,8 @@ class _PanelControlViewState extends State<PanelControlView> {
             if (ficha.latitud != null && ficha.longitud != null)
               PolygonLayer(polygons: () {
                 const double radioBase = 0.0007;
-                final nivel = _calcularNivel(ficha.createdAt?.toIso8601String());
+                final nivel =
+                    _calcularNivel(ficha.createdAt?.toIso8601String());
                 final r = radioBase * nivel;
                 final lat = ficha.latitud!;
                 final lng = ficha.longitud!;
@@ -1207,7 +1333,8 @@ class _PanelControlViewState extends State<PanelControlView> {
                   ),
                   // Zonas de expansión de pistas del vm
                   ...vm.pistas.map((p) {
-                    final rp = radioBase * _calcularNivel(p.createdAt?.toIso8601String());
+                    final rp = radioBase *
+                        _calcularNivel(p.createdAt?.toIso8601String());
                     return Polygon(
                       points: [
                         LatLng(p.punto.latitude - rp, p.punto.longitude - rp),
@@ -1229,7 +1356,8 @@ class _PanelControlViewState extends State<PanelControlView> {
                 final originalIndex = vm.todasLasRutas.indexOf(ruta);
                 return Polyline(
                   points: ruta.puntos,
-                  color: pathColors[originalIndex % pathColors.length].withOpacity(0.7),
+                  color: pathColors[originalIndex % pathColors.length]
+                      .withOpacity(0.7),
                   strokeWidth: 4.0,
                 );
               }),
@@ -1241,8 +1369,9 @@ class _PanelControlViewState extends State<PanelControlView> {
                 if (ruta.puntos.isEmpty) return null;
                 final lastPoint = ruta.puntos.last;
                 final originalIndex = vm.todasLasRutas.indexOf(ruta);
-                final markerColor = pathColors[originalIndex % pathColors.length];
-                
+                final markerColor =
+                    pathColors[originalIndex % pathColors.length];
+
                 return Marker(
                   point: lastPoint,
                   width: 100,
@@ -1252,10 +1381,13 @@ class _PanelControlViewState extends State<PanelControlView> {
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
                       if (ruta.usuarioId != null) {
-                        _mostrarDialogoMensajeDirecto(context, ruta.usuarioId!, ruta.nombre, ruta.estadoBusqueda);
+                        _mostrarDialogoMensajeDirecto(context, ruta.usuarioId!,
+                            ruta.nombre, ruta.estadoBusqueda);
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('No se puede enviar mensaje a este voluntario.')),
+                          const SnackBar(
+                              content: Text(
+                                  'No se puede enviar mensaje a este voluntario.')),
                         );
                       }
                     },
@@ -1263,16 +1395,22 @@ class _PanelControlViewState extends State<PanelControlView> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(
-                              color: ruta.estadoBusqueda == 'buscando' ? Colors.green : Colors.grey.shade300,
+                              color: ruta.estadoBusqueda == 'buscando'
+                                  ? Colors.green
+                                  : Colors.grey.shade300,
                               width: 1.5,
                             ),
                             boxShadow: const [
-                              BoxShadow(color: Colors.black26, blurRadius: 3, offset: Offset(0, 1))
+                              BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 3,
+                                  offset: Offset(0, 1))
                             ],
                           ),
                           child: Row(
@@ -1307,7 +1445,9 @@ class _PanelControlViewState extends State<PanelControlView> {
                           Icons.person_pin_circle,
                           color: markerColor,
                           size: 32,
-                          shadows: const [Shadow(color: Colors.white, blurRadius: 2)],
+                          shadows: const [
+                            Shadow(color: Colors.white, blurRadius: 2)
+                          ],
                         ),
                       ],
                     ),
@@ -1321,7 +1461,7 @@ class _PanelControlViewState extends State<PanelControlView> {
             ),
           ],
         ),
-      // Filtro de Voluntarios en la parte superior
+        // Filtro de Voluntarios en la parte superior
         if (vm.todasLasRutas.isNotEmpty)
           Positioned(
             top: 16,
@@ -1403,7 +1543,10 @@ class _PanelControlViewState extends State<PanelControlView> {
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
-          Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
           const SizedBox(width: 8),
           Text(label, style: const TextStyle(fontSize: 12)),
         ],
@@ -1422,7 +1565,8 @@ class _PanelControlViewState extends State<PanelControlView> {
           children: [
             Icon(Icons.photo_library_outlined, size: 64, color: Colors.grey),
             SizedBox(height: 16),
-            Text('No hay imágenes en la galería aún.', style: TextStyle(color: Colors.grey)),
+            Text('No hay imágenes en la galería aún.',
+                style: TextStyle(color: Colors.grey)),
           ],
         ),
       );
@@ -1445,7 +1589,9 @@ class _PanelControlViewState extends State<PanelControlView> {
               MaterialPageRoute(
                 builder: (_) => FullScreenImageView(
                   imageUrl: img['url'],
-                  title: img['tipo'] == 'original' ? 'Imagen del Reporte' : 'Evidencia Aprobada',
+                  title: img['tipo'] == 'original'
+                      ? 'Imagen del Reporte'
+                      : 'Evidencia Aprobada',
                   subtitle: '${img['autor'] ?? ''}',
                 ),
               ),
@@ -1459,10 +1605,13 @@ class _PanelControlViewState extends State<PanelControlView> {
                 child: CachedNetworkImage(
                   imageUrl: img['url'],
                   fit: BoxFit.cover,
-                  errorWidget: (context, url, error) =>
-                      Container(color: Colors.grey[300], child: const Icon(Icons.broken_image, color: Colors.grey)),
-                  placeholder: (context, url) =>
-                      Container(color: Colors.grey[200], child: const Center(child: CircularProgressIndicator())),
+                  errorWidget: (context, url, error) => Container(
+                      color: Colors.grey[300],
+                      child:
+                          const Icon(Icons.broken_image, color: Colors.grey)),
+                  placeholder: (context, url) => Container(
+                      color: Colors.grey[200],
+                      child: const Center(child: CircularProgressIndicator())),
                 ),
               ),
               if (img['tipo'] == 'original')
@@ -1471,8 +1620,10 @@ class _PanelControlViewState extends State<PanelControlView> {
                   right: 4,
                   child: Container(
                     padding: const EdgeInsets.all(2),
-                    decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                    child: const Icon(Icons.star, color: Colors.amber, size: 12),
+                    decoration: const BoxDecoration(
+                        color: Colors.black54, shape: BoxShape.circle),
+                    child:
+                        const Icon(Icons.star, color: Colors.amber, size: 12),
                   ),
                 ),
             ],
@@ -1512,7 +1663,8 @@ class _EstadoBadge extends StatelessWidget {
       ),
       child: Text(
         estado.toUpperCase(),
-        style: TextStyle(color: border, fontWeight: FontWeight.bold, fontSize: 12),
+        style:
+            TextStyle(color: border, fontWeight: FontWeight.bold, fontSize: 12),
       ),
     );
   }
@@ -1531,6 +1683,7 @@ class _PdfProgreso {
   final IconData icono;
   final String titulo;
   final String mensaje;
+
   /// Porcentaje de avance (0.0 – 1.0)
   final double porcentaje;
   final Color color;
@@ -1561,7 +1714,8 @@ class _DialogoProgresoPDF extends StatelessWidget {
       valueListenable: progresoNotifier,
       builder: (context, progreso, _) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           elevation: 8,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(28, 32, 28, 24),
@@ -1600,9 +1754,11 @@ class _DialogoProgresoPDF extends StatelessWidget {
                                         : progreso.porcentaje,
                                     color: progreso.color,
                                     strokeWidth: 3.5,
-                                    backgroundColor: progreso.color.withValues(alpha: 0.15),
+                                    backgroundColor:
+                                        progreso.color.withValues(alpha: 0.15),
                                   ),
-                                  Icon(progreso.icono, size: 26, color: progreso.color),
+                                  Icon(progreso.icono,
+                                      size: 26, color: progreso.color),
                                 ],
                               ),
                             ),
@@ -1678,7 +1834,8 @@ class _DialogoProgresoPDF extends StatelessWidget {
                         ),
                       ),
                       TweenAnimationBuilder<double>(
-                        tween: Tween<double>(begin: 0, end: progreso.porcentaje),
+                        tween:
+                            Tween<double>(begin: 0, end: progreso.porcentaje),
                         duration: const Duration(milliseconds: 400),
                         builder: (ctx, value, _) => Text(
                           '${(value * 100).toInt()}%',

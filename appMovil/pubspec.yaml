@@ -56,6 +56,8 @@ dependencies:
   pdf: ^3.10.8
   printing: ^5.12.0
   image: ^4.2.0       # Compresión JPEG real al 60% para optimizar imágenes en el PDF (E13.3)
+  firebase_core: ^4.10.0
+  firebase_messaging: ^16.3.0
 
 dev_dependencies:
   flutter_test:

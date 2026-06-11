@@ -44,8 +44,10 @@ class ReporteModel {
 
   /// Retorna true si [lat, lng] están dentro del cuadrante del reporte.
   bool estaDentroDelCuadrante(double lat, double lng) {
-    if (cuadranteLatMin == null || cuadranteLatMax == null ||
-        cuadranteLngMin == null || cuadranteLngMax == null) return false;
+    if (cuadranteLatMin == null ||
+        cuadranteLatMax == null ||
+        cuadranteLngMin == null ||
+        cuadranteLngMax == null) return false;
     return lat >= cuadranteLatMin! &&
         lat <= cuadranteLatMax! &&
         lng >= cuadranteLngMin! &&
@@ -86,11 +88,11 @@ class ReporteModel {
     this.expansionesData,
   });
 
-
   factory ReporteModel.fromMap(Map<String, dynamic> map) {
     // Extraer primera imagen de la lista de imágenes si existe
     String? primeraImg = map['primera_imagen']?.toString();
-    if (primeraImg != null && (primeraImg.endsWith('/storage') || primeraImg.endsWith('/storage/'))) {
+    if (primeraImg != null &&
+        (primeraImg.endsWith('/storage') || primeraImg.endsWith('/storage/'))) {
       primeraImg = null;
     }
     if (primeraImg == null || primeraImg.trim().isEmpty) {
@@ -99,10 +101,11 @@ class ReporteModel {
         primeraImg = imgs[0]['url']?.toString();
       }
     }
-    if (primeraImg != null && (primeraImg.endsWith('/storage') || primeraImg.endsWith('/storage/'))) {
+    if (primeraImg != null &&
+        (primeraImg.endsWith('/storage') || primeraImg.endsWith('/storage/'))) {
       primeraImg = null;
     }
-    
+
     // Fix para URLs relativas de imágenes (para que se carguen desde el backend)
     if (primeraImg != null && !primeraImg.startsWith('http')) {
       final host = ApiService().apiHost;
@@ -117,7 +120,8 @@ class ReporteModel {
       // Si el backend devolvió una IP vieja o localhost pero la app está usando otra IP
       final host = ApiService().apiHost;
       // Reemplazamos cualquier IP o localhost en la URL por el host actual del API
-      primeraImg = primeraImg.replaceFirst(RegExp(r'http://[0-9a-zA-Z\.]+(:[0-9]+)?'), host);
+      primeraImg = primeraImg.replaceFirst(
+          RegExp(r'http://[0-9a-zA-Z\.]+(:[0-9]+)?'), host);
     }
     // Extraer nombre de categoría del objeto anidado
     String? catNombre;
@@ -147,9 +151,10 @@ class ReporteModel {
     } else if (uAvatar != null) {
       final host = ApiService().apiHost;
       // Reemplazamos cualquier IP o localhost en la URL por el host actual del API
-      uAvatar = uAvatar.replaceFirst(RegExp(r'http://[0-9a-zA-Z\.]+(:[0-9]+)?'), host);
+      uAvatar = uAvatar.replaceFirst(
+          RegExp(r'http://[0-9a-zA-Z\.]+(:[0-9]+)?'), host);
     }
-    
+
     // Parsear características (backend devuelve lista de objetos [{clave: '...', valor: '...'}])
     Map<String, dynamic>? chars;
     if (map['caracteristicas'] is List) {
@@ -185,13 +190,18 @@ class ReporteModel {
       telefonoContacto: map['telefono_contacto']?.toString(),
       emailContacto: map['email_contacto']?.toString(),
       direccionReferencia: map['direccion_referencia']?.toString(),
-      vistas: map['vistas'] is int ? map['vistas'] : int.tryParse(map['vistas']?.toString() ?? ''),
+      vistas: map['vistas'] is int
+          ? map['vistas']
+          : int.tryParse(map['vistas']?.toString() ?? ''),
       fechaPerdida: map['fecha_perdida']?.toString(),
       avatarUsuario: uAvatar,
       caracteristicas: chars,
       recompensa: _parseDouble(map['recompensa']),
-      createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at'].toString()) : null,
-      nivelExpansion: int.tryParse(map['nivel_expansion']?.toString() ?? '1') ?? 1,
+      createdAt: map['created_at'] != null
+          ? DateTime.tryParse(map['created_at'].toString())
+          : null,
+      nivelExpansion:
+          int.tryParse(map['nivel_expansion']?.toString() ?? '1') ?? 1,
       cuadranteLatMin: _parseDouble(map['cuadrante']?['lat_min']),
       cuadranteLatMax: _parseDouble(map['cuadrante']?['lat_max']),
       cuadranteLngMin: _parseDouble(map['cuadrante']?['lng_min']),

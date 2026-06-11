@@ -38,7 +38,7 @@ class ApiService {
 
         final fullUrl = '${options.baseUrl}${options.path}';
         debugPrint(' API Request: [${options.method}] $fullUrl');
-        
+
         final prefs = await SharedPreferences.getInstance();
         final token = prefs.getString('auth_token');
         if (token != null) {

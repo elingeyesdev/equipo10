@@ -39,8 +39,8 @@ class NotificationService {
   // agrupar tipos de notificación.
 
   static const _channelSearchActivity = AndroidNotificationChannel(
-    'search_activity',                   // id único del canal
-    'Actividad en búsquedas',            // nombre visible al usuario
+    'search_activity', // id único del canal
+    'Actividad en búsquedas', // nombre visible al usuario
     description: 'Notificaciones sobre búsquedas en las que participas.',
     importance: Importance.high,
   );
@@ -67,14 +67,15 @@ class NotificationService {
   Future<void> initialize() async {
     // En web no hay notificaciones locales nativas — saltar inicialización.
     if (kIsWeb) {
-      debugPrint('[NotificationService] Web: inicialización omitida (sin soporte local).');
+      debugPrint(
+          '[NotificationService] Web: inicialización omitida (sin soporte local).');
       _initialized = false;
       return;
     }
 
     // Configuración por plataforma
     const androidSettings = AndroidInitializationSettings(
-      '@mipmap/ic_launcher',  // ícono de la notificación = ícono de la app
+      '@mipmap/ic_launcher', // ícono de la notificación = ícono de la app
     );
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -88,14 +89,14 @@ class NotificationService {
 
     final didInit = await _plugin.initialize(initSettings);
     if (didInit != true) {
-      debugPrint('[NotificationService] [WARN] El plugin no pudo inicializarse.');
+      debugPrint(
+          '[NotificationService] [WARN] El plugin no pudo inicializarse.');
       return;
     }
 
     // Crear canales en Android (en otras plataformas esto es ignorado)
-    final androidPlugin = _plugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+    final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
 
     if (androidPlugin != null) {
       for (final channel in _channels.values.toSet()) {
@@ -117,7 +118,8 @@ class NotificationService {
   /// el método retorna silenciosamente (no crashea).
   Future<void> show(AppNotification notification) async {
     if (!_initialized) {
-      debugPrint('[NotificationService] show() ignorado: no inicializado o en web.');
+      debugPrint(
+          '[NotificationService] show() ignorado: no inicializado o en web.');
       return;
     }
 
@@ -151,6 +153,7 @@ class NotificationService {
       details,
     );
 
-    debugPrint('[NotificationService] Notificacion mostrada: "${notification.title}"');
+    debugPrint(
+        '[NotificationService] Notificacion mostrada: "${notification.title}"');
   }
 }

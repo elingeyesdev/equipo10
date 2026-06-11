@@ -35,8 +35,9 @@ class _MisOperativosViewState extends State<MisOperativosView> {
       ),
       drawer: const MainDrawer(),
       body: RefreshIndicator(
-        onRefresh: () =>
-            context.read<MisOperativosViewModel>().cargarMisFichas(currentUserId),
+        onRefresh: () => context
+            .read<MisOperativosViewModel>()
+            .cargarMisFichas(currentUserId),
         color: const Color(0xFF1B5E20),
         child: _buildBody(vm, currentUserId),
       ),
@@ -129,7 +130,8 @@ class _MiFichaCard extends StatelessWidget {
               _FichaImage(fotoUrl: ficha.fotoUrl),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -149,11 +151,13 @@ class _MiFichaCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          if (ficha.avatarUsuario != null && ficha.avatarUsuario!.isNotEmpty) ...[
+                          if (ficha.avatarUsuario != null &&
+                              ficha.avatarUsuario!.isNotEmpty) ...[
                             const SizedBox(width: 6),
                             CircleAvatar(
                               radius: 10,
-                              backgroundImage: CachedNetworkImageProvider(ficha.avatarUsuario!),
+                              backgroundImage: CachedNetworkImageProvider(
+                                  ficha.avatarUsuario!),
                               backgroundColor: Colors.transparent,
                             ),
                           ],

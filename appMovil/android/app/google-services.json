@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1021763623327",
+    "project_id": "echoes-3231a",
+    "storage_bucket": "echoes-3231a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1021763623327:android:29c302bee81754a6a745aa",
+        "android_client_info": {
+          "package_name": "com.univalle.echoes.echoes"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAm0Ri2mtHT84QqIWm5da37HisfiwgeMXM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

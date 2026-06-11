@@ -40,16 +40,20 @@ class _EditarFichaViewState extends State<EditarFichaView> {
     super.initState();
     _tituloCtrl = TextEditingController(text: widget.ficha.titulo);
     _descripcionCtrl = TextEditingController(text: widget.ficha.descripcion);
-    _telefonoCtrl = TextEditingController(text: widget.ficha.telefonoContacto ?? '');
-    _recompensaCtrl = TextEditingController(text: widget.ficha.recompensa?.toString() ?? '');
-    _direccionCtrl = TextEditingController(text: widget.ficha.direccionReferencia ?? '');
-    
+    _telefonoCtrl =
+        TextEditingController(text: widget.ficha.telefonoContacto ?? '');
+    _recompensaCtrl =
+        TextEditingController(text: widget.ficha.recompensa?.toString() ?? '');
+    _direccionCtrl =
+        TextEditingController(text: widget.ficha.direccionReferencia ?? '');
+
     if (widget.ficha.fechaPerdida != null) {
       _fechaPerdida = DateTime.tryParse(widget.ficha.fechaPerdida!);
     }
 
     if (widget.ficha.nombreCategoria != null) {
-      _camposDinamicos = CamposCategoria.paraNombre(widget.ficha.nombreCategoria!);
+      _camposDinamicos =
+          CamposCategoria.paraNombre(widget.ficha.nombreCategoria!);
       _inicializarCamposDinamicos();
     }
 
@@ -67,15 +71,18 @@ class _EditarFichaViewState extends State<EditarFichaView> {
       switch (campo.tipo) {
         case TipoCampo.texto:
         case TipoCampo.numero:
-          _ctrlsDinamicos[campo.clave] = TextEditingController(text: valorActual?.toString() ?? '');
+          _ctrlsDinamicos[campo.clave] =
+              TextEditingController(text: valorActual?.toString() ?? '');
           break;
         case TipoCampo.booleano:
-          _switchDinamicos[campo.clave] = valorActual == true || valorActual == 'true' || valorActual == 1;
+          _switchDinamicos[campo.clave] =
+              valorActual == true || valorActual == 'true' || valorActual == 1;
           break;
         case TipoCampo.opciones:
           _opcionDinamica[campo.clave] = valorActual?.toString();
           // Validar que la opción existe en la lista para evitar errores del Dropdown
-          if (_opcionDinamica[campo.clave] != null && !campo.opciones!.contains(_opcionDinamica[campo.clave])) {
+          if (_opcionDinamica[campo.clave] != null &&
+              !campo.opciones!.contains(_opcionDinamica[campo.clave])) {
             _opcionDinamica[campo.clave] = null;
           }
           break;
@@ -133,8 +140,11 @@ class _EditarFichaViewState extends State<EditarFichaView> {
       titulo: _tituloCtrl.text,
       descripcion: _descripcionCtrl.text,
       telefonoContacto: _telefonoCtrl.text.isEmpty ? null : _telefonoCtrl.text,
-      recompensa: _recompensaCtrl.text.isEmpty ? null : double.tryParse(_recompensaCtrl.text),
-      direccionReferencia: _direccionCtrl.text.isEmpty ? null : _direccionCtrl.text,
+      recompensa: _recompensaCtrl.text.isEmpty
+          ? null
+          : double.tryParse(_recompensaCtrl.text),
+      direccionReferencia:
+          _direccionCtrl.text.isEmpty ? null : _direccionCtrl.text,
       fechaPerdida: _fechaPerdida?.toIso8601String(),
     );
 
@@ -172,7 +182,8 @@ class _EditarFichaViewState extends State<EditarFichaView> {
               // — Selector de imagen —
               _ImagePickerSection(
                 imageBytes: vm.imageBytes,
-                fotoUrlExistente: vm.tieneImagenNueva ? null : vm.fotoUrlExistente,
+                fotoUrlExistente:
+                    vm.tieneImagenNueva ? null : vm.fotoUrlExistente,
                 tieneImagen: vm.tieneImagen,
                 isLoading: vm.isLoading,
                 onTap: vm.seleccionarImagen,
@@ -180,20 +191,25 @@ class _EditarFichaViewState extends State<EditarFichaView> {
               ),
 
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ─── Sección: Datos generales ───
-                      _SectionHeader(label: 'Datos de la búsqueda', icon: Icons.info_outline),
+                      _SectionHeader(
+                          label: 'Datos de la búsqueda',
+                          icon: Icons.info_outline),
                       const SizedBox(height: 16),
 
                       // Fecha del incidente (OBLIGATORIA)
                       FormField<DateTime>(
                         initialValue: _fechaPerdida,
-                        validator: (_) => _fechaPerdida == null ? 'La fecha del incidente es obligatoria' : null,
+                        validator: (_) => _fechaPerdida == null
+                            ? 'La fecha del incidente es obligatoria'
+                            : null,
                         builder: (state) => Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -210,7 +226,9 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                                       ? 'Seleccionar fecha'
                                       : '${_fechaPerdida!.day.toString().padLeft(2, '0')}/${_fechaPerdida!.month.toString().padLeft(2, '0')}/${_fechaPerdida!.year}',
                                   style: TextStyle(
-                                    color: _fechaPerdida == null ? const Color(0xFF9E9E9E) : const Color(0xFF1A1A1A),
+                                    color: _fechaPerdida == null
+                                        ? const Color(0xFF9E9E9E)
+                                        : const Color(0xFF1A1A1A),
                                   ),
                                 ),
                               ),
@@ -230,8 +248,10 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                           counterText: '',
                         ),
                         validator: (v) {
-                          if (v == null || v.trim().isEmpty) return 'El título es obligatorio';
-                          if (v.trim().length < 5) return 'El título debe tener al menos 5 caracteres';
+                          if (v == null || v.trim().isEmpty)
+                            return 'El título es obligatorio';
+                          if (v.trim().length < 5)
+                            return 'El título debe tener al menos 5 caracteres';
                           return null;
                         },
                       ),
@@ -249,8 +269,10 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                           counterText: '',
                         ),
                         validator: (v) {
-                          if (v == null || v.trim().isEmpty) return 'La descripción es obligatoria';
-                          if (v.trim().length < 10) return 'La descripción es muy corta';
+                          if (v == null || v.trim().isEmpty)
+                            return 'La descripción es obligatoria';
+                          if (v.trim().length < 10)
+                            return 'La descripción es muy corta';
                           return null;
                         },
                       ),
@@ -268,15 +290,19 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                               ctrl: _ctrlsDinamicos[campo.clave],
                               switchValue: _switchDinamicos[campo.clave],
                               opcionValue: _opcionDinamica[campo.clave],
-                              onTextChanged: (v) => _ctrlsDinamicos[campo.clave]?.text = v,
-                              onSwitchChanged: (v) => setState(() => _switchDinamicos[campo.clave] = v),
-                              onOpcionChanged: (v) => setState(() => _opcionDinamica[campo.clave] = v),
+                              onTextChanged: (v) =>
+                                  _ctrlsDinamicos[campo.clave]?.text = v,
+                              onSwitchChanged: (v) => setState(
+                                  () => _switchDinamicos[campo.clave] = v),
+                              onOpcionChanged: (v) => setState(
+                                  () => _opcionDinamica[campo.clave] = v),
                             )),
                         const SizedBox(height: 8),
                       ],
 
                       // ─── Sección: Datos opcionales y adicionales ───
-                      _SectionHeader(label: 'Datos Adicionales', icon: Icons.tune),
+                      _SectionHeader(
+                          label: 'Datos Adicionales', icon: Icons.tune),
                       const SizedBox(height: 16),
 
                       TextFormField(
@@ -293,14 +319,16 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                         controller: _telefonoCtrl,
                         keyboardType: TextInputType.phone,
                         inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'[\d\+\-\s\(\)]')),
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'[\d\+\-\s\(\)]')),
                         ],
                         decoration: const InputDecoration(
                           labelText: 'Teléfono de contacto',
                           prefixIcon: Icon(Icons.phone),
                         ),
                         validator: (v) {
-                          if (v == null || v.trim().isEmpty) return null; // Opcional
+                          if (v == null || v.trim().isEmpty)
+                            return null; // Opcional
                           final digits = v.replaceAll(RegExp(r'\D'), '');
                           if (digits.length < 7 || digits.length > 15) {
                             return 'Número inválido (entre 7 y 15 dígitos)';
@@ -341,12 +369,15 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                                 icon: const Icon(Icons.save_outlined),
                                 label: const Text(
                                   'Guardar Cambios',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppTheme.primary,
                                   foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)),
                                 ),
                               ),
                             ),
@@ -427,7 +458,9 @@ class _CampoDinamico extends StatelessWidget {
               prefixIcon: campo.icono != null ? Icon(campo.icono) : null,
             ),
             validator: campo.requerido
-                ? (v) => (v == null || v.trim().isEmpty) ? '${campo.etiqueta} es requerido' : null
+                ? (v) => (v == null || v.trim().isEmpty)
+                    ? '${campo.etiqueta} es requerido'
+                    : null
                 : null,
           ),
         );
@@ -445,7 +478,9 @@ class _CampoDinamico extends StatelessWidget {
               prefixIcon: campo.icono != null ? Icon(campo.icono) : null,
             ),
             validator: campo.requerido
-                ? (v) => (v == null || v.trim().isEmpty) ? '${campo.etiqueta} es requerido' : null
+                ? (v) => (v == null || v.trim().isEmpty)
+                    ? '${campo.etiqueta} es requerido'
+                    : null
                 : null,
           ),
         );
@@ -460,9 +495,13 @@ class _CampoDinamico extends StatelessWidget {
               prefixIcon: campo.icono != null ? Icon(campo.icono) : null,
             ),
             hint: const Text('Seleccionar'),
-            items: campo.opciones!.map((op) => DropdownMenuItem(value: op, child: Text(op))).toList(),
+            items: campo.opciones!
+                .map((op) => DropdownMenuItem(value: op, child: Text(op)))
+                .toList(),
             onChanged: onOpcionChanged,
-            validator: campo.requerido ? (v) => v == null ? '${campo.etiqueta} es requerido' : null : null,
+            validator: campo.requerido
+                ? (v) => v == null ? '${campo.etiqueta} es requerido' : null
+                : null,
           ),
         );
 
@@ -475,8 +514,12 @@ class _CampoDinamico extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
             ),
             child: SwitchListTile(
-              title: Text(campo.etiqueta, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-              secondary: campo.icono != null ? Icon(campo.icono, color: AppTheme.primary) : null,
+              title: Text(campo.etiqueta,
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w500)),
+              secondary: campo.icono != null
+                  ? Icon(campo.icono, color: AppTheme.primary)
+                  : null,
               value: switchValue ?? false,
               activeColor: AppTheme.primary,
               onChanged: onSwitchChanged,
@@ -521,7 +564,8 @@ class _ImagePickerSection extends StatelessWidget {
         imageUrl: fotoUrlExistente!,
         fit: BoxFit.cover,
         width: double.infinity,
-        placeholder: (_, __) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        placeholder: (_, __) =>
+            const Center(child: CircularProgressIndicator(strokeWidth: 2)),
         errorWidget: (_, __, ___) => const Center(
           child: Icon(Icons.broken_image, size: 60, color: AppTheme.success),
         ),
@@ -536,10 +580,13 @@ class _ImagePickerSection extends StatelessWidget {
               color: const Color(0xCCFFFFFF),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.add_photo_alternate_outlined, size: 48, color: AppTheme.primary),
+            child: const Icon(Icons.add_photo_alternate_outlined,
+                size: 48, color: AppTheme.primary),
           ),
           const SizedBox(height: 12),
-          const Text('Toca para agregar una foto', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600)),
+          const Text('Toca para agregar una foto',
+              style: TextStyle(
+                  color: AppTheme.primary, fontWeight: FontWeight.w600)),
         ],
       );
     }
@@ -576,12 +623,15 @@ class _ImagePickerSection extends StatelessWidget {
                   TextButton.icon(
                     onPressed: isLoading ? null : onTap,
                     icon: const Icon(Icons.edit, size: 18, color: Colors.white),
-                    label: const Text('Cambiar foto', style: TextStyle(color: Colors.white)),
+                    label: const Text('Cambiar foto',
+                        style: TextStyle(color: Colors.white)),
                   ),
                   TextButton.icon(
                     onPressed: isLoading ? null : onClear,
-                    icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFEF9A9A)),
-                    label: const Text('Quitar', style: TextStyle(color: Color(0xFFEF9A9A))),
+                    icon: const Icon(Icons.delete_outline,
+                        size: 18, color: Color(0xFFEF9A9A)),
+                    label: const Text('Quitar',
+                        style: TextStyle(color: Color(0xFFEF9A9A))),
                   ),
                 ],
               ),
@@ -591,4 +641,3 @@ class _ImagePickerSection extends StatelessWidget {
     );
   }
 }
-

@@ -42,10 +42,10 @@ class PdfReporteService {
       final lat = double.tryParse(datos['latitud']?.toString() ?? '');
       final lng = double.tryParse(datos['longitud']?.toString() ?? '');
       final lpp = (lat != null && lng != null) ? LatLng(lat, lng) : null;
-      
+
       final cuadrante = (datos['mapa_cuadrante'] as List<LatLng>?) ?? [];
       final rutas = (datos['mapa_rutas'] as List<List<LatLng>>?) ?? [];
-      
+
       final urlRutas = MapboxStaticService.obtenerMapaRutasUrl(
         cuadrante: cuadrante,
         rutasVoluntarios: rutas,
@@ -55,14 +55,18 @@ class PdfReporteService {
         mapaRutasBytes = await _descargarImagenRaw(urlRutas);
       }
 
-      final evidencias = (datos['evidencias'] as List?)?.map((e) {
-        if (e['estado'] == 'approved') {
-          final eLat = double.tryParse(e['lat']?.toString() ?? '');
-          final eLng = double.tryParse(e['lng']?.toString() ?? '');
-          if (eLat != null && eLng != null) return LatLng(eLat, eLng);
-        }
-        return null;
-      }).whereType<LatLng>().toList() ?? [];
+      final evidencias = (datos['evidencias'] as List?)
+              ?.map((e) {
+                if (e['estado'] == 'approved') {
+                  final eLat = double.tryParse(e['lat']?.toString() ?? '');
+                  final eLng = double.tryParse(e['lng']?.toString() ?? '');
+                  if (eLat != null && eLng != null) return LatLng(eLat, eLng);
+                }
+                return null;
+              })
+              .whereType<LatLng>()
+              .toList() ??
+          [];
 
       final urlEvidencias = MapboxStaticService.obtenerMapaEvidenciasUrl(
         evidenciasAprobadas: evidencias,
@@ -76,7 +80,8 @@ class PdfReporteService {
     }
 
     // Pre-descargar imágenes de evidencias con reporte de progreso
-    onProgress?.call('imagenes', 'Descargando evidencias fotográficas...', 0.20);
+    onProgress?.call(
+        'imagenes', 'Descargando evidencias fotográficas...', 0.20);
     final List<Map<String, dynamic>> listEvidencias =
         List<Map<String, dynamic>>.from(datos['evidencias'] ?? []);
     final List<_ImagenCargada> imagenesEvidencias =
@@ -112,7 +117,8 @@ class PdfReporteService {
 
   Future<Uint8List?> _descargarImagenRaw(String url) async {
     try {
-      final res = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
+      final res =
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
       if (res.statusCode == 200) return res.bodyBytes;
     } catch (_) {}
     return null;
@@ -173,7 +179,8 @@ class PdfReporteService {
             _buildEncabezado(ctx, datos, ttfBold),
             _buildSeccionMapaRutas(mapaRutasBytes, datos, ttfNormal, ttfBold),
             pw.SizedBox(height: 32),
-            _buildSeccionMapaEvidencias(mapaEvidenciasBytes, datos, ttfNormal, ttfBold),
+            _buildSeccionMapaEvidencias(
+                mapaEvidenciasBytes, datos, ttfNormal, ttfBold),
           ],
         ),
       ),
@@ -230,7 +237,8 @@ class PdfReporteService {
           children: [
             // Logo textual "ECHOES"
             pw.Container(
-              padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding:
+                  const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: pw.BoxDecoration(
                 color: _primary,
                 borderRadius: pw.BorderRadius.circular(8),
@@ -341,7 +349,8 @@ class PdfReporteService {
                     pw.SizedBox(height: 8),
                     // Badge de estado
                     pw.Container(
-                      padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      padding: const pw.EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 3),
                       decoration: pw.BoxDecoration(
                         color: estadoColor.shade(0.15),
                         border: pw.Border.all(color: estadoColor, width: 0.8),
@@ -360,17 +369,23 @@ class PdfReporteService {
                     // Datos clave en tabla 2 columnas
                     _buildInfoGrid([
                       _InfoItem('Categoría', datos['categoria'] ?? 'N/A'),
-                      _InfoItem('Fecha de reporte', _formatFecha(datos['fecha_reporte']?.toString())),
-                      _InfoItem('Fecha del evento', _formatFecha(datos['fecha_perdida']?.toString())),
-                      _InfoItem('Cuadrante', datos['cuadrante_nombre'] ?? 'N/A'),
-                      _InfoItem('Nivel de expansión', '${datos['nivel_expansion'] ?? 1} / ${datos['max_expansion'] ?? 10}'),
-                      _InfoItem('Contacto', datos['telefono_contacto'] ?? 'No disponible'),
+                      _InfoItem('Fecha de reporte',
+                          _formatFecha(datos['fecha_reporte']?.toString())),
+                      _InfoItem('Fecha del evento',
+                          _formatFecha(datos['fecha_perdida']?.toString())),
+                      _InfoItem(
+                          'Cuadrante', datos['cuadrante_nombre'] ?? 'N/A'),
+                      _InfoItem('Nivel de expansión',
+                          '${datos['nivel_expansion'] ?? 1} / ${datos['max_expansion'] ?? 10}'),
+                      _InfoItem('Contacto',
+                          datos['telefono_contacto'] ?? 'No disponible'),
                     ], ttfNormal, ttfBold),
                     // Descripción
                     pw.SizedBox(height: 14),
                     pw.Text(
                       'Descripción:',
-                      style: pw.TextStyle(font: ttfBold, fontSize: 10, color: _darkBase),
+                      style: pw.TextStyle(
+                          font: ttfBold, fontSize: 10, color: _darkBase),
                     ),
                     pw.SizedBox(height: 4),
                     pw.Container(
@@ -381,7 +396,10 @@ class PdfReporteService {
                       ),
                       child: pw.Text(
                         datos['descripcion'] ?? 'Sin descripción.',
-                        style: pw.TextStyle(fontSize: 10, color: _textSecondary, lineSpacing: 2),
+                        style: pw.TextStyle(
+                            fontSize: 10,
+                            color: _textSecondary,
+                            lineSpacing: 2),
                       ),
                     ),
                     // Dirección de referencia
@@ -389,21 +407,25 @@ class PdfReporteService {
                       pw.SizedBox(height: 10),
                       pw.Row(
                         children: [
-                          pw.Text('Dirección: ', style: pw.TextStyle(font: ttfBold, fontSize: 10)),
+                          pw.Text('Dirección: ',
+                              style: pw.TextStyle(font: ttfBold, fontSize: 10)),
                           pw.Flexible(
                             child: pw.Text(
                               datos['direccion_referencia'].toString(),
-                              style: pw.TextStyle(fontSize: 10, color: _textSecondary),
+                              style: pw.TextStyle(
+                                  fontSize: 10, color: _textSecondary),
                             ),
                           ),
                         ],
                       ),
                     ],
                     // Recompensa si aplica
-                    if (datos['recompensa'] != null && datos['recompensa'] != 0) ...[
+                    if (datos['recompensa'] != null &&
+                        datos['recompensa'] != 0) ...[
                       pw.SizedBox(height: 10),
                       pw.Container(
-                        padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const pw.EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
                         decoration: pw.BoxDecoration(
                           color: PdfColor.fromInt(0xFFFEF3C7),
                           border: pw.Border.all(color: _accent, width: 0.8),
@@ -420,21 +442,25 @@ class PdfReporteService {
                       ),
                     ],
                     // Características adicionales
-                    if (datos['caracteristicas'] is Map && (datos['caracteristicas'] as Map).isNotEmpty) ...[
+                    if (datos['caracteristicas'] is Map &&
+                        (datos['caracteristicas'] as Map).isNotEmpty) ...[
                       pw.SizedBox(height: 14),
                       pw.Text(
                         'Características adicionales:',
-                        style: pw.TextStyle(font: ttfBold, fontSize: 10, color: _darkBase),
+                        style: pw.TextStyle(
+                            font: ttfBold, fontSize: 10, color: _darkBase),
                       ),
                       pw.SizedBox(height: 4),
                       pw.Wrap(
                         spacing: 8,
                         runSpacing: 4,
-                        children: (datos['caracteristicas'] as Map).entries.map((e) {
+                        children:
+                            (datos['caracteristicas'] as Map).entries.map((e) {
                           final clave = e.key.toString();
                           final valor = e.value?.toString() ?? '';
                           return pw.Container(
-                            padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const pw.EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
                             decoration: pw.BoxDecoration(
                               color: _backgroundLight,
                               border: pw.Border.all(color: _border, width: 0.5),
@@ -442,7 +468,8 @@ class PdfReporteService {
                             ),
                             child: pw.Text(
                               '$clave: $valor',
-                              style: pw.TextStyle(fontSize: 9, color: _textSecondary),
+                              style: pw.TextStyle(
+                                  fontSize: 9, color: _textSecondary),
                             ),
                           );
                         }).toList(),
@@ -503,13 +530,16 @@ class PdfReporteService {
         pw.SizedBox(height: 12),
         pw.Row(
           children: [
-            _buildStatCard('Voluntarios', '$totalVoluntarios', _primary, ttfBold),
+            _buildStatCard(
+                'Voluntarios', '$totalVoluntarios', _primary, ttfBold),
             pw.SizedBox(width: 8),
             _buildStatCard('Evidencias', '$totalEvidencias', _warning, ttfBold),
             pw.SizedBox(width: 8),
-            _buildStatCard('Aprobadas', '$evidenciasAprobadas', _success, ttfBold),
+            _buildStatCard(
+                'Aprobadas', '$evidenciasAprobadas', _success, ttfBold),
             pw.SizedBox(width: 8),
-            _buildStatCard('Cuadrantes', '$cuadrantesExpandidos', PdfColors.indigo, ttfBold),
+            _buildStatCard('Cuadrantes', '$cuadrantesExpandidos',
+                PdfColors.indigo, ttfBold),
           ],
         ),
       ],
@@ -568,7 +598,7 @@ class PdfReporteService {
     pw.Font ttfBold,
   ) {
     if (mapaBytes == null) return pw.SizedBox();
-    
+
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -644,9 +674,11 @@ class PdfReporteService {
             ),
             child: pw.Column(
               children: [
-                _buildInfoRow('Coordenadas (LPP)', 'Lat: $lat  |  Lng: $lng', ttfNormal, ttfBold),
+                _buildInfoRow('Coordenadas (LPP)', 'Lat: $lat  |  Lng: $lng',
+                    ttfNormal, ttfBold),
                 pw.Divider(color: _border, thickness: 0.5),
-                _buildInfoRow('Cuadrante Asignado', cuadrante, ttfNormal, ttfBold),
+                _buildInfoRow(
+                    'Cuadrante Asignado', cuadrante, ttfNormal, ttfBold),
               ],
             ),
           ),
@@ -700,26 +732,31 @@ class PdfReporteService {
                       child: pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
-                          if (img.descripcion != null && img.descripcion!.isNotEmpty)
+                          if (img.descripcion != null &&
+                              img.descripcion!.isNotEmpty)
                             pw.Text(
                               img.descripcion!,
-                              style: pw.TextStyle(fontSize: 8, color: _textSecondary),
+                              style: pw.TextStyle(
+                                  fontSize: 8, color: _textSecondary),
                               maxLines: 2,
                             ),
                           if (img.fecha != null)
                             pw.Text(
                               _formatFechaHora(img.fecha!),
-                              style: pw.TextStyle(fontSize: 7, color: _textSecondary),
+                              style: pw.TextStyle(
+                                  fontSize: 7, color: _textSecondary),
                             ),
                           pw.Container(
-                            padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const pw.EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
                             decoration: pw.BoxDecoration(
                               color: _success.shade(0.15),
                               borderRadius: pw.BorderRadius.circular(4),
                             ),
                             child: pw.Text(
                               'APROBADA',
-                              style: pw.TextStyle(font: ttfBold, fontSize: 7, color: _success),
+                              style: pw.TextStyle(
+                                  font: ttfBold, fontSize: 7, color: _success),
                             ),
                           ),
                         ],
@@ -790,15 +827,40 @@ class PdfReporteService {
             },
             children: [
               _buildTableHeader(['Métrica', 'Valor'], ttfBold),
-              _buildTableRow(['Total de voluntarios', '$totalVoluntarios participantes'], ttfNormal, isAlternate: false),
-              _buildTableRow(['Duración total del operativo', '${horasTotales}h ${minutosTotales}min'], ttfNormal, isAlternate: true),
-              _buildTableRow(['Tiempo activo de búsqueda', '${horasActivo}h ${minutosActivo}min'], ttfNormal, isAlternate: false),
-              _buildTableRow(['Distancia total cubierta', '${distanciaKm.toStringAsFixed(2)} km'], ttfNormal, isAlternate: true),
-              _buildTableRow(['Cuadrantes expandidos', '$cuadrantesExpandidos cuadrante(s)'], ttfNormal, isAlternate: false),
-              _buildTableRow(['Nivel de expansión alcanzado', '$nivelExpansion / $maxExpansion'], ttfNormal, isAlternate: true),
-              _buildTableRow(['Total de evidencias reportadas', '$totalEvidencias'], ttfNormal, isAlternate: false),
-              _buildTableRow(['Evidencias aprobadas', '$evidenciasAprobadas'], ttfNormal, isAlternate: true),
-              _buildTableRow(['Evidencias rechazadas', '$evidenciasRechazadas'], ttfNormal, isAlternate: false),
+              _buildTableRow([
+                'Total de voluntarios',
+                '$totalVoluntarios participantes'
+              ], ttfNormal, isAlternate: false),
+              _buildTableRow([
+                'Duración total del operativo',
+                '${horasTotales}h ${minutosTotales}min'
+              ], ttfNormal, isAlternate: true),
+              _buildTableRow([
+                'Tiempo activo de búsqueda',
+                '${horasActivo}h ${minutosActivo}min'
+              ], ttfNormal, isAlternate: false),
+              _buildTableRow([
+                'Distancia total cubierta',
+                '${distanciaKm.toStringAsFixed(2)} km'
+              ], ttfNormal, isAlternate: true),
+              _buildTableRow([
+                'Cuadrantes expandidos',
+                '$cuadrantesExpandidos cuadrante(s)'
+              ], ttfNormal, isAlternate: false),
+              _buildTableRow([
+                'Nivel de expansión alcanzado',
+                '$nivelExpansion / $maxExpansion'
+              ], ttfNormal, isAlternate: true),
+              _buildTableRow([
+                'Total de evidencias reportadas',
+                '$totalEvidencias'
+              ], ttfNormal, isAlternate: false),
+              _buildTableRow(
+                  ['Evidencias aprobadas', '$evidenciasAprobadas'], ttfNormal,
+                  isAlternate: true),
+              _buildTableRow(
+                  ['Evidencias rechazadas', '$evidenciasRechazadas'], ttfNormal,
+                  isAlternate: false),
             ],
           ),
         ),
@@ -856,7 +918,8 @@ class PdfReporteService {
           child: pw.Text(
             'Este reporte fue generado automáticamente por el sistema Echoes al concluir el operativo de búsqueda. '
             'Todos los datos son registros reales del sistema y pueden ser utilizados como evidencia oficial.',
-            style: pw.TextStyle(fontSize: 9, color: _primaryDark, lineSpacing: 1.5),
+            style: pw.TextStyle(
+                fontSize: 9, color: _primaryDark, lineSpacing: 1.5),
           ),
         ),
       ],
@@ -878,7 +941,8 @@ class PdfReporteService {
       if (fechaStr == null) continue;
       final dt = DateTime.tryParse(fechaStr);
       if (dt == null) continue;
-      final dateKey = '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}';
+      final dateKey =
+          '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}';
       conteoPorFecha[dateKey] = (conteoPorFecha[dateKey] ?? 0) + 1;
     }
 
@@ -903,7 +967,8 @@ class PdfReporteService {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('[ DISTRIBUCIÓN DE EVIDENCIAS EN EL TIEMPO ]', ttfBold),
+        _buildSectionTitle(
+            '[ DISTRIBUCIÓN DE EVIDENCIAS EN EL TIEMPO ]', ttfBold),
         pw.SizedBox(height: 12),
         pw.Container(
           height: 180,
@@ -922,7 +987,10 @@ class PdfReporteService {
               ),
               yAxis: pw.FixedAxis(
                 List<int>.generate(
-                  (values.isNotEmpty ? values.reduce((a, b) => a > b ? a : b) : 0) + 2,
+                  (values.isNotEmpty
+                          ? values.reduce((a, b) => a > b ? a : b)
+                          : 0) +
+                      2,
                   (i) => i,
                 ),
                 ticks: true,
@@ -962,7 +1030,8 @@ class PdfReporteService {
     );
   }
 
-  pw.Widget _buildStatCard(String label, String valor, PdfColor color, pw.Font ttfBold) {
+  pw.Widget _buildStatCard(
+      String label, String valor, PdfColor color, pw.Font ttfBold) {
     return pw.Expanded(
       child: pw.Container(
         padding: const pw.EdgeInsets.symmetric(vertical: 12, horizontal: 8),
@@ -991,7 +1060,8 @@ class PdfReporteService {
     );
   }
 
-  pw.Widget _buildInfoGrid(List<_InfoItem> items, pw.Font ttfNormal, pw.Font ttfBold) {
+  pw.Widget _buildInfoGrid(
+      List<_InfoItem> items, pw.Font ttfNormal, pw.Font ttfBold) {
     final rows = <pw.Widget>[];
     for (int i = 0; i < items.length; i += 2) {
       final left = items[i];
@@ -1014,7 +1084,8 @@ class PdfReporteService {
     return pw.Column(children: rows);
   }
 
-  pw.Widget _buildInfoItemWidget(_InfoItem item, pw.Font ttfNormal, pw.Font ttfBold) {
+  pw.Widget _buildInfoItemWidget(
+      _InfoItem item, pw.Font ttfNormal, pw.Font ttfBold) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -1031,13 +1102,16 @@ class PdfReporteService {
     );
   }
 
-  pw.Widget _buildInfoRow(String label, String value, pw.Font ttfNormal, pw.Font ttfBold) {
+  pw.Widget _buildInfoRow(
+      String label, String value, pw.Font ttfNormal, pw.Font ttfBold) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 6),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          pw.Text(label, style: pw.TextStyle(font: ttfBold, fontSize: 10, color: _textSecondary)),
+          pw.Text(label,
+              style: pw.TextStyle(
+                  font: ttfBold, fontSize: 10, color: _textSecondary)),
           pw.Text(value, style: pw.TextStyle(fontSize: 10, color: _darkBase)),
         ],
       ),
@@ -1059,7 +1133,8 @@ class PdfReporteService {
       decoration: pw.BoxDecoration(color: _primary),
       children: headers
           .map((h) => pw.Padding(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 child: pw.Text(
                   h,
                   style: pw.TextStyle(
@@ -1073,7 +1148,8 @@ class PdfReporteService {
     );
   }
 
-  pw.TableRow _buildTableRow(List<String> cells, pw.Font ttfNormal, {required bool isAlternate}) {
+  pw.TableRow _buildTableRow(List<String> cells, pw.Font ttfNormal,
+      {required bool isAlternate}) {
     return pw.TableRow(
       decoration: pw.BoxDecoration(
         color: isAlternate ? _backgroundLight : PdfColors.white,
@@ -1082,13 +1158,16 @@ class PdfReporteService {
           .asMap()
           .entries
           .map((entry) => pw.Padding(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                padding:
+                    const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                 child: pw.Text(
                   entry.value,
                   style: pw.TextStyle(
                     fontSize: 10,
                     color: _darkBase,
-                    fontWeight: entry.key == 0 ? pw.FontWeight.bold : pw.FontWeight.normal,
+                    fontWeight: entry.key == 0
+                        ? pw.FontWeight.bold
+                        : pw.FontWeight.normal,
                   ),
                 ),
               ))
@@ -1113,7 +1192,9 @@ class PdfReporteService {
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
-            pw.Text(label, style: pw.TextStyle(font: ttfBold, fontSize: 9, color: _darkBase)),
+            pw.Text(label,
+                style:
+                    pw.TextStyle(font: ttfBold, fontSize: 9, color: _darkBase)),
             pw.Text(
               '${valor.toInt()} / ${maximo.toInt()} ($pct%)',
               style: pw.TextStyle(fontSize: 9, color: _textSecondary),
@@ -1166,14 +1247,15 @@ class PdfReporteService {
   Future<Uint8List?> _descargarYOptimizar(String url) async {
     try {
       final response = await http.get(Uri.parse(url)).timeout(
-        const Duration(seconds: 15),
-      );
+            const Duration(seconds: 15),
+          );
       if (response.statusCode != 200) return null;
       final originalBytes = response.bodyBytes;
 
       // ── Compresión real con el paquete `image` en background ───────────
       // Offloaded a un isolate para evitar bloquear la UI
-      final Uint8List? optimizados = await compute(_optimizarImagenIsolate, originalBytes);
+      final Uint8List? optimizados =
+          await compute(_optimizarImagenIsolate, originalBytes);
       return optimizados ?? originalBytes;
     } catch (e) {
       return null;
@@ -1195,9 +1277,7 @@ class PdfReporteService {
     final aCargar = aprobadas.isNotEmpty
         ? aprobadas
         : evidencias
-            .where((e) =>
-                e['foto_url'] != null ||
-                e['url'] != null)
+            .where((e) => e['foto_url'] != null || e['url'] != null)
             .toList();
 
     final total = aCargar.length;
@@ -1312,7 +1392,8 @@ dynamic _limpiarDatos(dynamic valor) {
   if (valor is String) {
     var limpio = valor.replaceAll('–', '-').replaceAll('—', '-');
     // Deja solo caracteres ASCII básicos y caracteres extendidos Latin-1 (acentos)
-    limpio = limpio.replaceAll(RegExp(r'[^\x00-\x7F\xC0-\xFF\s\.,;:!?()\[\]{}"\x27\-\+]'), '');
+    limpio = limpio.replaceAll(
+        RegExp(r'[^\x00-\x7F\xC0-\xFF\s\.,;:!?()\[\]{}"\x27\-\+]'), '');
     return limpio;
   } else if (valor is List) {
     return valor.map((e) => _limpiarDatos(e)).toList();
@@ -1345,7 +1426,8 @@ Uint8List? _optimizarImagenIsolate(Uint8List originalBytes) {
         ? img_pkg.copyResize(imagen, width: anchoMaximo)
         : imagen;
 
-    final List<int> comprimidos = img_pkg.encodeJpg(imagenOptimizada, quality: 60);
+    final List<int> comprimidos =
+        img_pkg.encodeJpg(imagenOptimizada, quality: 60);
     return Uint8List.fromList(comprimidos);
   } catch (e) {
     return originalBytes;

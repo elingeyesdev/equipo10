@@ -94,7 +94,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
           ],
         ),
         content: const Text(
-          '¿Estás seguro de que deseas retirarte de esta búsqueda? '  
+          '¿Estás seguro de que deseas retirarte de esta búsqueda? '
           'Tu recorrido hasta ahora quedará guardado.',
         ),
         actions: [
@@ -274,97 +274,115 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _HeroImage(fotoUrl: ficha.fotoUrl, categoria: ficha.nombreCategoria),
+                        _HeroImage(
+                            fotoUrl: ficha.fotoUrl,
+                            categoria: ficha.nombreCategoria),
                         Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                crossAxisAlignment: WrapCrossAlignment.center,
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _EstadoBadge(estado: ficha.estado),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF3E5F5),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(color: const Color(0xFF8E24AA)),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.group, size: 14, color: Color(0xFF8E24AA)),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '${vm.voluntariosCount} Voluntarios',
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            color: Color(0xFF8E24AA),
-                                            fontWeight: FontWeight.bold,
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    children: [
+                                      _EstadoBadge(estado: ficha.estado),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF3E5F5),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                          border: Border.all(
+                                              color: const Color(0xFF8E24AA)),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.group,
+                                                size: 14,
+                                                color: Color(0xFF8E24AA)),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '${vm.voluntariosCount} Voluntarios',
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: Color(0xFF8E24AA),
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (esCreador)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.primary
+                                                .withValues(alpha: 0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                            border: Border.all(
+                                                color: AppTheme.primary),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              if (ficha.avatarUsuario != null &&
+                                                  ficha.avatarUsuario!
+                                                      .isNotEmpty) ...[
+                                                CircleAvatar(
+                                                  radius: 8,
+                                                  backgroundImage:
+                                                      CachedNetworkImageProvider(
+                                                          ficha.avatarUsuario!),
+                                                  backgroundColor:
+                                                      Colors.transparent,
+                                                ),
+                                              ] else
+                                                const Icon(Icons.person,
+                                                    size: 14,
+                                                    color: AppTheme.primary),
+                                              const SizedBox(width: 4),
+                                              const Text(
+                                                'Tú creaste esta búsqueda',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: AppTheme.primary,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                      ],
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    ficha.titulo,
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF1A1A1A),
                                     ),
                                   ),
-                                  if (esCreador)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primary.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(color: AppTheme.primary),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          if (ficha.avatarUsuario != null && ficha.avatarUsuario!.isNotEmpty) ...[
-                                            CircleAvatar(
-                                              radius: 8,
-                                              backgroundImage: CachedNetworkImageProvider(ficha.avatarUsuario!),
-                                              backgroundColor: Colors.transparent,
-                                            ),
-                                          ] else
-                                            const Icon(Icons.person, size: 14, color: AppTheme.primary),
-                                          const SizedBox(width: 4),
-                                          const Text(
-                                            'Tú creaste esta búsqueda',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: AppTheme.primary,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    height: 3,
+                                    width: 40,
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.info,
+                                      borderRadius: BorderRadius.circular(2),
                                     ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                ficha.titulo,
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF1A1A1A),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Container(
-                                height: 3,
-                                width: 40,
-                                decoration: BoxDecoration(
-                                  color: AppTheme.info,
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              _buildActionArea(vm, esCreador, esBloqueado, estadoText),
-                            ]
-                          )
-                        )
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _buildActionArea(
+                                      vm, esCreador, esBloqueado, estadoText),
+                                ]))
                       ],
                     ),
                   ),
@@ -434,46 +452,62 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                               decoration: BoxDecoration(
                                 color: const Color(0xFFE3F2FD),
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: AppTheme.info, width: 1.5),
+                                border: Border.all(
+                                    color: AppTheme.info, width: 1.5),
                               ),
                               clipBehavior: Clip.hardEdge,
                               child: Stack(
                                 children: [
                                   IgnorePointer(
                                     child: Consumer<EvidenciaViewModel>(
-                                      builder: (context, evidenciaVm, _) {
-                                        return FlutterMap(
-                                          options: MapOptions(
-                                            initialCenter: LatLng(ficha.latitud!, ficha.longitud!),
-                                            initialZoom: 15.0,
-                                            interactionOptions: const InteractionOptions(
-                                                flags: InteractiveFlag.none),
+                                        builder: (context, evidenciaVm, _) {
+                                      return FlutterMap(
+                                        options: MapOptions(
+                                          initialCenter: LatLng(
+                                              ficha.latitud!, ficha.longitud!),
+                                          initialZoom: 15.0,
+                                          interactionOptions:
+                                              const InteractionOptions(
+                                                  flags: InteractiveFlag.none),
+                                        ),
+                                        children: [
+                                          MapTileLayer(useSatellite: false),
+                                          MarkerLayer(
+                                            markers: [
+                                              Marker(
+                                                point: LatLng(ficha.latitud!,
+                                                    ficha.longitud!),
+                                                width: 40,
+                                                height: 40,
+                                                child: const Icon(
+                                                    Icons.location_on,
+                                                    color: Colors.red,
+                                                    size: 40),
+                                              ),
+                                              ...evidenciaVm.evidencias
+                                                  .where((e) =>
+                                                      (esCreador ||
+                                                          e.estado ==
+                                                              'approved') &&
+                                                      e.lat != null &&
+                                                      e.lng != null)
+                                                  .map((evidencia) {
+                                                return Marker(
+                                                  point: LatLng(evidencia.lat!,
+                                                      evidencia.lng!),
+                                                  width: 30,
+                                                  height: 30,
+                                                  child: const Icon(
+                                                      Icons.camera_alt,
+                                                      color: Colors.blueAccent,
+                                                      size: 24),
+                                                );
+                                              }),
+                                            ],
                                           ),
-                                          children: [
-                                            MapTileLayer(useSatellite: false),
-                                            MarkerLayer(
-                                              markers: [
-                                                Marker(
-                                                  point: LatLng(ficha.latitud!, ficha.longitud!),
-                                                  width: 40,
-                                                  height: 40,
-                                                  child: const Icon(Icons.location_on,
-                                                      color: Colors.red, size: 40),
-                                                ),
-                                                ...evidenciaVm.evidencias.where((e) => (esCreador || e.estado == 'approved') && e.lat != null && e.lng != null).map((evidencia) {
-                                                  return Marker(
-                                                    point: LatLng(evidencia.lat!, evidencia.lng!),
-                                                    width: 30,
-                                                    height: 30,
-                                                    child: const Icon(Icons.camera_alt, color: Colors.blueAccent, size: 24),
-                                                  );
-                                                }),
-                                              ],
-                                            ),
-                                          ],
-                                        );
-                                      }
-                                    ),
+                                        ],
+                                      );
+                                    }),
                                   ),
                                   Container(
                                     color: Colors.black.withValues(alpha: 0.1),
@@ -511,13 +545,17 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.location_on, color: AppTheme.primary, size: 20),
+                              const Icon(Icons.location_on,
+                                  color: AppTheme.primary, size: 20),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  (ficha.direccionReferencia != null && (ficha.direccionReferencia as String).isNotEmpty)
+                                  (ficha.direccionReferencia != null &&
+                                          (ficha.direccionReferencia as String)
+                                              .isNotEmpty)
                                       ? (ficha.direccionReferencia as String)
-                                      : ((ficha.cuadranteNombre != null && ficha.cuadranteNombre!.isNotEmpty)
+                                      : ((ficha.cuadranteNombre != null &&
+                                              ficha.cuadranteNombre!.isNotEmpty)
                                           ? '${ficha.cuadranteNombre} (${ficha.cuadranteZona ?? "Zona"})'
                                           : 'Ubicación seleccionada en el mapa'),
                                   style: const TextStyle(
@@ -557,8 +595,8 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
     );
   }
 
-  Widget _buildActionArea(
-      DetalleFichaViewModel vm, bool esCreador, bool esBloqueado, String estadoText) {
+  Widget _buildActionArea(DetalleFichaViewModel vm, bool esCreador,
+      bool esBloqueado, String estadoText) {
     if (esCreador) {
       return Column(
         children: [
@@ -689,8 +727,8 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
             ? const SizedBox(
                 width: 20,
                 height: 20,
-                child:
-                    CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
               )
             : const Icon(Icons.group_add),
         label: const Text(
@@ -785,7 +823,8 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final c = vm.comentarios[index];
-              final autor = c['usuario'] != null ? c['usuario']['nombre'] : 'Anónimo';
+              final autor =
+                  c['usuario'] != null ? c['usuario']['nombre'] : 'Anónimo';
               return Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -795,9 +834,12 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(autor, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text(autor,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13)),
                     const SizedBox(height: 4),
-                    Text(c['texto'] ?? '', style: const TextStyle(fontSize: 14)),
+                    Text(c['texto'] ?? '',
+                        style: const TextStyle(fontSize: 14)),
                   ],
                 ),
               );
@@ -814,7 +856,8 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                     hintText: 'Añadir comentario...',
                     filled: true,
                     fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24),
                       borderSide: const BorderSide(color: Colors.grey),
@@ -829,7 +872,8 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
                   icon: const Icon(Icons.send, color: Colors.white, size: 18),
                   onPressed: () async {
                     if (ctrl.text.trim().isEmpty) return;
-                    await vm.enviarComentario(widget.fichaId, ctrl.text.trim(), widget.currentUserId);
+                    await vm.enviarComentario(
+                        widget.fichaId, ctrl.text.trim(), widget.currentUserId);
                     ctrl.clear();
                   },
                 ),
@@ -898,9 +942,11 @@ class _HeroImage extends StatelessWidget {
     if (cat == null) return Icons.person_search;
     final c = cat.toLowerCase().trim();
     if (c.contains('mascota') || c == 'mascotas') return Icons.pets;
-    if (c.contains('veh') || c == 'vehículos' || c == 'vehiculos') return Icons.directions_car;
+    if (c.contains('veh') || c == 'vehículos' || c == 'vehiculos')
+      return Icons.directions_car;
     if (c.contains('document') || c == 'documentos') return Icons.badge;
-    if (c.contains('electr') || c == 'electrónicos' || c == 'electronicos') return Icons.devices;
+    if (c.contains('electr') || c == 'electrónicos' || c == 'electronicos')
+      return Icons.devices;
     if (c.contains('persona') || c == 'personas') return Icons.person_search;
     return Icons.search;
   }
@@ -937,7 +983,6 @@ class _HeroImage extends StatelessWidget {
           )
         else
           _placeholder(),
-
         Positioned(
           bottom: 0,
           left: 0,
@@ -1027,7 +1072,6 @@ class _EstadoBadge extends StatelessWidget {
   }
 }
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 class _InfoSection extends StatelessWidget {
   final dynamic ficha;
@@ -1047,19 +1091,20 @@ class _InfoSection extends StatelessWidget {
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
           children: [
-            if (ficha.nombreCategoria != null && (ficha.nombreCategoria as String).isNotEmpty)
+            if (ficha.nombreCategoria != null &&
+                (ficha.nombreCategoria as String).isNotEmpty)
               _MiniCard(
                   icon: Icons.category_outlined,
                   label: 'Categoría',
                   value: ficha.nombreCategoria),
-            if (ficha.fechaPerdida != null && (ficha.fechaPerdida as String).isNotEmpty)
+            if (ficha.fechaPerdida != null &&
+                (ficha.fechaPerdida as String).isNotEmpty)
               _MiniCard(
                   icon: Icons.calendar_today_outlined,
                   label: 'Fecha',
                   value: (ficha.fechaPerdida as String).length > 10
                       ? (ficha.fechaPerdida as String).substring(0, 10)
                       : ficha.fechaPerdida),
-
             if (ficha.recompensa != null && (ficha.recompensa as num) > 0)
               _MiniCard(
                   icon: Icons.monetization_on_outlined,
@@ -1069,7 +1114,6 @@ class _InfoSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-
         if ((ficha.telefonoContacto != null &&
                 (ficha.telefonoContacto as String).isNotEmpty) ||
             (ficha.emailContacto != null &&
@@ -1095,7 +1139,8 @@ class _InfoSection extends StatelessWidget {
                   if (ficha.telefonoContacto != null &&
                       (ficha.telefonoContacto as String).isNotEmpty)
                     _ContactRow(
-                        icon: Icons.phone_outlined, text: ficha.telefonoContacto),
+                        icon: Icons.phone_outlined,
+                        text: ficha.telefonoContacto),
                   if (ficha.emailContacto != null &&
                       (ficha.emailContacto as String).isNotEmpty)
                     _ContactRow(
@@ -1105,7 +1150,6 @@ class _InfoSection extends StatelessWidget {
             ),
           ),
         const SizedBox(height: 16),
-
         if (ficha.caracteristicas != null &&
             (ficha.caracteristicas as Map).isNotEmpty)
           Column(
@@ -1121,8 +1165,9 @@ class _InfoSection extends StatelessWidget {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children:
-                    (ficha.caracteristicas as Map<String, dynamic>).entries.map((entry) {
+                children: (ficha.caracteristicas as Map<String, dynamic>)
+                    .entries
+                    .map((entry) {
                   final clave = entry.key;
                   final valor = entry.value;
 
@@ -1132,8 +1177,8 @@ class _InfoSection extends StatelessWidget {
                   final campoRef =
                       camposRef.where((c) => c.clave == clave).firstOrNull;
 
-                  final etiqueta =
-                      campoRef?.etiqueta ?? clave.replaceAll('_', ' ').toUpperCase();
+                  final etiqueta = campoRef?.etiqueta ??
+                      clave.replaceAll('_', ' ').toUpperCase();
                   final icono = campoRef?.icono ?? Icons.info_outline;
 
                   String valorStr;
@@ -1159,9 +1204,7 @@ class _InfoSection extends StatelessWidget {
               ),
             ],
           ),
-
         const SizedBox(height: 24),
-
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -1169,14 +1212,14 @@ class _InfoSection extends StatelessWidget {
                 (ficha.nombreUsuario as String).isNotEmpty)
               Expanded(
                 child: Text('Reportado por: ${ficha.nombreUsuario}',
-                    style:
-                        const TextStyle(fontSize: 12, color: Colors.grey)),
+                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
               ),
             if (ficha.vistas != null)
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.remove_red_eye_outlined, size: 14, color: Colors.grey),
+                  const Icon(Icons.remove_red_eye_outlined,
+                      size: 14, color: Colors.grey),
                   const SizedBox(width: 4),
                   Text('${ficha.vistas} vistas',
                       style: const TextStyle(fontSize: 12, color: Colors.grey)),
@@ -1259,14 +1302,13 @@ class _ContactRow extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
               child: Text(text,
-                  style: const TextStyle(
-                      fontSize: 14, color: Color(0xFF1A1A1A)))),
+                  style:
+                      const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)))),
         ],
       ),
     );
   }
 }
-
 
 class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   _SliverAppBarDelegate(this._tabBar);

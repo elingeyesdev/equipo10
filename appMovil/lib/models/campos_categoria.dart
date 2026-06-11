@@ -43,7 +43,6 @@ class CamposCategoria {
         icono: Icons.face_outlined,
       ),
     ],
-
     'mascotas': [
       CampoCategoria(
         clave: 'especie',
@@ -80,13 +79,17 @@ class CamposCategoria {
         icono: Icons.medical_services_outlined,
       ),
     ],
-
     'documentos': [
       CampoCategoria(
         clave: 'tipo_documento',
         etiqueta: 'Tipo de documento',
         tipo: TipoCampo.opciones,
-        opciones: ['Carnet de identidad', 'Pasaporte', 'Licencia de conducir', 'Otro'],
+        opciones: [
+          'Carnet de identidad',
+          'Pasaporte',
+          'Licencia de conducir',
+          'Otro'
+        ],
         requerido: true,
         icono: Icons.badge_outlined,
       ),
@@ -98,7 +101,6 @@ class CamposCategoria {
         icono: Icons.person_outline,
       ),
     ],
-
     'electrónicos': [
       CampoCategoria(
         clave: 'tipo_electronico',
@@ -137,7 +139,6 @@ class CamposCategoria {
         icono: Icons.pin_outlined,
       ),
     ],
-
     'vehículos': [
       CampoCategoria(
         clave: 'tipo_vehiculo',
@@ -169,7 +170,6 @@ class CamposCategoria {
         icono: Icons.palette_outlined,
       ),
     ],
-
     'ropa/accesorios': [
       CampoCategoria(
         clave: 'tipo_prenda',
@@ -193,7 +193,6 @@ class CamposCategoria {
         icono: Icons.business_outlined,
       ),
     ],
-
     'llaves': [
       CampoCategoria(
         clave: 'tipo_llave',

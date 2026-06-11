@@ -38,7 +38,9 @@ class _PerfilViewState extends State<PerfilView> {
         title: const Text('Cerrar sesión'),
         content: const Text('¿Estás seguro de que quieres salir?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar')),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
@@ -95,7 +97,8 @@ class _PerfilViewState extends State<PerfilView> {
             children: [
               const Text('No se pudo cargar el perfil.'),
               const SizedBox(height: 8),
-              TextButton(onPressed: vm.cargarPerfil, child: const Text('Reintentar')),
+              TextButton(
+                  onPressed: vm.cargarPerfil, child: const Text('Reintentar')),
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 icon: const Icon(Icons.logout),
@@ -115,9 +118,9 @@ class _PerfilViewState extends State<PerfilView> {
     final perfil = vm.perfil!;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
+        body: SingleChildScrollView(
+      child: Column(
+        children: [
           // CABECERA
           Container(
             width: double.infinity,
@@ -171,11 +174,18 @@ class _PerfilViewState extends State<PerfilView> {
                                 width: 100,
                                 height: 100,
                                 fit: BoxFit.cover,
-                                errorWidget: (context, url, error) => const Icon(Icons.person, size: 50, color: AppTheme.primary),
+                                errorWidget: (context, url, error) =>
+                                    const Icon(Icons.person,
+                                        size: 50, color: AppTheme.primary),
                               )
                             : Text(
-                                perfil.nombreCompleto.isNotEmpty ? perfil.nombreCompleto[0].toUpperCase() : 'U',
-                                style: const TextStyle(fontSize: 40, color: AppTheme.primary, fontWeight: FontWeight.bold),
+                                perfil.nombreCompleto.isNotEmpty
+                                    ? perfil.nombreCompleto[0].toUpperCase()
+                                    : 'U',
+                                style: const TextStyle(
+                                    fontSize: 40,
+                                    color: AppTheme.primary,
+                                    fontWeight: FontWeight.bold),
                               ),
                       ),
                     ),
@@ -191,7 +201,8 @@ class _PerfilViewState extends State<PerfilView> {
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 2),
                           ),
-                          child: const Icon(Icons.edit, size: 18, color: AppTheme.darkDark),
+                          child: const Icon(Icons.edit,
+                              size: 18, color: AppTheme.darkDark),
                         ),
                       ),
                     ),
@@ -199,18 +210,24 @@ class _PerfilViewState extends State<PerfilView> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  perfil.nombreCompleto.isNotEmpty ? perfil.nombreCompleto : 'Voluntario Sin Nombre',
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                  perfil.nombreCompleto.isNotEmpty
+                      ? perfil.nombreCompleto
+                      : 'Voluntario Sin Nombre',
+                  style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
                 ),
                 if (perfil.email.isNotEmpty)
                   Text(
                     perfil.email,
-                    style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.8)),
+                    style: TextStyle(
+                        fontSize: 14, color: Colors.white.withOpacity(0.8)),
                   ),
               ],
             ),
           ),
-          
+
           // LISTA DE OPCIONES
           ListView(
             shrinkWrap: true,
@@ -222,7 +239,8 @@ class _PerfilViewState extends State<PerfilView> {
                 title: 'Tu cuenta',
                 subtitle: 'Datos personales, contraseña',
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const TuCuentaView()));
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const TuCuentaView()));
                 },
               ),
               const Divider(height: 1),
@@ -231,7 +249,10 @@ class _PerfilViewState extends State<PerfilView> {
                 title: 'Tu actividad',
                 subtitle: 'Estadísticas y habilidades (skills)',
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const TuActividadView()));
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const TuActividadView()));
                 },
               ),
               const Divider(height: 1),
@@ -240,7 +261,10 @@ class _PerfilViewState extends State<PerfilView> {
                 title: 'Configuración de la app',
                 subtitle: 'Notificaciones, permisos, tracking',
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const ConfiguracionView()));
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const ConfiguracionView()));
                 },
               ),
               const Divider(height: 1),
@@ -249,7 +273,8 @@ class _PerfilViewState extends State<PerfilView> {
                 title: 'Soporte y legal',
                 subtitle: 'Privacidad, eliminar cuenta',
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const SoporteView()));
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const SoporteView()));
                 },
               ),
               const Divider(height: 1),
@@ -258,14 +283,16 @@ class _PerfilViewState extends State<PerfilView> {
                 title: 'Sobre Echoes',
                 subtitle: 'Misión, equipo y versión',
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutView()));
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const AboutView()));
                 },
               ),
               const SizedBox(height: 24),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                  contentPadding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                   leading: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
@@ -275,8 +302,12 @@ class _PerfilViewState extends State<PerfilView> {
                     child: const Icon(Icons.logout, color: AppTheme.danger),
                   ),
                   title: const Text('Cerrar sesión',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.danger)),
-                  subtitle: const Text('Salir de tu cuenta', style: TextStyle(fontSize: 13)),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: AppTheme.danger)),
+                  subtitle: const Text('Salir de tu cuenta',
+                      style: TextStyle(fontSize: 13)),
                   onTap: _onLogout,
                 ),
               ),
@@ -294,7 +325,11 @@ class _MenuOption extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
 
-  const _MenuOption({required this.icon, required this.title, required this.subtitle, required this.onTap});
+  const _MenuOption(
+      {required this.icon,
+      required this.title,
+      required this.subtitle,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -308,9 +343,11 @@ class _MenuOption extends StatelessWidget {
         ),
         child: Icon(icon, color: AppTheme.primary),
       ),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+      title: Text(title,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
       subtitle: Text(subtitle, style: const TextStyle(fontSize: 13)),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+      trailing:
+          const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
       onTap: onTap,
     );
   }

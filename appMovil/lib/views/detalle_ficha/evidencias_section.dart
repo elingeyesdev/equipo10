@@ -136,7 +136,8 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
     // Navigate to the form as a full page route (NOT a bottom sheet).
     // This completely avoids Overlay entry conflicts because the new route
     // owns its own isolated Overlay scope.
-    final bytes = vm.bytesPreview != null ? Uint8List.fromList(vm.bytesPreview!) : null;
+    final bytes =
+        vm.bytesPreview != null ? Uint8List.fromList(vm.bytesPreview!) : null;
     final descripcion = await Navigator.of(context).push<String>(
       MaterialPageRoute(
         fullscreenDialog: true,
@@ -163,7 +164,8 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
       if (vm.estado == EvidenciaEstado.listoOffline) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Sin conexión. Evidencia guardada, se subirá automáticamente.'),
+            content: Text(
+                'Sin conexión. Evidencia guardada, se subirá automáticamente.'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -267,46 +269,47 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
         const SizedBox(height: 12),
 
         // Bandeja de aprobacion: visible solo para el creador
-        if (widget.esCreador && evidenciasPendientes.isNotEmpty) ...([
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF3CD),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFFFD700)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.pending_actions,
-                    color: Color(0xFFB8860B), size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '${evidenciasPendientes.length} evidencia(s) esperan tu aprobación',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF856404),
+        if (widget.esCreador && evidenciasPendientes.isNotEmpty)
+          ...([
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3CD),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFFD700)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.pending_actions,
+                      color: Color(0xFFB8860B), size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${evidenciasPendientes.length} evidencia(s) esperan tu aprobación',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF856404),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: evidenciasPendientes.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (_, i) => _EvidenciaPendienteAdminCard(
-              evidencia: evidenciasPendientes[i],
-              reporteId: widget.reporteId,
+            const SizedBox(height: 12),
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: evidenciasPendientes.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (_, i) => _EvidenciaPendienteAdminCard(
+                evidencia: evidenciasPendientes[i],
+                reporteId: widget.reporteId,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-        ]),
+            const SizedBox(height: 16),
+          ]),
 
         // Lista principal
         if (vm.cargando)
@@ -422,25 +425,26 @@ class _PublicarEvidenciaPageState extends State<_PublicarEvidenciaPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (widget.bytesPreview != null) ...
-              [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Image.memory(
-                    widget.bytesPreview!,
-                    width: double.infinity,
-                    height: 220,
-                    fit: BoxFit.cover,
-                  ),
+            if (widget.bytesPreview != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.memory(
+                  widget.bytesPreview!,
+                  width: double.infinity,
+                  height: 220,
+                  fit: BoxFit.cover,
                 ),
-                const SizedBox(height: 12),
-              ],
+              ),
+              const SizedBox(height: 12),
+            ],
             Row(
               children: [
                 Icon(
                   widget.tienePosicion ? Icons.location_on : Icons.location_off,
                   size: 14,
-                  color: widget.tienePosicion ? AppTheme.success : AppTheme.textSecondary,
+                  color: widget.tienePosicion
+                      ? AppTheme.success
+                      : AppTheme.textSecondary,
                 ),
                 const SizedBox(width: 4),
                 Expanded(
@@ -450,7 +454,9 @@ class _PublicarEvidenciaPageState extends State<_PublicarEvidenciaPage> {
                         : 'Sin ubicación GPS',
                     style: TextStyle(
                       fontSize: 11,
-                      color: widget.tienePosicion ? AppTheme.success : AppTheme.textSecondary,
+                      color: widget.tienePosicion
+                          ? AppTheme.success
+                          : AppTheme.textSecondary,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -544,7 +550,8 @@ class _EvidenciaCard extends StatelessWidget {
               child: Hero(
                 tag: 'evidencia-${evidencia.id}',
                 child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(14)),
                   child: CachedNetworkImage(
                     imageUrl: evidencia.fotoUrl!,
                     width: double.infinity,
@@ -559,7 +566,8 @@ class _EvidenciaCard extends StatelessWidget {
                       height: 200,
                       color: const Color(0xFFF5F5F5),
                       child: const Center(
-                        child: Icon(Icons.broken_image_outlined, size: 48, color: Colors.grey),
+                        child: Icon(Icons.broken_image_outlined,
+                            size: 48, color: Colors.grey),
                       ),
                     ),
                   ),
@@ -573,46 +581,59 @@ class _EvidenciaCard extends StatelessWidget {
               children: [
                 Text(
                   evidencia.descripcion,
-                  style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary, height: 1.5),
+                  style: const TextStyle(
+                      fontSize: 14, color: AppTheme.textPrimary, height: 1.5),
                 ),
                 const SizedBox(height: 10),
                 if (evidencia.lat != null && evidencia.lng != null)
                   Row(
                     children: [
-                      const Icon(Icons.location_on, size: 13, color: AppTheme.success),
+                      const Icon(Icons.location_on,
+                          size: 13, color: AppTheme.success),
                       const SizedBox(width: 4),
                       Text(
                         '${evidencia.lat!.toStringAsFixed(5)}, ${evidencia.lng!.toStringAsFixed(5)}',
-                        style: const TextStyle(fontSize: 11, color: AppTheme.success, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.success,
+                            fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
                 if (evidencia.lat != null) const SizedBox(height: 8),
                 Row(
                   children: [
-                    if (evidencia.avatarUsuario != null && evidencia.avatarUsuario!.isNotEmpty)
+                    if (evidencia.avatarUsuario != null &&
+                        evidencia.avatarUsuario!.isNotEmpty)
                       CircleAvatar(
                         radius: 12,
-                        backgroundImage: CachedNetworkImageProvider(evidencia.avatarUsuario!),
+                        backgroundImage: CachedNetworkImageProvider(
+                            evidencia.avatarUsuario!),
                         backgroundColor: Colors.transparent,
                       )
                     else
                       CircleAvatar(
                         radius: 12,
-                        backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-                        child: const Icon(Icons.person, size: 14, color: AppTheme.primary),
+                        backgroundColor:
+                            AppTheme.primary.withValues(alpha: 0.1),
+                        child: const Icon(Icons.person,
+                            size: 14, color: AppTheme.primary),
                       ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         evidencia.nombreUsuario ?? 'Voluntario',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
+                        style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textSecondary),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Text(
                       _tiempoRelativo(evidencia.creadoEn),
-                      style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                      style: const TextStyle(
+                          fontSize: 11, color: AppTheme.textSecondary),
                     ),
                   ],
                 ),
@@ -688,7 +709,8 @@ class _EvidenciaOfflineCard extends StatelessWidget {
                 height: 200,
                 color: const Color(0xFFF5F5F5),
                 child: const Center(
-                  child: Icon(Icons.broken_image_outlined, size: 48, color: Colors.grey),
+                  child: Icon(Icons.broken_image_outlined,
+                      size: 48, color: Colors.grey),
                 ),
               ),
             ),
@@ -700,17 +722,22 @@ class _EvidenciaOfflineCard extends StatelessWidget {
               children: [
                 Text(
                   offline.descripcion,
-                  style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary, height: 1.5),
+                  style: const TextStyle(
+                      fontSize: 14, color: AppTheme.textPrimary, height: 1.5),
                 ),
                 const SizedBox(height: 10),
                 if (offline.lat != null && offline.lng != null)
                   Row(
                     children: [
-                      const Icon(Icons.location_on, size: 13, color: AppTheme.success),
+                      const Icon(Icons.location_on,
+                          size: 13, color: AppTheme.success),
                       const SizedBox(width: 4),
                       Text(
                         '${offline.lat!.toStringAsFixed(5)}, ${offline.lng!.toStringAsFixed(5)}',
-                        style: const TextStyle(fontSize: 11, color: AppTheme.success, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.success,
+                            fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),

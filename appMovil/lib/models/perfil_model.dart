@@ -22,12 +22,17 @@ class PerfilModel {
   factory PerfilModel.fromMap(Map<String, dynamic> map) {
     return PerfilModel(
       id: map['id'] as String,
-      nombreCompleto: map['nombre_completo'] as String? ?? map['nombre'] as String? ?? '',
+      nombreCompleto:
+          map['nombre_completo'] as String? ?? map['nombre'] as String? ?? '',
       telefono: map['telefono'] as String? ?? '',
       email: map['email'] as String? ?? '',
       avatarUrl: _parseAvatarUrl(map['avatar_url'] as String?),
-      habilidades: map['habilidades'] != null ? List<String>.from(map['habilidades']) : [],
-      estadisticas: map['estadisticas'] != null ? Map<String, dynamic>.from(map['estadisticas']) : {},
+      habilidades: map['habilidades'] != null
+          ? List<String>.from(map['habilidades'])
+          : [],
+      estadisticas: map['estadisticas'] != null
+          ? Map<String, dynamic>.from(map['estadisticas'])
+          : {},
     );
   }
 
@@ -42,6 +47,7 @@ class PerfilModel {
       'estadisticas': estadisticas,
     };
   }
+
   static String? _parseAvatarUrl(String? path) {
     if (path == null || path.isEmpty) return null;
     if (path.startsWith('http')) return path;

@@ -6,7 +6,6 @@ import '../../theme/app_theme.dart';
 import '../detalle_ficha/detalle_ficha_view.dart';
 import '../panel_control/revision_evidencias_view.dart';
 
-
 class NotificacionesView extends StatefulWidget {
   const NotificacionesView({super.key});
 
@@ -28,7 +27,8 @@ class _NotificacionesViewState extends State<NotificacionesView> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Notificaciones', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('Notificaciones',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: AppTheme.primary,
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
@@ -46,9 +46,12 @@ class _NotificacionesViewState extends State<NotificacionesView> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, size: 60, color: Colors.grey),
+                    const Icon(Icons.error_outline,
+                        size: 60, color: Colors.grey),
                     const SizedBox(height: 16),
-                    Text(vm.errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey)),
+                    Text(vm.errorMessage!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.grey)),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () => vm.cargarNotificaciones(),
@@ -65,11 +68,15 @@ class _NotificacionesViewState extends State<NotificacionesView> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.notifications_off_outlined, size: 80, color: Colors.grey[400]),
+                  Icon(Icons.notifications_off_outlined,
+                      size: 80, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
                     'No tienes notificaciones',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 18, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500),
                   ),
                 ],
               ),
@@ -91,15 +98,21 @@ class _NotificacionesViewState extends State<NotificacionesView> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(
-                      color: isUnread ? AppTheme.primary.withValues(alpha: 0.5) : Colors.grey.shade200,
+                      color: isUnread
+                          ? AppTheme.primary.withValues(alpha: 0.5)
+                          : Colors.grey.shade200,
                       width: 1,
                     ),
                   ),
-                  color: isUnread ? AppTheme.primary.withValues(alpha: 0.05) : Colors.white,
+                  color: isUnread
+                      ? AppTheme.primary.withValues(alpha: 0.05)
+                      : Colors.white,
                   child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     leading: CircleAvatar(
-                      backgroundColor: isUnread ? AppTheme.primary : Colors.grey.shade200,
+                      backgroundColor:
+                          isUnread ? AppTheme.primary : Colors.grey.shade200,
                       child: Icon(
                         _getIconForType(notif.tipo),
                         color: isUnread ? Colors.white : Colors.grey.shade600,
@@ -108,7 +121,8 @@ class _NotificacionesViewState extends State<NotificacionesView> {
                     title: Text(
                       notif.titulo,
                       style: TextStyle(
-                        fontWeight: isUnread ? FontWeight.bold : FontWeight.w600,
+                        fontWeight:
+                            isUnread ? FontWeight.bold : FontWeight.w600,
                         color: Colors.black87,
                       ),
                     ),
@@ -144,7 +158,7 @@ class _NotificacionesViewState extends State<NotificacionesView> {
                         final String reporteId = data['reporte_id'].toString();
                         final authVm = context.read<AuthViewModel>();
                         final String userId = authVm.currentUserId ?? '';
-                        
+
                         if (notif.tipo == 'respuesta_reporte') {
                           Navigator.push(
                             context,

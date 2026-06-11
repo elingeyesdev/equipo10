@@ -15,7 +15,8 @@ class ReporteService {
     double? radio,
   }) async {
     final params = <String, dynamic>{};
-    if (tipoReporte != null && tipoReporte.isNotEmpty) params['tipo_reporte'] = tipoReporte;
+    if (tipoReporte != null && tipoReporte.isNotEmpty)
+      params['tipo_reporte'] = tipoReporte;
     if (estado != null && estado.isNotEmpty) params['estado'] = estado;
     if (lat != null && lng != null && radio != null) {
       params['lat'] = lat;
@@ -23,7 +24,8 @@ class ReporteService {
       params['radio'] = radio;
     }
 
-    final response = await _api.client.get('/reportes', queryParameters: params);
+    final response =
+        await _api.client.get('/reportes', queryParameters: params);
     if (response.statusCode == 200 && response.data['success'] == true) {
       final List data = response.data['data'];
       return data.map((e) => ReporteModel.fromMap(e)).toList();
@@ -48,7 +50,9 @@ class ReporteService {
       if (response.statusCode == 200 && response.data['success'] == true) {
         final reporte = ReporteModel.fromMap(response.data['data']);
         // Guardar en caché local para uso offline
-        try { await LocalDatabase().upsertReporte(reporte); } catch (_) {}
+        try {
+          await LocalDatabase().upsertReporte(reporte);
+        } catch (_) {}
         return reporte;
       }
     } catch (e) {
@@ -72,9 +76,11 @@ class ReporteService {
   }
 
   /// Obtiene los comentarios públicos de un reporte
-  Future<List<Map<String, dynamic>>> obtenerComentarios(String reporteId) async {
+  Future<List<Map<String, dynamic>>> obtenerComentarios(
+      String reporteId) async {
     try {
-      final response = await _api.client.get('/reportes/$reporteId/comentarios');
+      final response =
+          await _api.client.get('/reportes/$reporteId/comentarios');
       if (response.statusCode == 200 && response.data['success'] == true) {
         return List<Map<String, dynamic>>.from(response.data['data']);
       }
@@ -85,9 +91,11 @@ class ReporteService {
   }
 
   /// Envía un comentario público a un reporte
-  Future<bool> enviarComentario(String reporteId, String texto, String usuarioId) async {
+  Future<bool> enviarComentario(
+      String reporteId, String texto, String usuarioId) async {
     try {
-      final response = await _api.client.post('/reportes/$reporteId/comentarios', data: {
+      final response =
+          await _api.client.post('/reportes/$reporteId/comentarios', data: {
         'texto': texto,
         'usuario_id': usuarioId,
       });
@@ -100,9 +108,11 @@ class ReporteService {
   /// Marca temporalmente el reporte como Oculto/Cerrado (Resuelto)
   Future<void> marcarResuelto(String reporteId, {String? justificacion}) async {
     final Map<String, dynamic> data = {
-      'justificacion': (justificacion != null && justificacion.isNotEmpty) ? justificacion : null,
+      'justificacion': (justificacion != null && justificacion.isNotEmpty)
+          ? justificacion
+          : null,
     };
-    
+
     final response = await _api.client.put(
       '/reportes/$reporteId/resuelto',
       data: data,
@@ -116,9 +126,11 @@ class ReporteService {
   /// Pausa el reporte, opcionalmente recibiendo una justificación
   Future<void> pausarReporte(String reporteId, {String? justificacion}) async {
     final Map<String, dynamic> data = {
-      'justificacion': (justificacion != null && justificacion.isNotEmpty) ? justificacion : null,
+      'justificacion': (justificacion != null && justificacion.isNotEmpty)
+          ? justificacion
+          : null,
     };
-    
+
     try {
       final response = await _api.client.put(
         '/reportes/$reporteId/pausar',
@@ -129,7 +141,9 @@ class ReporteService {
         throw Exception('Fallo al pausar el reporte.');
       }
     } on DioException catch (e) {
-      final msg = e.response?.data?['error'] ?? e.response?.data?['message'] ?? e.message;
+      final msg = e.response?.data?['error'] ??
+          e.response?.data?['message'] ??
+          e.message;
       throw Exception(msg);
     }
   }
@@ -150,7 +164,7 @@ class ReporteService {
 
     final formData = FormData.fromMap({
       'imagen': MultipartFile.fromBytes(
-        bytes, 
+        bytes,
         filename: fileName,
         contentType: DioMediaType('image', ext),
       ),
@@ -158,10 +172,10 @@ class ReporteService {
 
     // Dio tomará automáticamente el FormData y le pondrá el multipart/form-data y boundary correctos
     final response = await _api.client.post(
-      '/reportes/upload-image', 
+      '/reportes/upload-image',
       data: formData,
     );
-    
+
     if (response.statusCode == 200 && response.data['success'] == true) {
       return response.data['url'];
     }
@@ -198,7 +212,8 @@ class ReporteService {
 
     if (fotoUrl != null) data['imagenes'] = [fotoUrl];
     if (fechaPerdida != null) data['fecha_perdida'] = fechaPerdida;
-    if (direccionReferencia != null) data['direccion_referencia'] = direccionReferencia;
+    if (direccionReferencia != null)
+      data['direccion_referencia'] = direccionReferencia;
     if (telefonoContacto != null) data['telefono_contacto'] = telefonoContacto;
     if (recompensa != null) data['recompensa'] = recompensa;
     if (caracteristicasExtra != null && caracteristicasExtra.isNotEmpty) {
@@ -220,16 +235,19 @@ class ReporteService {
         final errors = body?['errors'];
         if (errors is Map && errors.isNotEmpty) {
           final firstMsg = (errors.values.first as List?)?.first?.toString();
-          throw Exception(firstMsg ?? 'Datos inválidos. Revisa los campos del formulario.');
+          throw Exception(
+              firstMsg ?? 'Datos inválidos. Revisa los campos del formulario.');
         }
         throw Exception('Datos inválidos. Revisa los campos del formulario.');
       }
 
       if (statusCode == 500) {
-        throw Exception('API ERROR: ${body?['error'] ?? body?['message'] ?? 'Error desconocido del servidor'}');
+        throw Exception(
+            'API ERROR: ${body?['error'] ?? body?['message'] ?? 'Error desconocido del servidor'}');
       }
 
-      throw Exception(body?['message'] ?? 'Error de conexión. Intenta de nuevo.');
+      throw Exception(
+          body?['message'] ?? 'Error de conexión. Intenta de nuevo.');
     }
   }
 
@@ -252,9 +270,11 @@ class ReporteService {
 
     if (telefonoContacto != null) data['telefono_contacto'] = telefonoContacto;
     if (recompensa != null) data['recompensa'] = recompensa;
-    if (direccionReferencia != null) data['direccion_referencia'] = direccionReferencia;
+    if (direccionReferencia != null)
+      data['direccion_referencia'] = direccionReferencia;
     if (fechaPerdida != null) data['fecha_perdida'] = fechaPerdida;
-    if (caracteristicasExtra != null) data['caracteristicas'] = caracteristicasExtra;
+    if (caracteristicasExtra != null)
+      data['caracteristicas'] = caracteristicasExtra;
 
     // Solo incluir 'imagenes' si hay una URL válida.
     // Enviar una lista vacía hace que el backend intente borrar todas las
@@ -288,7 +308,8 @@ class ReporteService {
 
   /// Obtiene los recorridos de los voluntarios para un reporte
   Future<List<dynamic>> obtenerRecorridos(String reporteId) async {
-    final response = await _api.client.get('/reportes/$reporteId/voluntarios/recorridos');
+    final response =
+        await _api.client.get('/reportes/$reporteId/voluntarios/recorridos');
     if (response.statusCode == 200) {
       final body = response.data;
       if (body['success'] == true) {
@@ -313,7 +334,8 @@ class ReporteService {
   /// Envía un mensaje masivo (broadcast) a los voluntarios activos
   Future<bool> enviarAlertaMasiva(String reporteId, String mensaje) async {
     try {
-      final response = await _api.client.post('/reportes/$reporteId/broadcast', data: {
+      final response =
+          await _api.client.post('/reportes/$reporteId/broadcast', data: {
         'mensaje': mensaje,
       });
       if (response.statusCode == 200) {
@@ -327,9 +349,11 @@ class ReporteService {
   }
 
   /// Envía un mensaje directo a un voluntario específico
-  Future<bool> enviarMensajeDirecto(String reporteId, String usuarioId, String mensaje) async {
+  Future<bool> enviarMensajeDirecto(
+      String reporteId, String usuarioId, String mensaje) async {
     try {
-      final response = await _api.client.post('/reportes/$reporteId/mensaje/$usuarioId', data: {
+      final response = await _api.client
+          .post('/reportes/$reporteId/mensaje/$usuarioId', data: {
         'mensaje': mensaje,
       });
       if (response.statusCode == 200) {
@@ -346,8 +370,10 @@ class ReporteService {
   ///
   /// Llama al endpoint `GET /reportes/{id}/reporte-final` implementado en E13.2.
   /// Retorna un [Map] con: ficha, estadísticas, evidencias y datos de voluntarios.
-  Future<Map<String, dynamic>> obtenerDatosReporteFinal(String reporteId) async {
-    final response = await _api.client.get('/reportes/$reporteId/reporte-final');
+  Future<Map<String, dynamic>> obtenerDatosReporteFinal(
+      String reporteId) async {
+    final response =
+        await _api.client.get('/reportes/$reporteId/reporte-final');
     if (response.statusCode == 200 && response.data['success'] == true) {
       return Map<String, dynamic>.from(response.data['data']);
     }

@@ -76,6 +76,7 @@ class AuthViewModel extends ChangeNotifier {
       _setLoading(false);
     }
   }
+
   /// Elimina la cuenta y cierra sesión.
   Future<bool> eliminarCuenta() async {
     _setLoading(true);

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 enum TipoCampo { texto, numero, opciones, booleano }
 
 /// Define un campo dinámico del formulario según la categoría.

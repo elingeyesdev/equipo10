@@ -88,7 +88,8 @@ class DetalleFichaViewModel extends ChangeNotifier {
         AppNotification(
           type: NotificationType.joinSearchConfirmation,
           title: 'Te uniste a la busqueda',
-          body: 'Ahora eres voluntario en "$nombreOperativo". ¡Buena suerte en la misión!',
+          body:
+              'Ahora eres voluntario en "$nombreOperativo". ¡Buena suerte en la misión!',
           payload: {'fichaId': fichaId},
         ),
       );
@@ -154,7 +155,8 @@ class DetalleFichaViewModel extends ChangeNotifier {
     _setLoading(true);
     _errorMessage = null;
     try {
-      await _reporteService.pausarReporte(fichaId, justificacion: justificacion);
+      await _reporteService.pausarReporte(fichaId,
+          justificacion: justificacion);
       if (_ficha != null) {
         _ficha = _ficha!.copyWith(estado: 'pausado');
       }
@@ -168,7 +170,7 @@ class DetalleFichaViewModel extends ChangeNotifier {
     }
   }
 
-  /// Reabre la búsqueda (solo el creador). 
+  /// Reabre la búsqueda (solo el creador).
   Future<bool> reabrirBusqueda(String fichaId) async {
     _setLoading(true);
     _errorMessage = null;
@@ -187,8 +189,10 @@ class DetalleFichaViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> enviarComentario(String reporteId, String texto, String usuarioId) async {
-    final ok = await _reporteService.enviarComentario(reporteId, texto, usuarioId);
+  Future<void> enviarComentario(
+      String reporteId, String texto, String usuarioId) async {
+    final ok =
+        await _reporteService.enviarComentario(reporteId, texto, usuarioId);
     if (ok) {
       _comentarios = await _reporteService.obtenerComentarios(reporteId);
       notifyListeners();

@@ -49,13 +49,16 @@ class VinculacionService {
     required String usuarioId,
   }) async {
     try {
-      final response = await _api.client.get('/reportes/$fichaId/voluntarios/usuario/$usuarioId');
+      final response = await _api.client
+          .get('/reportes/$fichaId/voluntarios/usuario/$usuarioId');
       if (response.statusCode == 200 && response.data['success'] == true) {
         final vinculado = response.data['vinculado'];
         final data = response.data['data'];
 
         // Solo consideramos activamente vinculado si el estado es buscando
-        return vinculado == true && data != null && data['estado'] == 'buscando';
+        return vinculado == true &&
+            data != null &&
+            data['estado'] == 'buscando';
       }
       return false;
     } catch (e) {
@@ -94,7 +97,8 @@ class VinculacionService {
     required String fichaId,
     required String usuarioId,
   }) async {
-    final response = await _api.client.put('/reportes/$fichaId/voluntarios/abandonar/$usuarioId');
+    final response = await _api.client
+        .put('/reportes/$fichaId/voluntarios/abandonar/$usuarioId');
     if (response.statusCode != 200) {
       throw Exception('Fallo al abandonar la búsqueda.');
     }

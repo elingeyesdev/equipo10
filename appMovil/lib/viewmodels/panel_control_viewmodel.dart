@@ -14,9 +14,9 @@ class RutaVoluntario {
   final List<LatLng> puntos;
   final String? usuarioId;
   final String? estadoBusqueda;
-  
+
   RutaVoluntario({
-    required this.nombre, 
+    required this.nombre,
     required this.puntos,
     this.usuarioId,
     this.estadoBusqueda,
@@ -55,12 +55,14 @@ class PanelControlViewModel extends ChangeNotifier {
   List<PistaMapa> get pistas => _pistas;
   List<EvidenciaModel> get evidencias => _evidencias;
   List<Map<String, dynamic>> get galeria => _galeria;
-  
+
   List<RutaVoluntario> get rutasVoluntarios {
     if (_filtroNombreVoluntario == null) return _rutasVoluntarios;
-    return _rutasVoluntarios.where((r) => r.nombre == _filtroNombreVoluntario).toList();
+    return _rutasVoluntarios
+        .where((r) => r.nombre == _filtroNombreVoluntario)
+        .toList();
   }
-  
+
   List<RutaVoluntario> get todasLasRutas => _rutasVoluntarios;
   String? get filtroNombreVoluntario => _filtroNombreVoluntario;
 
@@ -70,7 +72,8 @@ class PanelControlViewModel extends ChangeNotifier {
   }
 
   // Mantenemos getter recorridosMap por compatibilidad temporal o si se necesita la lista cruda
-  List<List<LatLng>> get recorridosMap => rutasVoluntarios.map((r) => r.puntos).toList();
+  List<List<LatLng>> get recorridosMap =>
+      rutasVoluntarios.map((r) => r.puntos).toList();
 
   bool get isLoading => _isLoading;
   bool get isChangingState => _isChangingState;
@@ -91,22 +94,25 @@ class PanelControlViewModel extends ChangeNotifier {
       _errorMessage = 'Error al cargar el panel de control: $e';
     } finally {
       if (hasListeners) {
-          _isLoading = false;
-          notifyListeners();
+        _isLoading = false;
+        notifyListeners();
       }
     }
   }
 
-  Future<bool> cambiarEstado(String fichaId, String nuevoEstado, {String? justificacion}) async {
+  Future<bool> cambiarEstado(String fichaId, String nuevoEstado,
+      {String? justificacion}) async {
     _isChangingState = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
       if (nuevoEstado == 'cerrado' || nuevoEstado == 'resuelto') {
-        await _reporteService.marcarResuelto(fichaId, justificacion: justificacion);
+        await _reporteService.marcarResuelto(fichaId,
+            justificacion: justificacion);
       } else if (nuevoEstado == 'pausado') {
-        await _reporteService.pausarReporte(fichaId, justificacion: justificacion);
+        await _reporteService.pausarReporte(fichaId,
+            justificacion: justificacion);
       } else if (nuevoEstado == 'activo') {
         await _reporteService.reabrirReporte(fichaId);
       }
@@ -141,11 +147,12 @@ class PanelControlViewModel extends ChangeNotifier {
   void _procesarRecorridos(List<dynamic> newData) {
     _recorridosData = newData;
     _rutasVoluntarios.clear();
-    
+
     for (var r in _recorridosData) {
       if (r['puntos'] != null) {
         try {
-          final decoded = r['puntos'] is String ? jsonDecode(r['puntos']) : r['puntos'];
+          final decoded =
+              r['puntos'] is String ? jsonDecode(r['puntos']) : r['puntos'];
           if (decoded is List) {
             List<LatLng> points = [];
             for (var p in decoded) {
@@ -167,11 +174,11 @@ class PanelControlViewModel extends ChangeNotifier {
               if (uId == null && r['usuario_id'] != null) {
                 uId = r['usuario_id'].toString();
               }
-              
+
               String? estadoB = r['estado_busqueda']?.toString();
-              
+
               _rutasVoluntarios.add(RutaVoluntario(
-                nombre: nombreVoluntario, 
+                nombre: nombreVoluntario,
                 puntos: points,
                 usuarioId: uId,
                 estadoBusqueda: estadoB,
@@ -195,7 +202,8 @@ class PanelControlViewModel extends ChangeNotifier {
           punto: LatLng(lat, lng),
           etiqueta: p['mensaje']?.toString() ?? 'Pista',
           createdAt: p['created_at'] != null
-              ? DateTime.tryParse(p['created_at'].toString().replaceAll(' ', 'T'))
+              ? DateTime.tryParse(
+                  p['created_at'].toString().replaceAll(' ', 'T'))
               : null,
         ));
       }
@@ -206,7 +214,8 @@ class PanelControlViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      final success = await _reporteService.enviarAlertaMasiva(fichaId, mensaje);
+      final success =
+          await _reporteService.enviarAlertaMasiva(fichaId, mensaje);
       if (!success) {
         _errorMessage = 'No se pudo enviar la alerta masiva';
       }
@@ -217,11 +226,13 @@ class PanelControlViewModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> enviarMensajeDirecto(String fichaId, String usuarioId, String mensaje) async {
+  Future<bool> enviarMensajeDirecto(
+      String fichaId, String usuarioId, String mensaje) async {
     _isLoading = true;
     notifyListeners();
     try {
-      final success = await _reporteService.enviarMensajeDirecto(fichaId, usuarioId, mensaje);
+      final success = await _reporteService.enviarMensajeDirecto(
+          fichaId, usuarioId, mensaje);
       if (!success) {
         _errorMessage = 'No se pudo enviar el mensaje directo';
       }
@@ -248,12 +259,12 @@ class PanelControlViewModel extends ChangeNotifier {
     try {
       final newData = await _reporteService.obtenerRecorridos(fichaId);
       _procesarRecorridos(newData);
-      
+
       final pistasData = await _reporteService.obtenerPistas(fichaId);
       _procesarPistas(pistasData);
 
       _evidencias = await _evidenciaService.obtenerEvidencias(fichaId);
-      
+
       notifyListeners();
     } catch (e) {
       // Ignorar errores en segundo plano para no interrumpir UI

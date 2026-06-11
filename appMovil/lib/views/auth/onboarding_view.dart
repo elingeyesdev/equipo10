@@ -93,8 +93,7 @@ class _OnboardingViewState extends State<OnboardingView>
           // ── Barra superior: dots + skip ───────────────────────────────
           SafeArea(
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Row(
                 children: [
                   // Dots de progreso
@@ -127,8 +126,7 @@ class _OnboardingViewState extends State<OnboardingView>
                           color: Colors.white.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                              color: Colors.white.withOpacity(0.25),
-                              width: 1),
+                              color: Colors.white.withOpacity(0.25), width: 1),
                         ),
                         child: const Text(
                           'Saltar',
@@ -291,14 +289,11 @@ class _AnimatedButtonState extends State<_AnimatedButton> {
           duration: const Duration(milliseconds: 300),
           height: 54,
           decoration: BoxDecoration(
-            color: widget.isLast
-                ? Colors.white
-                : Colors.white.withOpacity(0.2),
+            color: widget.isLast ? Colors.white : Colors.white.withOpacity(0.2),
             borderRadius: BorderRadius.circular(16),
             border: widget.isLast
                 ? null
-                : Border.all(
-                    color: Colors.white.withOpacity(0.4), width: 1.5),
+                : Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
             boxShadow: widget.isLast
                 ? [
                     BoxShadow(

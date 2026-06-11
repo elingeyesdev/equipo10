@@ -92,7 +92,9 @@ class _CrearFichaViewState extends State<CrearFichaView> {
     final currentUserId = context.read<AuthViewModel>().currentUserId ?? '';
     if (currentUserId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error: no hay sesión activa.'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('Error: no hay sesión activa.'),
+            backgroundColor: Colors.red),
       );
       return;
     }
@@ -115,8 +117,11 @@ class _CrearFichaViewState extends State<CrearFichaView> {
       titulo: _tituloCtrl.text,
       descripcion: _descripcionCtrl.text,
       telefonoContacto: _telefonoCtrl.text.isEmpty ? null : _telefonoCtrl.text,
-      recompensa: _recompensaCtrl.text.isEmpty ? null : double.tryParse(_recompensaCtrl.text),
-      direccionReferencia: _direccionCtrl.text.isEmpty ? null : _direccionCtrl.text,
+      recompensa: _recompensaCtrl.text.isEmpty
+          ? null
+          : double.tryParse(_recompensaCtrl.text),
+      direccionReferencia:
+          _direccionCtrl.text.isEmpty ? null : _direccionCtrl.text,
       fechaPerdida: _fechaPerdida?.toIso8601String(),
     );
 
@@ -156,10 +161,12 @@ class _CrearFichaViewState extends State<CrearFichaView> {
     final vm = context.watch<CrearFichaViewModel>();
 
     // Obtener categoría seleccionada y sus campos dinámicos
-    final catActual = vm.categorias.isEmpty ? null : vm.categorias.firstWhere(
-      (c) => c.id == vm.categoriaSeleccionadaId,
-      orElse: () => vm.categorias.first,
-    );
+    final catActual = vm.categorias.isEmpty
+        ? null
+        : vm.categorias.firstWhere(
+            (c) => c.id == vm.categoriaSeleccionadaId,
+            orElse: () => vm.categorias.first,
+          );
     final camposDinamicos = catActual == null
         ? <CampoCategoria>[]
         : CamposCategoria.paraNombre(catActual.nombre);
@@ -181,14 +188,17 @@ class _CrearFichaViewState extends State<CrearFichaView> {
               ),
 
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ─── Sección: Datos generales ───
-                      _SectionHeader(label: 'Datos de la búsqueda', icon: Icons.info_outline),
+                      _SectionHeader(
+                          label: 'Datos de la búsqueda',
+                          icon: Icons.info_outline),
                       const SizedBox(height: 16),
 
                       // Dropdown de Categoría
@@ -200,18 +210,22 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                             prefixIcon: Icon(Icons.category),
                           ),
                           items: vm.categorias.map((cat) {
-                            return DropdownMenuItem(value: cat.id, child: Text(cat.nombre));
+                            return DropdownMenuItem(
+                                value: cat.id, child: Text(cat.nombre));
                           }).toList(),
                           onChanged: (val) {
                             if (val == null) return;
                             final nombreNueva = vm.categorias
                                 .firstWhere((c) => c.id == val)
                                 .nombre;
-                            final nuevasCampos = CamposCategoria.paraNombre(nombreNueva);
-                            setState(() => _reiniciarCamposDinamicos(nuevasCampos));
+                            final nuevasCampos =
+                                CamposCategoria.paraNombre(nombreNueva);
+                            setState(
+                                () => _reiniciarCamposDinamicos(nuevasCampos));
                             vm.seleccionarCategoria(val);
                           },
-                          validator: (val) => val == null ? 'Seleccione una categoría' : null,
+                          validator: (val) =>
+                              val == null ? 'Seleccione una categoría' : null,
                         ),
                         const SizedBox(height: 16),
                       ] else ...[
@@ -260,13 +274,16 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                         maxLength: 200,
                         decoration: const InputDecoration(
                           labelText: 'Título de la búsqueda',
-                          hintText: 'Ej: Búsqueda de persona mayor en zona norte',
+                          hintText:
+                              'Ej: Búsqueda de persona mayor en zona norte',
                           prefixIcon: Icon(Icons.title),
                           counterText: '',
                         ),
                         validator: (v) {
-                          if (v == null || v.trim().isEmpty) return 'El título es obligatorio';
-                          if (v.trim().length < 5) return 'El título debe tener al menos 5 caracteres';
+                          if (v == null || v.trim().isEmpty)
+                            return 'El título es obligatorio';
+                          if (v.trim().length < 5)
+                            return 'El título debe tener al menos 5 caracteres';
                           return null;
                         },
                       ),
@@ -280,14 +297,17 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                         textCapitalization: TextCapitalization.sentences,
                         decoration: const InputDecoration(
                           labelText: 'Descripción detallada',
-                          hintText: 'Descripción física, última vez visto, ropa, etc.',
+                          hintText:
+                              'Descripción física, última vez visto, ropa, etc.',
                           prefixIcon: Icon(Icons.description_outlined),
                           alignLabelWithHint: true,
                           counterText: '',
                         ),
                         validator: (v) {
-                          if (v == null || v.trim().isEmpty) return 'La descripción es obligatoria';
-                          if (v.trim().length < 10) return 'La descripción es muy corta';
+                          if (v == null || v.trim().isEmpty)
+                            return 'La descripción es obligatoria';
+                          if (v.trim().length < 10)
+                            return 'La descripción es muy corta';
                           return null;
                         },
                       ),
@@ -296,32 +316,35 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                       // ─── Sección: Campos específicos de la categoría ───
                       if (camposDinamicos.isNotEmpty) ...[
                         _SectionHeader(
-                          label: 'Detalles de ${catActual?.nombre ?? 'Categoría'}',
+                          label:
+                              'Detalles de ${catActual?.nombre ?? 'Categoría'}',
                           icon: Icons.list_alt_outlined,
                         ),
                         const SizedBox(height: 4),
                         const Text(
                           'Estos campos ayudan a identificar mejor lo reportado.',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF757575)),
+                          style:
+                              TextStyle(fontSize: 12, color: Color(0xFF757575)),
                         ),
                         const SizedBox(height: 16),
-                        ...camposDinamicos.map((campo) =>
-                            _CampoDinamico(
+                        ...camposDinamicos.map((campo) => _CampoDinamico(
                               campo: campo,
                               ctrl: _ctrlsDinamicos[campo.clave],
                               switchValue: _switchDinamicos[campo.clave],
                               opcionValue: _opcionDinamica[campo.clave],
-                              onTextChanged: (v) => _ctrlsDinamicos[campo.clave]?.text = v,
-                              onSwitchChanged: (v) =>
-                                  setState(() => _switchDinamicos[campo.clave] = v),
-                              onOpcionChanged: (v) =>
-                                  setState(() => _opcionDinamica[campo.clave] = v),
+                              onTextChanged: (v) =>
+                                  _ctrlsDinamicos[campo.clave]?.text = v,
+                              onSwitchChanged: (v) => setState(
+                                  () => _switchDinamicos[campo.clave] = v),
+                              onOpcionChanged: (v) => setState(
+                                  () => _opcionDinamica[campo.clave] = v),
                             )),
                         const SizedBox(height: 8),
                       ],
 
                       // ─── Sección: Datos opcionales ───
-                      _SectionHeader(label: 'Datos Opcionales', icon: Icons.tune),
+                      _SectionHeader(
+                          label: 'Datos Opcionales', icon: Icons.tune),
                       const SizedBox(height: 16),
 
                       TextFormField(
@@ -340,7 +363,8 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                         controller: _telefonoCtrl,
                         keyboardType: TextInputType.phone,
                         inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'[\d\+\-\s\(\)]')),
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'[\d\+\-\s\(\)]')),
                         ],
                         decoration: const InputDecoration(
                           labelText: 'Teléfono de contacto',
@@ -348,7 +372,8 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                           prefixIcon: Icon(Icons.phone),
                         ),
                         validator: (v) {
-                          if (v == null || v.trim().isEmpty) return null; // Opcional
+                          if (v == null || v.trim().isEmpty)
+                            return null; // Opcional
                           final digits = v.replaceAll(RegExp(r'\D'), '');
                           if (digits.length < 7 || digits.length > 15) {
                             return 'Número inválido (entre 7 y 15 dígitos)';
@@ -361,9 +386,11 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                       // Recompensa con validación numérica
                       TextFormField(
                         controller: _recompensaCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
                         inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d+\.?\d{0,2}')),
                         ],
                         decoration: const InputDecoration(
                           labelText: 'Recompensa en Bs.',
@@ -374,7 +401,8 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                           if (v == null || v.trim().isEmpty) return null;
                           final val = double.tryParse(v);
                           if (val == null) return 'Ingresa un monto válido';
-                          if (val < 0) return 'La recompensa no puede ser negativa';
+                          if (val < 0)
+                            return 'La recompensa no puede ser negativa';
                           if (val > 1000000) return 'Monto demasiado alto';
                           return null;
                         },
@@ -383,12 +411,16 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.deepOrange),
+                          const Icon(Icons.warning_amber_rounded,
+                              size: 16, color: Colors.deepOrange),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               'Atención: El monto de la recompensa no podrá ser modificado posteriormente.',
-                              style: TextStyle(fontSize: 12, color: Colors.deepOrange.shade700, fontStyle: FontStyle.italic),
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.deepOrange.shade700,
+                                  fontStyle: FontStyle.italic),
                             ),
                           ),
                         ],
@@ -396,13 +428,16 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                       const SizedBox(height: 24),
 
                       // ─── Sección: Ubicación ───
-                      _SectionHeader(label: 'Ubicación del incidente', icon: Icons.map_outlined),
+                      _SectionHeader(
+                          label: 'Ubicación del incidente',
+                          icon: Icons.map_outlined),
                       const SizedBox(height: 8),
                       InkWell(
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const LPPPickerView()),
+                            MaterialPageRoute(
+                                builder: (_) => const LPPPickerView()),
                           );
                         },
                         child: Container(
@@ -428,10 +463,10 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                               ),
                               const SizedBox(width: 10),
                               Expanded(
-                                  child: Text(
-                                    vm.latitudLPP != null
-                                        ? 'Ubicación marcada: ${vm.latitudLPP!.toStringAsFixed(4)}, ${vm.longitudLPP!.toStringAsFixed(4)}'
-                                        : 'Toca aquí para marcar la ubicación en el mapa',
+                                child: Text(
+                                  vm.latitudLPP != null
+                                      ? 'Ubicación marcada: ${vm.latitudLPP!.toStringAsFixed(4)}, ${vm.longitudLPP!.toStringAsFixed(4)}'
+                                      : 'Toca aquí para marcar la ubicación en el mapa',
                                   style: TextStyle(
                                     color: vm.latitudLPP != null
                                         ? AppTheme.primary
@@ -442,7 +477,8 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                                 ),
                               ),
                               if (vm.latitudLPP != null)
-                                const Icon(Icons.check_circle, color: AppTheme.success),
+                                const Icon(Icons.check_circle,
+                                    color: AppTheme.success),
                             ],
                           ),
                         ),
@@ -468,7 +504,9 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                                 icon: const Icon(Icons.send),
                                 label: const Text(
                                   'Publicar Reporte',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppTheme.primary,
@@ -612,7 +650,8 @@ class _CampoDinamico extends StatelessWidget {
             ),
             child: SwitchListTile(
               title: Text(campo.etiqueta,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w500)),
               secondary: campo.icono != null
                   ? Icon(campo.icono, color: AppTheme.primary)
                   : null,
@@ -655,7 +694,8 @@ class _ImagePickerSection extends StatelessWidget {
             duration: const Duration(milliseconds: 300),
             height: tieneImagen ? 280 : 200,
             width: double.infinity,
-            decoration: BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.06)),
+            decoration:
+                BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.06)),
             child: tieneImagen && imageBytes != null
                 ? Image.memory(
                     imageBytes! as dynamic,
@@ -690,7 +730,8 @@ class _ImagePickerSection extends StatelessWidget {
                       const SizedBox(height: 4),
                       const Text(
                         'JPG, PNG — recomendado',
-                        style: TextStyle(color: Color(0xFF9E9E9E), fontSize: 12),
+                        style:
+                            TextStyle(color: Color(0xFF9E9E9E), fontSize: 12),
                       ),
                     ],
                   ),
@@ -734,4 +775,3 @@ class _ImagePickerSection extends StatelessWidget {
     );
   }
 }
-

@@ -38,7 +38,8 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 600),
     );
     _slideAnim = Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutCubic));
+        .animate(
+            CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutCubic));
 
     _fadeCtrl.forward();
     _slideCtrl.forward();
@@ -81,7 +82,8 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
           content: Text(vm.errorMessage ?? 'Error al iniciar sesión.'),
           backgroundColor: AppTheme.danger,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         ),
       );

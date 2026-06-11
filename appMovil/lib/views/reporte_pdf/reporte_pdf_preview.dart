@@ -48,7 +48,8 @@ class ReportePdfPreview extends StatelessWidget {
             color: AppTheme.primary.withValues(alpha: 0.08),
             child: Row(
               children: [
-                const Icon(Icons.picture_as_pdf, color: AppTheme.primary, size: 18),
+                const Icon(Icons.picture_as_pdf,
+                    color: AppTheme.primary, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -68,7 +69,8 @@ class ReportePdfPreview extends StatelessWidget {
           Expanded(
             child: PdfPreview(
               build: (_) async => pdfBytes,
-              pdfFileName: 'Echoes_Reporte_${tituloOperativo.replaceAll(' ', '_')}.pdf',
+              pdfFileName:
+                  'Echoes_Reporte_${tituloOperativo.replaceAll(' ', '_')}.pdf',
               allowPrinting: true,
               allowSharing: true,
               canChangeOrientation: false,
@@ -95,7 +97,8 @@ class ReportePdfPreview extends StatelessWidget {
                     // a través del botón de share que ya incluye PdfPreview.
                     await Printing.sharePdf(
                       bytes: pdfBytes,
-                      filename: 'Echoes_Reporte_${tituloOperativo.replaceAll(' ', '_')}.pdf',
+                      filename:
+                          'Echoes_Reporte_${tituloOperativo.replaceAll(' ', '_')}.pdf',
                     );
                   },
                 ),
@@ -125,4 +128,3 @@ class ReportePdfPreview extends StatelessWidget {
     }
   }
 }
-

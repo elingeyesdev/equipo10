@@ -8,14 +8,17 @@ class DescargadorMobile implements DescargadorInterface {
 
   @override
   Future<void> descargarArchivo(String url, String nombreArchivo) async {
-    final directory = await getExternalStorageDirectory() ?? await getApplicationDocumentsDirectory();
+    final directory = await getExternalStorageDirectory() ??
+        await getApplicationDocumentsDirectory();
     final String path = '${directory.path}/$nombreArchivo';
     await _dio.download(url, path);
   }
 
   @override
-  Future<void> descargarTexto(String contenido, String nombreArchivo, String mimeType) async {
-    final directory = await getExternalStorageDirectory() ?? await getApplicationDocumentsDirectory();
+  Future<void> descargarTexto(
+      String contenido, String nombreArchivo, String mimeType) async {
+    final directory = await getExternalStorageDirectory() ??
+        await getApplicationDocumentsDirectory();
     final String path = '${directory.path}/$nombreArchivo';
     final file = File(path);
     await file.writeAsString(contenido);

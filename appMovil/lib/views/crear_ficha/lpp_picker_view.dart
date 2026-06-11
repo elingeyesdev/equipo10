@@ -60,57 +60,65 @@ class _LPPPickerViewState extends State<LPPPickerView> {
   }
 
   void _actualizarCachePoligonos() {
-    _cachedPolygons = _cuadrantes.map((c) {
-      List<LatLng>? points;
-      
-      if (c.geometria != null) {
-        try {
-          var geometryData = c.geometria;
-          final geometry = geometryData!['type'] == 'Feature' 
-              ? geometryData['geometry'] 
-              : geometryData;
-          
-          if (geometry['type'] == 'Polygon') {
-            final coords = geometry['coordinates'][0] as List;
-            points = coords.map((coord) {
-              return LatLng(double.parse(coord[1].toString()), double.parse(coord[0].toString()));
-            }).toList();
+    _cachedPolygons = _cuadrantes
+        .map((c) {
+          List<LatLng>? points;
+
+          if (c.geometria != null) {
+            try {
+              var geometryData = c.geometria;
+              final geometry = geometryData!['type'] == 'Feature'
+                  ? geometryData['geometry']
+                  : geometryData;
+
+              if (geometry['type'] == 'Polygon') {
+                final coords = geometry['coordinates'][0] as List;
+                points = coords.map((coord) {
+                  return LatLng(double.parse(coord[1].toString()),
+                      double.parse(coord[0].toString()));
+                }).toList();
+              }
+            } catch (_) {}
           }
-        } catch (_) {}
-      } 
-      
-      // Fallback: usar bounding box si no hay geometría compleja
-      if (points == null && c.latMin != null) {
-        points = [
-          LatLng(c.latMin!, c.lngMin!),
-          LatLng(c.latMin!, c.lngMax!),
-          LatLng(c.latMax!, c.lngMax!),
-          LatLng(c.latMax!, c.lngMin!),
-          LatLng(c.latMin!, c.lngMin!),
-        ];
-      }
 
-      if (points == null) return null;
+          // Fallback: usar bounding box si no hay geometría compleja
+          if (points == null && c.latMin != null) {
+            points = [
+              LatLng(c.latMin!, c.lngMin!),
+              LatLng(c.latMin!, c.lngMax!),
+              LatLng(c.latMax!, c.lngMax!),
+              LatLng(c.latMax!, c.lngMin!),
+              LatLng(c.latMin!, c.lngMin!),
+            ];
+          }
 
-      bool esSeleccionado = _cuadranteSeleccionado?.id == c.id;
+          if (points == null) return null;
 
-      return Polygon(
-        points: points,
-        color: Colors.transparent, // NUNCA rellenar de azul
-        borderColor: Colors.blue.withOpacity(0.5), // Azul más fuerte
-        borderStrokeWidth: esSeleccionado ? 2.5 : 1.2, 
-      );
-    }).whereType<Polygon>().toList();
+          bool esSeleccionado = _cuadranteSeleccionado?.id == c.id;
+
+          return Polygon(
+            points: points,
+            color: Colors.transparent, // NUNCA rellenar de azul
+            borderColor: Colors.blue.withOpacity(0.5), // Azul más fuerte
+            borderStrokeWidth: esSeleccionado ? 2.5 : 1.2,
+          );
+        })
+        .whereType<Polygon>()
+        .toList();
 
     // 2. Dibujar mini-cuadrante verde alrededor del LPP seleccionado
     if (_selectedLPP != null) {
       const double radioMini = 0.0008; // Tamaño DOBLE como pidió el usuario
       _cachedPolygons!.add(Polygon(
         points: [
-          LatLng(_selectedLPP!.latitude - radioMini, _selectedLPP!.longitude - radioMini),
-          LatLng(_selectedLPP!.latitude - radioMini, _selectedLPP!.longitude + radioMini),
-          LatLng(_selectedLPP!.latitude + radioMini, _selectedLPP!.longitude + radioMini),
-          LatLng(_selectedLPP!.latitude + radioMini, _selectedLPP!.longitude - radioMini),
+          LatLng(_selectedLPP!.latitude - radioMini,
+              _selectedLPP!.longitude - radioMini),
+          LatLng(_selectedLPP!.latitude - radioMini,
+              _selectedLPP!.longitude + radioMini),
+          LatLng(_selectedLPP!.latitude + radioMini,
+              _selectedLPP!.longitude + radioMini),
+          LatLng(_selectedLPP!.latitude + radioMini,
+              _selectedLPP!.longitude - radioMini),
         ],
         color: const Color(0xFF10B981).withOpacity(0.4),
         borderColor: const Color(0xFF059669),
@@ -121,8 +129,14 @@ class _LPPPickerViewState extends State<LPPPickerView> {
 
   CuadranteModel? _encontrarCuadranteLocal(double lat, double lng) {
     for (var c in _cuadrantes) {
-      if (c.latMin != null && c.latMax != null && c.lngMin != null && c.lngMax != null) {
-        if (lat >= c.latMin! && lat <= c.latMax! && lng >= c.lngMin! && lng <= c.lngMax!) {
+      if (c.latMin != null &&
+          c.latMax != null &&
+          c.lngMin != null &&
+          c.lngMax != null) {
+        if (lat >= c.latMin! &&
+            lat <= c.latMax! &&
+            lng >= c.lngMin! &&
+            lng <= c.lngMax!) {
           return c;
         }
       }
@@ -157,8 +171,8 @@ class _LPPPickerViewState extends State<LPPPickerView> {
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Los servicios de ubicación están desactivados.')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Los servicios de ubicación están desactivados.')));
       }
       return;
     }
@@ -177,18 +191,20 @@ class _LPPPickerViewState extends State<LPPPickerView> {
 
     if (permission == LocationPermission.deniedForever) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Los permisos de ubicación están denegados permanentemente.')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Los permisos de ubicación están denegados permanentemente.')));
       }
       return;
     }
 
     try {
       Position position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
       );
       final punto = LatLng(position.latitude, position.longitude);
-      
+
       if (mounted) {
         setState(() {
           _selectedLPP = punto;
@@ -199,8 +215,8 @@ class _LPPPickerViewState extends State<LPPPickerView> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No se pudo obtener la ubicación actual.')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('No se pudo obtener la ubicación actual.')));
       }
     }
   }
@@ -241,7 +257,8 @@ class _LPPPickerViewState extends State<LPPPickerView> {
       _searchController.text = lugar.nombre;
     });
     _mapController.move(punto, 16.0);
-    _detectarCuadrante(punto.latitude, punto.longitude); // Detectar cuadrante al buscar
+    _detectarCuadrante(
+        punto.latitude, punto.longitude); // Detectar cuadrante al buscar
     FocusScope.of(context).unfocus();
   }
 
@@ -265,22 +282,25 @@ class _LPPPickerViewState extends State<LPPPickerView> {
             children: [
               Icon(Icons.error_outline, color: Colors.white),
               SizedBox(width: 10),
-              Expanded(child: Text('Ubicación inválida. Debes seleccionar un punto dentro de la zona de búsqueda permitida.')),
+              Expanded(
+                  child: Text(
+                      'Ubicación inválida. Debes seleccionar un punto dentro de la zona de búsqueda permitida.')),
             ],
           ),
           backgroundColor: Colors.red.shade800,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
       return;
     }
 
     context.read<CrearFichaViewModel>().setUbicacion(
-          _selectedLPP!.latitude,
-          _selectedLPP!.longitude,
-          [_cuadranteSeleccionado!.id],
-        );
+      _selectedLPP!.latitude,
+      _selectedLPP!.longitude,
+      [_cuadranteSeleccionado!.id],
+    );
     Navigator.pop(context, true);
   }
 
@@ -365,7 +385,8 @@ class _LPPPickerViewState extends State<LPPPickerView> {
                 MapLayerToggleButton(
                   heroTag: null,
                   useSatellite: _useSatellite,
-                  onToggle: () => setState(() => _useSatellite = !_useSatellite),
+                  onToggle: () =>
+                      setState(() => _useSatellite = !_useSatellite),
                 ),
               ],
             ),
@@ -384,7 +405,10 @@ class _LPPPickerViewState extends State<LPPPickerView> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: const [
-                      BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2))
+                      BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 6,
+                          offset: Offset(0, 2))
                     ],
                   ),
                   child: TextField(
@@ -393,7 +417,8 @@ class _LPPPickerViewState extends State<LPPPickerView> {
                     decoration: InputDecoration(
                       hintText: 'Buscar lugar en Santa Cruz...',
                       hintStyle: const TextStyle(color: Colors.grey),
-                      prefixIcon: const Icon(Icons.search, color: AppTheme.primary),
+                      prefixIcon:
+                          const Icon(Icons.search, color: AppTheme.primary),
                       suffixIcon: _buscando
                           ? const Padding(
                               padding: EdgeInsets.all(12),
@@ -408,7 +433,8 @@ class _LPPPickerViewState extends State<LPPPickerView> {
                             )
                           : _searchController.text.isNotEmpty
                               ? IconButton(
-                                  icon: const Icon(Icons.close, color: Colors.grey),
+                                  icon: const Icon(Icons.close,
+                                      color: Colors.grey),
                                   onPressed: () {
                                     _searchController.clear();
                                     setState(() {
@@ -433,7 +459,10 @@ class _LPPPickerViewState extends State<LPPPickerView> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: const [
-                        BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2))
+                        BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 6,
+                            offset: Offset(0, 2))
                       ],
                     ),
                     child: ListView.separated(
@@ -468,11 +497,14 @@ class _LPPPickerViewState extends State<LPPPickerView> {
                 if (!_mostrarSugerencias && _selectedLPP == null)
                   Container(
                     margin: const EdgeInsets.only(top: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.92),
                       borderRadius: BorderRadius.circular(10),
-                      boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black12, blurRadius: 4)
+                      ],
                     ),
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -491,7 +523,8 @@ class _LPPPickerViewState extends State<LPPPickerView> {
                 if (!_mostrarSugerencias && _selectedLPP != null)
                   Container(
                     margin: const EdgeInsets.only(top: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       color: AppTheme.primary.withOpacity(0.9),
                       borderRadius: BorderRadius.circular(10),
@@ -499,13 +532,17 @@ class _LPPPickerViewState extends State<LPPPickerView> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.check_circle, size: 16, color: Colors.white),
+                        const Icon(Icons.check_circle,
+                            size: 16, color: Colors.white),
                         const SizedBox(width: 6),
                         Text(
-                          _cuadranteSeleccionado != null 
+                          _cuadranteSeleccionado != null
                               ? 'Ubicado en: ${_cuadranteSeleccionado!.nombre}. Toca el check para confirmar.'
                               : 'LPP y cuadrantes trazados. Toca el check para confirmar.',
-                          style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),

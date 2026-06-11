@@ -43,7 +43,8 @@ class PerfilViewModel extends ChangeNotifier {
     // Evitar duplicados
     if (_perfil!.habilidades.contains(nuevaHabilidad)) return true;
 
-    final nuevasHabilidades = List<String>.from(_perfil!.habilidades)..add(nuevaHabilidad);
+    final nuevasHabilidades = List<String>.from(_perfil!.habilidades)
+      ..add(nuevaHabilidad);
     return await _guardarHabilidades(nuevasHabilidades);
   }
 
@@ -51,7 +52,8 @@ class PerfilViewModel extends ChangeNotifier {
   Future<bool> eliminarHabilidad(String habilidad) async {
     if (_perfil == null || _authService.currentUserId == null) return false;
 
-    final nuevasHabilidades = List<String>.from(_perfil!.habilidades)..remove(habilidad);
+    final nuevasHabilidades = List<String>.from(_perfil!.habilidades)
+      ..remove(habilidad);
     return await _guardarHabilidades(nuevasHabilidades);
   }
 
@@ -84,9 +86,10 @@ class PerfilViewModel extends ChangeNotifier {
   }
 
   /// Actualiza los datos básicos (nombre, teléfono)
-  Future<bool> actualizarDatosPersonales(String nombre, String? telefono) async {
+  Future<bool> actualizarDatosPersonales(
+      String nombre, String? telefono) async {
     if (_authService.currentUserId == null) return false;
-    
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -143,7 +146,8 @@ class PerfilViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final avatarUrl = await _authService.subirAvatarDirecto(_authService.currentUserId!, filePath);
+      final avatarUrl = await _authService.subirAvatarDirecto(
+          _authService.currentUserId!, filePath);
       if (avatarUrl != null) {
         await cargarPerfil();
         return true;

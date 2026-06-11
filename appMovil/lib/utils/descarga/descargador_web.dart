@@ -9,14 +9,14 @@ class DescargadorWeb implements DescargadorInterface {
       final response = await http.get(Uri.parse(url));
       final blob = html.Blob([response.bodyBytes]);
       final blobUrl = html.Url.createObjectUrlFromBlob(blob);
-      
+
       final anchor = html.AnchorElement(href: blobUrl)
         ..target = '_self'
         ..download = nombreArchivo;
       html.document.body?.children.add(anchor);
       anchor.click();
       anchor.remove();
-      
+
       // Delay revoking slightly so the browser registers the download
       Future.delayed(const Duration(seconds: 5), () {
         html.Url.revokeObjectUrl(blobUrl);
@@ -33,7 +33,8 @@ class DescargadorWeb implements DescargadorInterface {
   }
 
   @override
-  Future<void> descargarTexto(String contenido, String nombreArchivo, String mimeType) async {
+  Future<void> descargarTexto(
+      String contenido, String nombreArchivo, String mimeType) async {
     final blob = html.Blob([contenido], mimeType);
     final url = html.Url.createObjectUrlFromBlob(blob);
     final anchor = html.AnchorElement(href: url)
@@ -42,7 +43,7 @@ class DescargadorWeb implements DescargadorInterface {
     html.document.body?.children.add(anchor);
     anchor.click();
     anchor.remove();
-    
+
     Future.delayed(const Duration(seconds: 5), () {
       html.Url.revokeObjectUrl(url);
     });
