@@ -25,7 +25,7 @@ class LocalDatabase {
   factory LocalDatabase() => _instance;
   LocalDatabase._internal();
 
-  static const int _version = 1;
+  static const int _version = 2;
   static const String _dbName = 'echoes_offline.db';
 
   Database? _db;
@@ -107,12 +107,34 @@ class LocalDatabase {
       )
     ''');
 
+    await db.execute('''
+      CREATE TABLE encuestas_pendientes (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        reporte_id  TEXT NOT NULL,
+        usuario_id  TEXT NOT NULL,
+        puntuacion  INTEGER NOT NULL,
+        comentario  TEXT,
+        creado_en   TEXT NOT NULL
+      )
+    ''');
+
     debugPrint('[LocalDB] Base de datos creada (v$version).');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Para futuras migraciones: añadir columnas aquí sin romper datos existentes.
     debugPrint('[LocalDB] Migración de v$oldVersion a v$newVersion.');
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS encuestas_pendientes (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          reporte_id  TEXT NOT NULL,
+          usuario_id  TEXT NOT NULL,
+          puntuacion  INTEGER NOT NULL,
+          comentario  TEXT,
+          creado_en   TEXT NOT NULL
+        )
+      ''');
+    }
   }
 
   // ── CUADRANTES ─────────────────────────────────────────────────────────────
@@ -302,6 +324,77 @@ class LocalDatabase {
     );
   }
 
+  /// Guarda un único reporte (upsert).
+  Future<void> upsertReporte(ReporteModel r) async {
+    if (kIsWeb) return;
+    await upsertReportes([r]);
+  }
+
+  /// Devuelve un reporte por su ID o null si no está en caché.
+  Future<ReporteModel?> getReporteById(String id) async {
+    if (kIsWeb) return null;
+    final db = await database;
+    final rows = await db.query('reportes', where: 'id = ?', whereArgs: [id], limit: 1);
+    if (rows.isEmpty) return null;
+    final r = rows.first;
+    Map<String, dynamic>? chars;
+    if (r['caracteristicas_json'] != null) {
+      try { chars = jsonDecode(r['caracteristicas_json'] as String); } catch (_) {}
+    }
+    return ReporteModel(
+      id: r['id'] as String,
+      usuarioId: r['usuario_id'] as String,
+      categoriaId: r['categoria_id'] as String?,
+      cuadranteId: r['cuadrante_id'] as String?,
+      tipoReporte: r['tipo_reporte'] as String,
+      titulo: r['titulo'] as String,
+      descripcion: r['descripcion'] as String,
+      latitud: r['lat'] != null ? (r['lat'] as num).toDouble() : null,
+      longitud: r['lng'] != null ? (r['lng'] as num).toDouble() : null,
+      estado: r['estado'] as String,
+      primeraImagen: r['primera_imagen'] as String?,
+      nombreCategoria: r['nombre_categoria'] as String?,
+      nombreUsuario: r['nombre_usuario'] as String?,
+      prioridad: r['prioridad'] as String?,
+      fechaPerdida: r['fecha_perdida'] as String?,
+      nivelExpansion: r['nivel_expansion'] != null ? (r['nivel_expansion'] as int) : 1,
+      caracteristicas: chars,
+      createdAt: r['created_at'] != null ? DateTime.tryParse(r['created_at'] as String) : null,
+    );
+  }
+
+  // ── ENCUESTAS PENDIENTES (cola offline) ────────────────────────────────────
+
+  Future<void> saveEncuestaPendiente({
+    required String reporteId,
+    required String usuarioId,
+    required int puntuacion,
+    String? comentario,
+  }) async {
+    if (kIsWeb) return;
+    final db = await database;
+    await db.insert('encuestas_pendientes', {
+      'reporte_id': reporteId,
+      'usuario_id': usuarioId,
+      'puntuacion': puntuacion,
+      'comentario': comentario,
+      'creado_en': DateTime.now().toIso8601String(),
+    });
+    debugPrint('[LocalDB] Encuesta guardada offline para $reporteId.');
+  }
+
+  Future<List<Map<String, dynamic>>> getEncuestasPendientes() async {
+    if (kIsWeb) return [];
+    final db = await database;
+    return db.query('encuestas_pendientes', orderBy: 'creado_en ASC');
+  }
+
+  Future<void> deleteEncuestaPendiente(int id) async {
+    if (kIsWeb) return;
+    final db = await database;
+    await db.delete('encuestas_pendientes', where: 'id = ?', whereArgs: [id]);
+  }
+
   // ── Utilidades ─────────────────────────────────────────────────────────────
 
   /// Elimina todos los datos de la BD (útil al cerrar sesión).
@@ -311,6 +404,7 @@ class LocalDatabase {
     await db.delete('cuadrantes');
     await db.delete('reportes');
     await db.delete('pistas');
+    await db.delete('encuestas_pendientes');
     debugPrint('[LocalDB] Base de datos limpiada.');
   }
 

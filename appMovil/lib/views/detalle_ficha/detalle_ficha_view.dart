@@ -711,7 +711,8 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
       return;
     }
 
-    final trackingVm = TrackingViewModel();
+    // Usar el TrackingViewModel global (inyectado en main.dart)
+    final trackingVm = context.read<TrackingViewModel>();
     final pos = await trackingVm.verificarGeofencing(
       latMin: ficha.cuadranteLatMin!,
       latMax: ficha.cuadranteLatMax!,
@@ -744,12 +745,9 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
 
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => TrackingViewModel(),
-          child: TrackingView(
-            ficha: ficha,
-            usuarioId: widget.currentUserId,
-          ),
+        builder: (_) => TrackingView(
+          ficha: ficha,
+          usuarioId: widget.currentUserId,
         ),
       ),
     );

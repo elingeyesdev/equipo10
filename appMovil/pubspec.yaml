@@ -49,6 +49,9 @@ dependencies:
   path: ^1.9.0        # Requerido por local_database.dart (join de rutas)
   sqflite_common_ffi: ^2.4.0+3
 
+  # Tracking en background (Foreground Service Android con notificación persistente)
+  flutter_foreground_task: ^8.14.0
+
   # Generación y previsualización de PDF (E13 - Módulo de Reporte Final)
   pdf: ^3.10.8
   printing: ^5.12.0

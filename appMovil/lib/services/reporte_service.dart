@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'api_service.dart';
+import 'local_database.dart';
 import '../models/reporte_model.dart';
 
 class ReporteService {
@@ -39,13 +41,21 @@ class ReporteService {
     throw Exception('Error al obtener mis reportes');
   }
 
-  /// Obtiene un reporte específico detallado
+  /// Obtiene un reporte por ID — red primero, LocalDB como fallback offline.
   Future<ReporteModel?> obtenerReportePorId(String reporteId) async {
-    final response = await _api.client.get('/reportes/$reporteId');
-    if (response.statusCode == 200 && response.data['success'] == true) {
-      return ReporteModel.fromMap(response.data['data']);
+    try {
+      final response = await _api.client.get('/reportes/$reporteId');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final reporte = ReporteModel.fromMap(response.data['data']);
+        // Guardar en caché local para uso offline
+        try { await LocalDatabase().upsertReporte(reporte); } catch (_) {}
+        return reporte;
+      }
+    } catch (e) {
+      debugPrint('[ReporteService] Sin red, buscando en caché local: $e');
     }
-    return null;
+    // Fallback: intentar desde LocalDB
+    return LocalDatabase().getReporteById(reporteId);
   }
 
   /// Obtiene la galería centralizada del reporte

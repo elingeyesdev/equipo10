@@ -20,6 +20,8 @@ import 'viewmodels/perfil_viewmodel.dart';
 import 'viewmodels/notificaciones_viewmodel.dart';
 import 'viewmodels/evidencia_viewmodel.dart';
 import 'services/auth_service.dart';
+import 'services/tracking_foreground_service.dart';
+import 'viewmodels/tracking_viewmodel.dart';
 import 'views/auth/login_view.dart';
 import 'views/auth/onboarding_view.dart';
 import 'views/home/home_view.dart';
@@ -45,6 +47,11 @@ Future<void> main() async {
 
   // Inicializar módulo de notificaciones
   await NotificationService().initialize();
+
+  // Inicializar Foreground Service de tracking (solo Android)
+  if (!kIsWeb && Platform.isAndroid) {
+    TrackingForegroundService().init();
+  }
 
   final prefs = await SharedPreferences.getInstance();
   final hasToken = prefs.getString('auth_token') != null;
@@ -76,6 +83,9 @@ class EchoesApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PerfilViewModel(AuthService())),
         ChangeNotifierProvider(create: (_) => NotificacionesViewModel()),
         ChangeNotifierProvider(create: (_) => EvidenciaViewModel()),
+        // TrackingViewModel global: persiste aunque se salga del TrackingView,
+        // permitiendo que el GPS siga en background con el Foreground Service.
+        ChangeNotifierProvider(create: (_) => TrackingViewModel()),
       ],
       child: MaterialApp(
         title: 'Echoes',

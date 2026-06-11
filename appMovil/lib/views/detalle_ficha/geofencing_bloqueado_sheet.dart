@@ -289,7 +289,7 @@ class _GeofencingBloqueadoSheetState extends State<GeofencingBloqueadoSheet> {
                           ],
                         ),
                         child: Text(
-                          _useSatellite ? '🗺 Mapa' : '🛰 Satélite',
+                          _useSatellite ? 'Mapa' : 'Satélite',
                           style: const TextStyle(fontSize: 11),
                         ),
                       ),
@@ -304,7 +304,7 @@ class _GeofencingBloqueadoSheetState extends State<GeofencingBloqueadoSheet> {
 
           // ── Instrucción ─────────────────────────────────────────────────
           const Text(
-            '💡 Dirígete al área azul del mapa. Una vez dentro, el tracking se activará automáticamente.',
+            'Dirígete al área azul del mapa. Una vez dentro, el tracking se activará automáticamente.',
             style: TextStyle(
                 fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
           ),

@@ -1045,9 +1045,6 @@
                     <div style="min-width: 220px;">
                         <h6 style="margin-bottom: 10px; color: #64748b; font-weight: 800;">
                             <i class="bi bi-geo-alt-fill"></i> ${cuadrante.nombre}
-                            <span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">
-                                SISTEMA ORIGINAL
-                            </span>
                         </h6>
                         <div style="font-size: 0.85rem; line-height: 1.4;">
                             <p style="margin: 0 0 5px 0;"><strong>Código:</strong> ${cuadrante.codigo}</p>

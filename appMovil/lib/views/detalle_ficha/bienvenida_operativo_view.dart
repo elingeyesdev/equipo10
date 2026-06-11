@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../../models/reporte_model.dart';
 import '../../services/vinculacion_service.dart';
+import '../../services/api_service.dart';
 import '../../models/perfil_model.dart';
 import '../../viewmodels/tracking_viewmodel.dart';
 import '../../widgets/map_tile_layer.dart';
@@ -83,7 +84,8 @@ class _BienvenidaOperativoViewState extends State<BienvenidaOperativoView>
       return;
     }
 
-    final trackingVm = TrackingViewModel();
+    // Usar el TrackingViewModel global (inyectado en main.dart)
+    final trackingVm = context.read<TrackingViewModel>();
     final pos = await trackingVm.verificarGeofencing(
       latMin: ficha.cuadranteLatMin!,
       latMax: ficha.cuadranteLatMax!,
@@ -114,12 +116,9 @@ class _BienvenidaOperativoViewState extends State<BienvenidaOperativoView>
 
     await Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => TrackingViewModel(),
-          child: TrackingView(
-            ficha: ficha,
-            usuarioId: widget.usuarioId,
-          ),
+        builder: (_) => TrackingView(
+          ficha: ficha,
+          usuarioId: widget.usuarioId,
         ),
       ),
     );
@@ -321,22 +320,139 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _MapaCuadrante extends StatelessWidget {
+class _MapaCuadrante extends StatefulWidget {
   final ReporteModel ficha;
-
   const _MapaCuadrante({required this.ficha});
+
+  @override
+  State<_MapaCuadrante> createState() => _MapaCuadranteState();
+}
+
+class _MapaCuadranteState extends State<_MapaCuadrante> {
+  final ApiService _api = ApiService();
+  List<Map<String, dynamic>> _pistas = [];
+  bool _cargando = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarPistas();
+  }
+
+  Future<void> _cargarPistas() async {
+    try {
+      final response =
+          await _api.client.get('/reportes/${widget.ficha.id}/pistas');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final List<dynamic> raw = response.data['data'] ?? [];
+        final pistas = raw.map((p) {
+          final lat =
+              double.tryParse(p['ubicacion_lat']?.toString() ?? '0') ?? 0.0;
+          final lng =
+              double.tryParse(p['ubicacion_lng']?.toString() ?? '0') ?? 0.0;
+          return {
+            'lat': lat,
+            'lng': lng,
+            'created_at': p['created_at']?.toString() ?? '',
+          };
+        }).where((p) => (p['lat'] as double) != 0).toList();
+        if (mounted) setState(() => _pistas = pistas);
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _cargando = false);
+  }
+
+  /// Calcula el nivel de expansión dinámico igual que en la web y en
+  /// mapa_operativo_view.dart.
+  int _calcularNivel(String? fechaStr) {
+    if (fechaStr == null || fechaStr.isEmpty) return 1;
+    final fecha = DateTime.tryParse(fechaStr.replaceAll(' ', 'T'));
+    if (fecha == null) return 1;
+    final diffMin = DateTime.now().difference(fecha).inMinutes;
+    if (diffMin >= 5760) return 10;
+    if (diffMin >= 4320) return 9;
+    if (diffMin >= 2880) return 8;
+    if (diffMin >= 1440) return 7;
+    if (diffMin >= 720) return 6;
+    if (diffMin >= 360) return 5;
+    if (diffMin >= 180) return 4;
+    if (diffMin >= 60) return 3;
+    if (diffMin >= 30) return 2;
+    return 1;
+  }
+
+  List<Polygon> _buildPolygons() {
+    final polygons = <Polygon>[];
+    const double radioBase = 0.0007;
+    const green = Color(0xFF10B981);
+    const greenDark = Color(0xFF059669);
+
+    // Cuadrante base — contorno azul semitransparente
+    polygons.add(Polygon(
+      points: [
+        LatLng(widget.ficha.cuadranteLatMax!, widget.ficha.cuadranteLngMin!),
+        LatLng(widget.ficha.cuadranteLatMax!, widget.ficha.cuadranteLngMax!),
+        LatLng(widget.ficha.cuadranteLatMin!, widget.ficha.cuadranteLngMax!),
+        LatLng(widget.ficha.cuadranteLatMin!, widget.ficha.cuadranteLngMin!),
+      ],
+      color: AppTheme.primary.withOpacity(0.10),
+      borderColor: AppTheme.primary.withOpacity(0.75),
+      borderStrokeWidth: 2.0,
+    ));
+
+    // Zona de expansión del LPP
+    if (widget.ficha.latitud != null && widget.ficha.longitud != null) {
+      final nivel =
+          _calcularNivel(widget.ficha.createdAt?.toIso8601String());
+      final r = radioBase * nivel;
+      final lat = widget.ficha.latitud!;
+      final lng = widget.ficha.longitud!;
+      polygons.add(Polygon(
+        points: [
+          LatLng(lat - r, lng - r),
+          LatLng(lat - r, lng + r),
+          LatLng(lat + r, lng + r),
+          LatLng(lat + r, lng - r),
+        ],
+        color: green.withOpacity(0.22),
+        borderColor: greenDark,
+        borderStrokeWidth: 2.0,
+      ));
+    }
+
+    // Zonas de expansión de pistas
+    for (final p in _pistas) {
+      final nivel = _calcularNivel(p['created_at']?.toString());
+      final r = radioBase * nivel;
+      final lat = p['lat'] as double;
+      final lng = p['lng'] as double;
+      polygons.add(Polygon(
+        points: [
+          LatLng(lat - r, lng - r),
+          LatLng(lat - r, lng + r),
+          LatLng(lat + r, lng + r),
+          LatLng(lat + r, lng - r),
+        ],
+        color: green.withOpacity(0.22),
+        borderColor: greenDark,
+        borderStrokeWidth: 1.5,
+      ));
+    }
+
+    return polygons;
+  }
 
   @override
   Widget build(BuildContext context) {
     final center = LatLng(
-      (ficha.cuadranteLatMin! + ficha.cuadranteLatMax!) / 2,
-      (ficha.cuadranteLngMin! + ficha.cuadranteLngMax!) / 2,
+      (widget.ficha.cuadranteLatMin! + widget.ficha.cuadranteLatMax!) / 2,
+      (widget.ficha.cuadranteLngMin! + widget.ficha.cuadranteLngMax!) / 2,
     );
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: SizedBox(
-        height: 200,
+        height: 220,
         child: Stack(
           children: [
             IgnorePointer(
@@ -344,45 +460,85 @@ class _MapaCuadrante extends StatelessWidget {
                 options: MapOptions(
                   initialCenter: center,
                   initialZoom: 14.5,
-                  interactionOptions:
-                      const InteractionOptions(flags: InteractiveFlag.none),
+                  interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.none),
                 ),
                 children: [
-                  MapTileLayer(useSatellite: false),
-                  PolygonLayer(
-                    polygons: [
-                      Polygon(
-                        points: [
-                          LatLng(ficha.cuadranteLatMax!, ficha.cuadranteLngMin!),
-                          LatLng(ficha.cuadranteLatMax!, ficha.cuadranteLngMax!),
-                          LatLng(ficha.cuadranteLatMin!, ficha.cuadranteLngMax!),
-                          LatLng(ficha.cuadranteLatMin!, ficha.cuadranteLngMin!),
-                        ],
-                        color: AppTheme.primary.withOpacity(0.2),
-                        borderColor: AppTheme.primary,
-                        borderStrokeWidth: 2.5,
-                      ),
-                    ],
-                  ),
+                  MapTileLayer(useSatellite: true),
+                  PolygonLayer(polygons: _buildPolygons()),
                   MarkerLayer(
                     markers: [
-                      if (ficha.latitud != null)
+                      // Punto principal — marcador rojo con ícono de persona
+                      if (widget.ficha.latitud != null &&
+                          widget.ficha.longitud != null)
                         Marker(
-                          point: LatLng(ficha.latitud!, ficha.longitud!),
-                          width: 32,
-                          height: 32,
-                          child: const Icon(
-                            Icons.location_on,
-                            color: Colors.red,
-                            size: 32,
+                          point: LatLng(
+                              widget.ficha.latitud!, widget.ficha.longitud!),
+                          width: 30,
+                          height: 30,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD32F2F),
+                              shape: BoxShape.circle,
+                              border:
+                                  Border.all(color: Colors.white, width: 2.5),
+                              boxShadow: const [
+                                BoxShadow(
+                                    color: Colors.black38, blurRadius: 5)
+                              ],
+                            ),
+                            child: const Icon(Icons.person,
+                                color: Colors.white, size: 15),
                           ),
                         ),
+                      // Pistas — puntos ámbar
+                      ..._pistas.map((p) => Marker(
+                            point: LatLng(
+                                p['lat'] as double, p['lng'] as double),
+                            width: 22,
+                            height: 22,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF59E0B),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: Colors.white, width: 2),
+                                boxShadow: const [
+                                  BoxShadow(
+                                      color: Colors.black26, blurRadius: 3)
+                                ],
+                              ),
+                              child: const Icon(Icons.location_on,
+                                  color: Colors.white, size: 10),
+                            ),
+                          )),
                     ],
                   ),
                 ],
               ),
             ),
-            // Etiqueta superpuesta
+
+            // Indicador de carga de pistas
+            if (_cargando)
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black12, blurRadius: 4)
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(6),
+                  child: const CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+
+            // Etiqueta inferior
             Positioned(
               bottom: 10,
               left: 10,
@@ -399,15 +555,17 @@ class _MapaCuadrante extends StatelessWidget {
                         offset: Offset(0, 2))
                   ],
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.my_location,
+                    const Icon(Icons.my_location,
                         size: 12, color: AppTheme.primary),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                     Text(
-                      'Cuadrante completo',
-                      style: TextStyle(
+                      _pistas.isEmpty
+                          ? 'Cuadrante completo'
+                          : 'Cuadrante · ${_pistas.length} pista${_pistas.length != 1 ? 's' : ''}',
+                      style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: AppTheme.primary),

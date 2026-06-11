@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../../models/reporte_model.dart';
 import '../../models/campo_categoria_model.dart';
@@ -516,11 +517,12 @@ class _ImagePickerSection extends StatelessWidget {
         gaplessPlayback: true,
       );
     } else if (fotoUrlExistente != null && fotoUrlExistente!.isNotEmpty) {
-      imageContent = Image.network(
-        fotoUrlExistente!,
+      imageContent = CachedNetworkImage(
+        imageUrl: fotoUrlExistente!,
         fit: BoxFit.cover,
         width: double.infinity,
-        errorBuilder: (_, __, ___) => const Center(
+        placeholder: (_, __) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        errorWidget: (_, __, ___) => const Center(
           child: Icon(Icons.broken_image, size: 60, color: AppTheme.success),
         ),
       );

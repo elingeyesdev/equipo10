@@ -340,7 +340,16 @@ class VoluntarioController extends Controller
             $voluntario = ReporteVoluntario::where('reporte_id', $reporteId)
                 ->where('usuario_id', $usuarioId)
                 ->whereIn('estado_busqueda', ['activo', 'en_pausa'])
-                ->firstOrFail();
+                ->first();
+
+            // Si no existe sesión activa, ignorar silenciosamente (timer residual)
+            if (!$voluntario) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Sin sesión activa, puntos descartados',
+                    'puntos_totales' => 0
+                ], 200);
+            }
 
             $puntosActuales = is_string($voluntario->recorrido_puntos) 
                 ? json_decode($voluntario->recorrido_puntos, true) 

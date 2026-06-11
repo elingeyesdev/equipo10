@@ -299,9 +299,13 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
       // 2. Dibujar mini-cuadrantes verdes dinámicos con expansión CONTROLADA por la BD
       const double radioBase = 0.0007; // Reducido un poco para que no sea tan gigante
       
-      // 2.1 Dibujar zona del LPP
+      // 2.1 Dibujar zona del LPP — nivel calculado dinámicamente igual que en la web
       if (_lpp != null) {
-        final int nivelLPP = widget.ficha.nivelExpansion;
+        final int nivelLPP = _calcularNivelDinamico(
+          widget.ficha.createdAt?.toIso8601String(),
+          widget.ficha.estado,
+          null,
+        );
         final double radioLPP = radioBase * nivelLPP;
         finalPolygons.add(Polygon(
           points: [
@@ -868,11 +872,16 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                     children: [
                       ClipOval(
                         child: widget.ficha.fotoUrl != null
-                            ? Image.network(
-                                widget.ficha.fotoUrl!,
+                            ? CachedNetworkImage(
+                                imageUrl: widget.ficha.fotoUrl!,
                                 width: 44, height: 44,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => _avatarPlaceholder(),
+                                memCacheWidth: 88,
+                                memCacheHeight: 88,
+                                fadeInDuration: Duration.zero,
+                                fadeOutDuration: Duration.zero,
+                                errorWidget: (_, __, ___) => _avatarPlaceholder(),
+                                placeholder: (_, __) => _avatarPlaceholder(),
                               )
                             : _avatarPlaceholder(),
                       ),
@@ -1124,12 +1133,18 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                     tag: 'map-ev-${evidencia.id}',
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(10),
-                      child: Image.network(
-                        evidencia.fotoUrl!,
+                      child: CachedNetworkImage(
+                        imageUrl: evidencia.fotoUrl!,
                         height: 200,
                         width: 300,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        placeholder: (_, __) => Container(
+                          height: 200,
+                          width: 300,
+                          color: Colors.grey[200],
+                          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                        ),
+                        errorWidget: (_, __, ___) => Container(
                           height: 120,
                           color: Colors.grey[200],
                           child: const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
@@ -1214,14 +1229,18 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
 
     // 1. Punto inicial (Pepe - LPP)
     final _PistaInfo lppInfo = _PistaInfo(
-      id: 'LPP', // ID especial para identificar el punto original
+      id: 'LPP',
       punto: _lpp!,
       etiqueta: 'Visto por última vez',
       fecha: widget.ficha.fechaPerdida ?? '',
-      hora: '', // Opcional
+      hora: '',
       descripcion: 'Punto de inicio de la búsqueda (LPP)',
       cuadranteId: null,
-      nivelExpansion: widget.ficha.nivelExpansion,
+      nivelExpansion: _calcularNivelDinamico(
+        widget.ficha.createdAt?.toIso8601String(),
+        widget.ficha.estado,
+        null,
+      ),
     );
 
     todosLosMarkers.add(
@@ -1252,19 +1271,19 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
       ),
     );
 
-    // 2. Pistas de información
+    // 2. Pistas de información — punto amarillo (sin foto) o morado (con foto de evidencia)
     for (var pista in _pistas) {
       todosLosMarkers.add(
         Marker(
           key: ValueKey('pista_${pista.punto.latitude}_${pista.punto.longitude}'),
           point: pista.punto,
-          width: 80,
-          height: 70,
+          width: 32,
+          height: 32,
           alignment: Alignment.center,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {
-              Future.delayed(const Duration(milliseconds: 150), () {
+              Future.delayed(const Duration(milliseconds: 100), () {
                 if (!mounted) return;
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (!mounted) return;
@@ -1272,13 +1291,18 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                 });
               });
             },
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: LppMarker(
-                fotoUrl: widget.ficha.fotoUrl,
-                nombre: pista.etiqueta,
-                color: _getColorParaEtiqueta(pista.etiqueta),
+            child: Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFFF59E0B), // amarillo/ámbar
+                border: Border.all(color: Colors.white, width: 2.5),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black38, blurRadius: 5, offset: Offset(0, 2)),
+                ],
               ),
+              child: const Icon(Icons.location_on, color: Colors.white, size: 12),
             ),
           ),
         ),
@@ -1348,18 +1372,18 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
       }
     }
 
-    // 5. Evidencias fotográficas (ícono personalizado de cámara)
+    // 5. Evidencias fotográficas — punto morado con ícono de cámara
     todosLosMarkers.addAll(_evidencias.where((e) => e.lat != null && e.lng != null).map((evidencia) {
       return Marker(
         key: ValueKey('evidencia_${evidencia.id}'),
         point: LatLng(evidencia.lat!, evidencia.lng!),
-        width: 100,
-        height: 100,
+        width: 60,
+        height: 68,
         alignment: Alignment.center,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () {
-            Future.delayed(const Duration(milliseconds: 150), () {
+            Future.delayed(const Duration(milliseconds: 100), () {
               if (!mounted) return;
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (!mounted) return;
@@ -1369,7 +1393,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
           },
           child: EvidenciaMarker(
             fotoUrl: evidencia.fotoUrl,
-            nombreVoluntario: evidencia.nombreUsuario,
+            nombreVoluntario: null, // Sin etiqueta en mapa — ver detalle al tocar
           ),
         ),
       );
@@ -1498,6 +1522,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                                                 width: 60,
                                                 height: 60,
                                                 fit: BoxFit.cover,
+                                                fadeInDuration: Duration.zero,
+                                                fadeOutDuration: Duration.zero,
                                                 placeholder: (_, __) => Container(width: 60, height: 60, color: Colors.grey[100]),
                                                 errorWidget: (_, __, ___) => Container(
                                                   width: 60,
@@ -1634,26 +1660,40 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               ),
             ),
 
+          // Botón toggle satélite/callejero — columna izquierda baja
           Positioned(
-            bottom: _modoPista ? 20 : 80,
-            left: 20,
-            child: MapLayerToggleButton(
-              heroTag: null,
-              useSatellite: _useSatellite,
-              onToggle: () => setState(() => _useSatellite = !_useSatellite),
+            bottom: _modoPista ? 20 : 72,
+            left: 12,
+            child: IntrinsicWidth(
+              child: SizedBox(
+                height: 36,
+                child: ElevatedButton.icon(
+                  onPressed: () => setState(() => _useSatellite = !_useSatellite),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppTheme.primary,
+                    elevation: 4,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    shadowColor: Colors.black26,
+                  ),
+                  icon: Icon(_useSatellite ? Icons.map_outlined : Icons.satellite_alt, size: 16),
+                  label: Text(
+                    _useSatellite ? 'Callejero' : 'Satélite',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
             ),
           ),
 
           // E9.2 — Indicador de estado del caché de tiles
           if (_descargandoTiles || _descargaCompletada)
             Positioned(
-              bottom: _modoPista ? 68 : 128,
+              bottom: _modoPista ? 76 : 128,
               left: 12,
               right: 80, // No solapar con los FABs de la derecha
-              child: AnimatedOpacity(
-                opacity: 1.0,
-                duration: const Duration(milliseconds: 300),
-                child: Container(
+              child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.95),
@@ -1708,13 +1748,12 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                           ],
                         ),
                 ),
-              ),
             ),
 
           // Botón manual de re-descarga (visible cuando no está descargando)
           if (!_descargandoTiles && !_descargaCompletada && ConnectivityService().isOnline)
             Positioned(
-              bottom: _modoPista ? 68 : 128,
+              bottom: _modoPista ? 76 : 128,
               left: 12,
               child: GestureDetector(
                 onTap: _preDescargarTiles,
@@ -1743,8 +1782,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             ),
 
           Positioned(
-            bottom: (_modoPista && _pinTemporal != null) ? 134 : 90,
-            right: 20,
+            bottom: (_modoPista && _pinTemporal != null) ? 130 : 72,
+            right: 12,
             child: FloatingActionButton(
               heroTag: 'btn_centrar_operativo',
               mini: true,
@@ -1786,113 +1825,164 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               ),
             ),
 
-          // ── Tooltip de detalle de Pista (Rediseñado arriba a la izquierda) ──
+          // ── Tarjeta de detalle de Pista — posicionada en la parte inferior ──
           if (_pistaTooltip != null)
             Positioned(
-              top: 70, // Debajo de la barra superior
+              bottom: _modoPista ? 160 : 90,
               left: 12,
-              width: 280, // Ancho fijo para que sea un panel lateral pequeño
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.98),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 12, offset: const Offset(2, 4))
-                  ],
-                  border: Border.all(color: _getColorParaEtiqueta(_pistaTooltip!.etiqueta).withOpacity(0.3), width: 1),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: _getColorParaEtiqueta(_pistaTooltip!.etiqueta).withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(Icons.info_outline, color: _getColorParaEtiqueta(_pistaTooltip!.etiqueta), size: 18),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            _pistaTooltip!.etiqueta,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: _getColorParaEtiqueta(_pistaTooltip!.etiqueta),
+              right: 12,
+              child: Material(
+                elevation: 8,
+                borderRadius: BorderRadius.circular(18),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border(
+                      left: BorderSide(
+                        color: _pistaTooltip!.id == 'LPP'
+                            ? const Color(0xFFD32F2F)
+                            : const Color(0xFFF59E0B),
+                        width: 4,
+                      ),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _pistaTooltip!.id == 'LPP'
+                                  ? const Color(0xFFD32F2F)
+                                  : const Color(0xFFF59E0B),
                             ),
                           ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close, size: 16, color: Colors.grey),
-                          onPressed: () => setState(() => _pistaTooltip = null),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _pistaTooltip!.etiqueta,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                color: Color(0xFF1E293B),
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => setState(() => _pistaTooltip = null),
+                            child: const Icon(Icons.close, size: 18, color: Color(0xFF94A3B8)),
+                          ),
+                        ],
+                      ),
+                      if (_pistaTooltip!.descripcion != null && _pistaTooltip!.descripcion!.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _pistaTooltip!.descripcion!,
+                          style: const TextStyle(fontSize: 13, color: Color(0xFF475569), height: 1.4),
                         ),
                       ],
-                    ),
-                    const Divider(height: 20),
-                    Text(
-                      _pistaTooltip!.descripcion ?? 'Sin detalles adicionales.',
-                      style: const TextStyle(fontSize: 12, color: Colors.black87, height: 1.4),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '${_pistaTooltip!.fecha} a las ${_pistaTooltip!.hora}',
-                          style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500),
-                        ),
-                        if (widget.esCreador)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Wrap(
-                              alignment: WrapAlignment.end,
-                              spacing: 4,
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.schedule, size: 13, color: Color(0xFF94A3B8)),
+                              const SizedBox(width: 4),
+                              Text(
+                                _pistaTooltip!.fecha.isNotEmpty
+                                    ? '${_pistaTooltip!.fecha}${_pistaTooltip!.hora.isNotEmpty ? " · ${_pistaTooltip!.hora}" : ""}'
+                                    : 'Fecha desconocida',
+                                style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                              ),
+                            ],
+                          ),
+                          if (widget.esCreador)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                // Botón MOVER (Para todos)
                                 TextButton.icon(
                                   onPressed: () => _iniciarEdicionPista(_pistaTooltip!),
-                                  icon: const Icon(Icons.move_down, size: 16),
-                                  label: const Text('Mover', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                  icon: const Icon(Icons.open_with, size: 14),
+                                  label: const Text('Mover', style: TextStyle(fontSize: 11)),
                                   style: TextButton.styleFrom(
-                                    foregroundColor: const Color(0xFF2196F3),
-                                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                                    foregroundColor: const Color(0xFF2563EB),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                                     minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
                                 ),
-                                // Botón ELIMINAR (Solo si NO es el original LPP)
                                 if (_pistaTooltip!.id != 'LPP')
                                   TextButton.icon(
                                     onPressed: () => _confirmarEliminarPista(_pistaTooltip!),
-                                    icon: const Icon(Icons.delete_outline, size: 16),
-                                    label: const Text('Eliminar', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                    icon: const Icon(Icons.delete_outline, size: 14),
+                                    label: const Text('Eliminar', style: TextStyle(fontSize: 11)),
                                     style: TextButton.styleFrom(
-                                      foregroundColor: Colors.redAccent,
-                                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                                      foregroundColor: Colors.red.shade400,
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                                       minimumSize: Size.zero,
-                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                     ),
                                   ),
                               ],
                             ),
-                          )
-                        else
-                          const Padding(
-                            padding: EdgeInsets.only(top: 8.0),
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: Icon(Icons.arrow_forward_ios, size: 10, color: Colors.grey),
-                            ),
-                          ),
-                      ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+          // ── Panel lateral derecho: acceso rápido a pistas y evidencias ──
+          if (_pistas.isNotEmpty || _evidencias.isNotEmpty)
+            Positioned(
+              top: 80,
+              right: 12,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.94),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 2)),
+                  ],
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // LPP (rojo)
+                    _buildPanelDot(
+                      color: const Color(0xFFD32F2F),
+                      icon: Icons.person,
+                      onTap: () => setState(() =>
+                          _pistaTooltip = _pistaTooltip == lppInfo ? null : lppInfo),
                     ),
+                    // Pistas (amarillo)
+                    ..._pistas.map((p) => _buildPanelDot(
+                          color: const Color(0xFFF59E0B),
+                          icon: Icons.location_on,
+                          onTap: () => setState(() =>
+                              _pistaTooltip = _pistaTooltip == p ? null : p),
+                        )),
+                    // Evidencias (morado) — muestra miniatura de la foto
+                    ..._evidencias
+                        .where((e) => e.lat != null)
+                        .map((e) => _buildPanelPhoto(
+                              fotoUrl: e.fotoUrl,
+                              onTap: () {
+                                if (e.lat != null && e.lng != null) {
+                                  _mapController.move(
+                                      LatLng(e.lat!, e.lng!), 16.5);
+                                }
+                                _mostrarDetallesEvidencia(e);
+                              },
+                            )),
                   ],
                 ),
               ),
@@ -1965,6 +2055,99 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  // ── Helper: dot del panel lateral derecho ─────────────────────────────────
+
+  Widget _buildPanelDot({
+    required Color color,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color.withOpacity(0.15),
+            border: Border.all(color: color, width: 2.5),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.25),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(icon, color: color, size: 18),
+        ),
+      ),
+    );
+  }
+
+  /// Dot con miniatura de foto de evidencia para el panel lateral.
+  Widget _buildPanelPhoto({
+    required String? fotoUrl,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFF8B5CF6), width: 2.5),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x408B5CF6),
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipOval(
+            child: fotoUrl != null && fotoUrl.isNotEmpty
+                ? Image(
+                    image: CachedNetworkImageProvider(fotoUrl),
+                    fit: BoxFit.cover,
+                    frameBuilder: (_, child, frame, __) => child,
+                    loadingBuilder: (_, child, progress) => progress == null
+                        ? child
+                        : Container(
+                            color: const Color(0xFFF5F3FF),
+                            child: const Center(
+                              child: SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 1.5,
+                                  color: Color(0xFF8B5CF6),
+                                ),
+                              ),
+                            ),
+                          ),
+                    errorBuilder: (_, __, ___) => Container(
+                      color: const Color(0xFFF5F3FF),
+                      child: const Icon(Icons.photo_camera,
+                          color: Color(0xFF8B5CF6), size: 18),
+                    ),
+                  )
+                : Container(
+                    color: const Color(0xFFF5F3FF),
+                    child: const Icon(Icons.photo_camera,
+                        color: Color(0xFF8B5CF6), size: 18),
+                  ),
+          ),
+        ),
       ),
     );
   }

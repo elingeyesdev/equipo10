@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/tracking_service.dart';
+import '../services/tracking_foreground_service.dart';
 import '../services/evidencia_service.dart';
 import '../models/evidencia_model.dart';
 
@@ -20,6 +23,8 @@ class TrackingViewModel extends ChangeNotifier {
 
   String? _reporteId;
   String? _usuarioId;
+  // Remover del callback de notificaciones del foreground service
+  void Function()? _removeServiceCallback;
 
   TrackingEstado get estado => _estado;
   bool get isLoading => _isLoading;
@@ -100,6 +105,22 @@ class TrackingViewModel extends ChangeNotifier {
       _estado = TrackingEstado.activo;
       // Refresca el contador de puntos cada 3 segundos en la UI
       _refreshTimer = Timer.periodic(const Duration(seconds: 3), (_) => notifyListeners());
+
+      // Arrancar Foreground Service (Android) para mantener GPS en background
+      if (!kIsWeb && Platform.isAndroid) {
+        await TrackingForegroundService().start(
+          titulo: 'GPS activo — grabando recorrido',
+          reporteId: reporteId,
+          usuarioId: usuarioId,
+        );
+        // Desregistrar callback previo si existía
+        _removeServiceCallback?.call();
+        _removeServiceCallback = TrackingForegroundService().listenForActions(
+          onPausar: () => pausarBusqueda(),
+          onTerminar: () => terminarBusqueda(),
+        );
+      }
+
       notifyListeners();
       return true;
     } catch (e) {
@@ -118,13 +139,19 @@ class TrackingViewModel extends ChangeNotifier {
       usuarioId: _usuarioId!,
     );
     _estado = TrackingEstado.pausado;
+    if (!kIsWeb && Platform.isAndroid) {
+      await TrackingForegroundService().updateText('GPS pausado — búsqueda en espera');
+    }
     notifyListeners();
   }
 
   /// Reanuda el tracking pausado.
-  void reanudarBusqueda() {
+  Future<void> reanudarBusqueda() async {
     _trackingService.reanudarTracking();
     _estado = TrackingEstado.activo;
+    if (!kIsWeb && Platform.isAndroid) {
+      await TrackingForegroundService().updateText('GPS activo — grabando recorrido');
+    }
     notifyListeners();
   }
 
@@ -139,6 +166,12 @@ class TrackingViewModel extends ChangeNotifier {
         usuarioId: _usuarioId!,
       );
       _estado = TrackingEstado.terminado;
+      // Detener Foreground Service y limpiar callback
+      if (!kIsWeb && Platform.isAndroid) {
+        _removeServiceCallback?.call();
+        _removeServiceCallback = null;
+        await TrackingForegroundService().stop();
+      }
       notifyListeners();
       return ok;
     } catch (e) {
@@ -152,7 +185,10 @@ class TrackingViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _refreshTimer?.cancel();
-    _trackingService.reset();
+    _removeServiceCallback?.call();
+    // No llamamos _trackingService.reset() aquí porque TrackingViewModel vive
+    // para toda la sesión de la app (global provider). El GPS sigue activo en
+    // background. reset() se llama solo desde terminarBusqueda().
     super.dispose();
   }
 }

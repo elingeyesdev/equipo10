@@ -7,8 +7,13 @@ import '../../viewmodels/panel_control_viewmodel.dart';
 import '../../viewmodels/evidencia_viewmodel.dart';
 import '../../widgets/map_tile_layer.dart';
 import '../../widgets/lpp_marker.dart';
+import '../../widgets/evidencia_marker.dart';
+import '../../models/cuadrante_model.dart';
+import '../../services/cuadrante_service.dart';
+import '../../services/auth_service.dart';
 import 'revision_evidencias_view.dart';
 import '../widgets/full_screen_image_view.dart';
+import '../widgets/encuesta_dialog.dart';
 import '../../services/pdf_reporte_service.dart';
 import '../../services/reporte_service.dart';
 import '../reporte_pdf/reporte_pdf_preview.dart';
@@ -24,7 +29,10 @@ class PanelControlView extends StatefulWidget {
 
 class _PanelControlViewState extends State<PanelControlView> {
   final MapController _mapController = MapController();
+  final CuadranteService _cuadranteService = CuadranteService();
   bool _useSatellite = true;
+
+  List<Polygon> _cuadrantesPolygons = [];
 
   @override
   void initState() {
@@ -33,11 +41,71 @@ class _PanelControlViewState extends State<PanelControlView> {
       final vm = context.read<PanelControlViewModel>();
       vm.cargarDatos(widget.fichaId);
       vm.iniciarPolling(widget.fichaId);
-      // Cargar evidencias (modo creador: ve todas)
       context
           .read<EvidenciaViewModel>()
           .cargarEvidencias(widget.fichaId, esCreador: true);
     });
+    _cargarCuadrantes();
+  }
+
+  Future<void> _cargarCuadrantes() async {
+    try {
+      final cuadrantes = await _cuadranteService.getCuadrantes();
+      if (!mounted) return;
+      final polygons = <Polygon>[];
+      for (final c in cuadrantes) {
+        List<LatLng>? pts;
+        if (c.geometria != null) {
+          try {
+            final geo = c.geometria!['type'] == 'Feature'
+                ? c.geometria!['geometry']
+                : c.geometria;
+            if (geo['type'] == 'Polygon') {
+              final coords = geo['coordinates'][0] as List;
+              pts = coords
+                  .map((coord) => LatLng(
+                      double.parse(coord[1].toString()),
+                      double.parse(coord[0].toString())))
+                  .toList();
+            }
+          } catch (_) {}
+        }
+        if (pts == null && c.latMin != null) {
+          pts = [
+            LatLng(c.latMax!, c.lngMin!),
+            LatLng(c.latMax!, c.lngMax!),
+            LatLng(c.latMin!, c.lngMax!),
+            LatLng(c.latMin!, c.lngMin!),
+          ];
+        }
+        if (pts != null) {
+          polygons.add(Polygon(
+            points: pts,
+            color: Colors.transparent,
+            borderColor: Colors.blue.withOpacity(0.4),
+            borderStrokeWidth: 1.5,
+          ));
+        }
+      }
+      if (mounted) setState(() => _cuadrantesPolygons = polygons);
+    } catch (_) {}
+  }
+
+  int _calcularNivel(String? fechaStr) {
+    if (fechaStr == null || fechaStr.isEmpty) return 1;
+    final fecha = DateTime.tryParse(fechaStr.replaceAll(' ', 'T'));
+    if (fecha == null) return 1;
+    final diffMin = DateTime.now().difference(fecha).inMinutes;
+    if (diffMin >= 5760) return 10;
+    if (diffMin >= 4320) return 9;
+    if (diffMin >= 2880) return 8;
+    if (diffMin >= 1440) return 7;
+    if (diffMin >= 720) return 6;
+    if (diffMin >= 360) return 5;
+    if (diffMin >= 180) return 4;
+    if (diffMin >= 60) return 3;
+    if (diffMin >= 30) return 2;
+    return 1;
   }
 
   @override
@@ -46,16 +114,6 @@ class _PanelControlViewState extends State<PanelControlView> {
     // Detener polling si la vista se destruye
     context.read<PanelControlViewModel>().detenerPolling();
     super.dispose();
-  }
-
-  Color _getColorParaEtiqueta(String etiqueta) {
-    switch (etiqueta) {
-      case 'Visto por última vez': return Colors.purple;
-      case 'Nueva pista': return Colors.grey;
-      case 'Última señal': return Colors.white;
-      case 'Zona de interés': return Colors.yellow;
-      default: return const Color(0xFFF59E0B);
-    }
   }
 
   Future<void> _cambiarEstado(BuildContext context, String nuevoEstado) async {
@@ -94,6 +152,11 @@ class _PanelControlViewState extends State<PanelControlView> {
           backgroundColor: const Color(0xFF1B5E20),
         ),
       );
+      // Mostrar encuesta de satisfacción al finalizar la búsqueda
+      if ((nuevoEstado == 'cerrado' || nuevoEstado == 'resuelto') && mounted && vm.ficha != null) {
+        final userId = AuthService().currentUserId ?? '';
+        await EncuestaDialog.show(context, vm.ficha!, userId, isCoordinador: true);
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -419,38 +482,40 @@ class _PanelControlViewState extends State<PanelControlView> {
           const SizedBox(height: 24),
           const Text(
             'Acciones Rápidas',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF374151)),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
               if (!isActive)
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: vm.isLoading ? null : () => _cambiarEstado(context, 'activo'),
-                    icon: const Icon(Icons.play_arrow),
-                    label: const Text('Reanudar'),
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4CAF50), foregroundColor: Colors.white),
-                  ),
-                )
+                Expanded(child: _buildActionButton(
+                  label: 'Reanudar',
+                  icon: Icons.play_arrow_rounded,
+                  color: const Color(0xFF166534),
+                  shadowColor: const Color(0x3316653A),
+                  onPressed: vm.isChangingState ? null : () => _cambiarEstado(context, 'activo'),
+                  isLoading: vm.isChangingState,
+                ))
               else
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: vm.isLoading ? null : () => _cambiarEstado(context, 'pausado'),
-                    icon: const Icon(Icons.pause),
-                    label: const Text('Pausar'),
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF9800), foregroundColor: Colors.white),
-                  ),
-                ),
+                Expanded(child: _buildActionButton(
+                  label: 'Pausar',
+                  icon: Icons.pause_rounded,
+                  color: const Color(0xFF92400E),
+                  shadowColor: const Color(0x3392400E),
+                  onPressed: vm.isChangingState ? null : () => _cambiarEstado(context, 'pausado'),
+                  isLoading: vm.isChangingState,
+                )),
               const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: vm.isLoading || ficha.estado == 'cerrado' || ficha.estado == 'resuelto' ? null : () => _cambiarEstado(context, 'cerrado'),
-                  icon: const Icon(Icons.stop),
-                  label: const Text('Finalizar'),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                ),
-              ),
+              Expanded(child: _buildActionButton(
+                label: 'Finalizar',
+                icon: Icons.flag_rounded,
+                color: const Color(0xFF7F1D1D),
+                shadowColor: const Color(0x337F1D1D),
+                onPressed: vm.isChangingState || ficha.estado == 'cerrado' || ficha.estado == 'resuelto'
+                    ? null
+                    : () => _cambiarEstado(context, 'cerrado'),
+                isLoading: vm.isChangingState,
+              )),
             ],
           ),
           const SizedBox(height: 32),
@@ -518,6 +583,67 @@ class _PanelControlViewState extends State<PanelControlView> {
               },
             ),
         ],
+      ),
+    );
+  }
+
+  /// Botón de acción primaria con color sólido oscuro y sombra suave.
+  Widget _buildActionButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required Color shadowColor,
+    required VoidCallback? onPressed,
+    bool isLoading = false,
+  }) {
+    final isDisabled = onPressed == null;
+    return Container(
+      height: 46,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: isDisabled
+            ? null
+            : [
+                BoxShadow(
+                  color: shadowColor,
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+      ),
+      child: Material(
+        color: isDisabled ? const Color(0xFFD1D5DB) : color,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(12),
+          splashColor: Colors.white24,
+          highlightColor: Colors.white10,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (isLoading)
+                  const SizedBox(
+                    width: 16, height: 16,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  )
+                else
+                  Icon(icon, color: Colors.white, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: isDisabled ? const Color(0xFF6B7280) : Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -754,7 +880,7 @@ class _PanelControlViewState extends State<PanelControlView> {
       Map<String, dynamic> datos;
       try {
         datos = await ReporteService().obtenerDatosReporteFinal(ficha.id);
-        actualizarPaso('recopilando', 'Datos del operativo obtenidos ✔', 0.15);
+        actualizarPaso('recopilando', 'Datos del operativo obtenidos', 0.15);
       } catch (_) {
         actualizarPaso('recopilando', 'Usando datos locales del operativo...', 0.12);
         datos = {
@@ -987,12 +1113,18 @@ class _PanelControlViewState extends State<PanelControlView> {
                                 tag: 'panel-ev-${evidencia.id}',
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    evidencia.fotoUrl!,
+                                  child: CachedNetworkImage(
+                                    imageUrl: evidencia.fotoUrl!,
                                     height: 150,
                                     width: 300,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 50),
+                                    errorWidget: (_, __, ___) => const Icon(Icons.broken_image, size: 50),
+                                    placeholder: (_, __) => Container(
+                                      height: 150,
+                                      width: 300,
+                                      color: const Color(0xFFF5F5F5),
+                                      child: const Center(child: CircularProgressIndicator()),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -1013,26 +1145,29 @@ class _PanelControlViewState extends State<PanelControlView> {
               });
             });
           },
-          child: LppMarker(
+          child: EvidenciaMarker(
             fotoUrl: evidencia.fotoUrl,
-            nombre: 'Evidencia',
-            color: Colors.blueAccent,
+            nombreVoluntario: evidencia.nombreUsuario ?? 'Evidencia',
           ),
         ),
       );
     }));
     
-    // 2. Agregar el resto de pistas
+    // 2. Agregar el resto de pistas — puntos ámbar simples
     markersPistas.addAll(vm.pistas.map((pista) {
       return Marker(
         point: pista.punto,
-        width: 80,
-        height: 70,
+        width: 28,
+        height: 28,
         alignment: Alignment.center,
-        child: LppMarker(
-          fotoUrl: ficha.fotoUrl,
-          nombre: pista.etiqueta,
-          color: _getColorParaEtiqueta(pista.etiqueta),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF59E0B),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2.5),
+            boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 4, offset: Offset(0, 2))],
+          ),
+          child: const Icon(Icons.location_on, color: Colors.white, size: 14),
         ),
       );
     }));
@@ -1047,23 +1182,46 @@ class _PanelControlViewState extends State<PanelControlView> {
             ),
             children: [
             MapTileLayer(useSatellite: _useSatellite),
-            // Polígono del cuadrante
-            if (ficha.cuadranteLatMin != null)
-              PolygonLayer(
-                polygons: [
+            // Cuadrícula completa de cuadrantes + zona verde del LPP
+            if (_cuadrantesPolygons.isNotEmpty)
+              PolygonLayer(polygons: _cuadrantesPolygons),
+            // Zona de expansión verde del LPP (nivel dinámico)
+            if (ficha.latitud != null && ficha.longitud != null)
+              PolygonLayer(polygons: () {
+                const double radioBase = 0.0007;
+                final nivel = _calcularNivel(ficha.createdAt?.toIso8601String());
+                final r = radioBase * nivel;
+                final lat = ficha.latitud!;
+                final lng = ficha.longitud!;
+                return [
                   Polygon(
                     points: [
-                      LatLng(ficha.cuadranteLatMax!, ficha.cuadranteLngMin!),
-                      LatLng(ficha.cuadranteLatMax!, ficha.cuadranteLngMax!),
-                      LatLng(ficha.cuadranteLatMin!, ficha.cuadranteLngMax!),
-                      LatLng(ficha.cuadranteLatMin!, ficha.cuadranteLngMin!),
+                      LatLng(lat - r, lng - r),
+                      LatLng(lat - r, lng + r),
+                      LatLng(lat + r, lng + r),
+                      LatLng(lat + r, lng - r),
                     ],
-                    color: Colors.blue.withOpacity(0.1),
-                    borderColor: Colors.blue,
-                    borderStrokeWidth: 2,
+                    color: const Color(0xFF10B981).withOpacity(0.22),
+                    borderColor: const Color(0xFF059669),
+                    borderStrokeWidth: 2.5,
                   ),
-                ],
-              ),
+                  // Zonas de expansión de pistas del vm
+                  ...vm.pistas.map((p) {
+                    final rp = radioBase * _calcularNivel(p.createdAt?.toIso8601String());
+                    return Polygon(
+                      points: [
+                        LatLng(p.punto.latitude - rp, p.punto.longitude - rp),
+                        LatLng(p.punto.latitude - rp, p.punto.longitude + rp),
+                        LatLng(p.punto.latitude + rp, p.punto.longitude + rp),
+                        LatLng(p.punto.latitude + rp, p.punto.longitude - rp),
+                      ],
+                      color: const Color(0xFF10B981).withOpacity(0.18),
+                      borderColor: const Color(0xFF059669),
+                      borderStrokeWidth: 1.5,
+                    );
+                  }),
+                ];
+              }()),
             // Recorridos de voluntarios
             PolylineLayer(
               polylines: List.generate(vm.rutasVoluntarios.length, (index) {

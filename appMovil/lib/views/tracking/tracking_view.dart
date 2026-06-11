@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/reporte_model.dart';
 import '../../models/evidencia_model.dart';
+import '../../models/cuadrante_model.dart';
+import '../../services/cuadrante_service.dart';
 import '../../viewmodels/tracking_viewmodel.dart';
 import '../../widgets/map_tile_layer.dart';
 import '../../widgets/lpp_marker.dart';
 import '../../widgets/evidencia_marker.dart';
 import '../../theme/app_theme.dart';
 import '../widgets/full_screen_image_view.dart';
+import '../widgets/encuesta_dialog.dart';
 
 class TrackingView extends StatefulWidget {
   final ReporteModel ficha;
@@ -27,7 +31,10 @@ class TrackingView extends StatefulWidget {
 
 class _TrackingViewState extends State<TrackingView> {
   final MapController _mapController = MapController();
+  final CuadranteService _cuadranteService = CuadranteService();
   bool _useSatellite = true;
+
+  List<Polygon> _cuadrantesPolygons = [];
 
   @override
   void initState() {
@@ -39,75 +46,111 @@ class _TrackingViewState extends State<TrackingView> {
             usuarioId: widget.usuarioId,
           );
     });
+    _cargarCuadrantes();
   }
 
-  /// Intercepta el botón de regresar: ofrece pausar, terminar o volver.
+  /// Carga todos los cuadrantes del sistema para mostrar la cuadrícula base
+  /// y el área de expansión dinámica del LPP.
+  Future<void> _cargarCuadrantes() async {
+    try {
+      final cuadrantes = await _cuadranteService.getCuadrantes();
+      if (!mounted) return;
+
+      const double radioBase = 0.0007;
+      final polygons = <Polygon>[];
+
+      // 1. Cuadrícula base — líneas azules
+      for (final c in cuadrantes) {
+        List<LatLng>? pts;
+        if (c.geometria != null) {
+          try {
+            final geo = c.geometria!['type'] == 'Feature'
+                ? c.geometria!['geometry']
+                : c.geometria;
+            if (geo['type'] == 'Polygon') {
+              final coords = geo['coordinates'][0] as List;
+              pts = coords
+                  .map((coord) => LatLng(
+                      double.parse(coord[1].toString()),
+                      double.parse(coord[0].toString())))
+                  .toList();
+            }
+          } catch (_) {}
+        }
+        if (pts == null &&
+            c.latMin != null &&
+            c.latMax != null &&
+            c.lngMin != null &&
+            c.lngMax != null) {
+          pts = [
+            LatLng(c.latMax!, c.lngMin!),
+            LatLng(c.latMax!, c.lngMax!),
+            LatLng(c.latMin!, c.lngMax!),
+            LatLng(c.latMin!, c.lngMin!),
+          ];
+        }
+        if (pts != null) {
+          polygons.add(Polygon(
+            points: pts,
+            color: Colors.transparent,
+            borderColor: Colors.blue.withOpacity(0.45),
+            borderStrokeWidth: 1.5,
+          ));
+        }
+      }
+
+      // 2. Zona de expansión verde del LPP — nivel calculado dinámicamente
+      if (widget.ficha.latitud != null && widget.ficha.longitud != null) {
+        final nivel = _calcularNivel(widget.ficha.createdAt?.toIso8601String());
+        final r = radioBase * nivel;
+        final lat = widget.ficha.latitud!;
+        final lng = widget.ficha.longitud!;
+        polygons.add(Polygon(
+          points: [
+            LatLng(lat - r, lng - r),
+            LatLng(lat - r, lng + r),
+            LatLng(lat + r, lng + r),
+            LatLng(lat + r, lng - r),
+          ],
+          color: const Color(0xFF10B981).withOpacity(0.20),
+          borderColor: const Color(0xFF059669),
+          borderStrokeWidth: 2.5,
+        ));
+      }
+
+      setState(() => _cuadrantesPolygons = polygons);
+    } catch (_) {}
+  }
+
+  int _calcularNivel(String? fechaStr) {
+    if (fechaStr == null || fechaStr.isEmpty) return 1;
+    final fecha = DateTime.tryParse(fechaStr.replaceAll(' ', 'T'));
+    if (fecha == null) return 1;
+    final diffMin = DateTime.now().difference(fecha).inMinutes;
+    if (diffMin >= 5760) return 10;
+    if (diffMin >= 4320) return 9;
+    if (diffMin >= 2880) return 8;
+    if (diffMin >= 1440) return 7;
+    if (diffMin >= 720) return 6;
+    if (diffMin >= 360) return 5;
+    if (diffMin >= 180) return 4;
+    if (diffMin >= 60) return 3;
+    if (diffMin >= 30) return 2;
+    return 1;
+  }
+
+  /// Al presionar la flecha de regreso:
+  /// - Si hay búsqueda activa/pausada → sale sin detener el GPS.
+  ///   El Foreground Service sigue corriendo con la notificación (Pausar / Terminar).
+  /// - Si no hay búsqueda activa → sale normalmente.
   Future<bool> _onWillPop() async {
     final vm = context.read<TrackingViewModel>();
-
-    // Si no hay búsqueda activa, dejar salir libremente
-    if (vm.estado == TrackingEstado.inactivo ||
-        vm.estado == TrackingEstado.terminado) {
-      return true;
-    }
-
-    final accion = await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(children: [
-          Icon(Icons.warning_amber_rounded, color: Colors.orange),
-          SizedBox(width: 8),
-          Text('Búsqueda en curso'),
-        ]),
-        content: const Text(
-          '¿Qué deseas hacer con la búsqueda activa?\n\n'
-          '• Pausar y salir: el GPS se detiene pero el recorrido se conserva.\n'
-          '• Terminar: el recorrido se guarda y finaliza la sesión.\n'
-          '• Volver al mapa: continuar la búsqueda.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop('cancelar'),
-            child: const Text('Volver al mapa'),
-          ),
-          OutlinedButton(
-            onPressed: () => Navigator.of(ctx).pop('pausar'),
-            child: const Text('Pausar y salir'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop('terminar'),
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
-            child: const Text('Terminar', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-
-    if (accion == null || accion == 'cancelar') return false;
-
-    if (accion == 'pausar') {
-      await vm.pausarBusqueda();
-      if (mounted) Navigator.of(context).pop();
+    if (vm.estado == TrackingEstado.activo || vm.estado == TrackingEstado.pausado) {
+      // Salir sin interrumpir el tracking; el usuario puede volver desde notificación
+      Navigator.of(context).pop();
       return false;
     }
-
-    if (accion == 'terminar') {
-      final ok = await vm.terminarBusqueda();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(ok
-              ? '¡Recorrido guardado! Otros voluntarios ya pueden verlo.'
-              : 'Recorrido terminado localmente (sin conexión).'),
-          backgroundColor: ok ? AppTheme.success : Colors.orange,
-        ));
-        Navigator.of(context).pop(true);
-      }
-      return false;
-    }
-
-    return false;
+    return true;
   }
 
   Future<void> _onTerminar() async {
@@ -147,7 +190,9 @@ class _TrackingViewState extends State<TrackingView> {
           : 'Recorrido terminado localmente (sin conexión).'),
       backgroundColor: ok ? AppTheme.success : Colors.orange,
     ));
-    Navigator.of(context).pop(true);
+    // Mostrar encuesta de satisfacción antes de salir
+    if (mounted) await EncuestaDialog.show(context, widget.ficha, widget.usuarioId);
+    if (mounted) Navigator.of(context).pop(true);
   }
 
   @override
@@ -177,10 +222,7 @@ class _TrackingViewState extends State<TrackingView> {
           title: const Text('Búsqueda en Curso'),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () async {
-              final canPop = await _onWillPop();
-              if (canPop && mounted) Navigator.of(context).pop();
-            },
+            onPressed: () => _onWillPop(),
           ),
           actions: [
             // Botón Pausar / Reanudar — ancho fijo para evitar infinite width en AppBar
@@ -210,7 +252,7 @@ class _TrackingViewState extends State<TrackingView> {
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.play_circle_outline, size: 18),
                     label: const Text('Reanudar', style: TextStyle(fontSize: 13)),
-                    onPressed: () => vm.reanudarBusqueda(),
+                    onPressed: () async => vm.reanudarBusqueda(),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.success,
                       foregroundColor: Colors.white,
@@ -234,38 +276,9 @@ class _TrackingViewState extends State<TrackingView> {
               children: [
                 MapTileLayer(useSatellite: _useSatellite),
 
-                // Cuadrantes de búsqueda (Base verde y expansiones azules)
-                if (widget.ficha.expansionesData != null && widget.ficha.expansionesData!.isNotEmpty)
-                  PolygonLayer(
-                    polygons: widget.ficha.expansionesData!.where((e) => e['lat_min'] != null).map((e) {
-                      final isBase = e['nivel'] == 1;
-                      return Polygon(
-                        points: [
-                          LatLng(double.parse(e['lat_min'].toString()), double.parse(e['lng_min'].toString())),
-                          LatLng(double.parse(e['lat_max'].toString()), double.parse(e['lng_min'].toString())),
-                          LatLng(double.parse(e['lat_max'].toString()), double.parse(e['lng_max'].toString())),
-                          LatLng(double.parse(e['lat_min'].toString()), double.parse(e['lng_max'].toString())),
-                        ],
-                        color: (isBase ? AppTheme.success : Colors.blue).withValues(alpha: 0.12),
-                        borderColor: isBase ? AppTheme.success : Colors.blue.shade400,
-                        borderStrokeWidth: 2,
-                      );
-                    }).toList(),
-                  )
-                else if (widget.ficha.cuadranteLatMin != null)
-                  PolygonLayer(polygons: [
-                    Polygon(
-                      points: [
-                        LatLng(widget.ficha.cuadranteLatMin!, widget.ficha.cuadranteLngMin!),
-                        LatLng(widget.ficha.cuadranteLatMax!, widget.ficha.cuadranteLngMin!),
-                        LatLng(widget.ficha.cuadranteLatMax!, widget.ficha.cuadranteLngMax!),
-                        LatLng(widget.ficha.cuadranteLatMin!, widget.ficha.cuadranteLngMax!),
-                      ],
-                      color: AppTheme.success.withValues(alpha: 0.12),
-                      borderColor: AppTheme.success,
-                      borderStrokeWidth: 2,
-                    )
-                  ]),
+                // Cuadrícula de cuadrantes + zona de expansión verde del LPP
+                if (_cuadrantesPolygons.isNotEmpty)
+                  PolygonLayer(polygons: _cuadrantesPolygons),
 
                 // Recorrido del usuario actual
                 if (polylinePoints.length >= 2)
@@ -346,12 +359,18 @@ class _TrackingViewState extends State<TrackingView> {
                                                 tag: 'track-ev-${evidencia.id}',
                                                 child: ClipRRect(
                                                   borderRadius: BorderRadius.circular(8),
-                                                  child: Image.network(
-                                                    evidencia.fotoUrl!,
+                                                  child: CachedNetworkImage(
+                                                    imageUrl: evidencia.fotoUrl!,
                                                     height: 150,
                                                     width: 300,
                                                     fit: BoxFit.cover,
-                                                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 50),
+                                                    errorWidget: (_, __, ___) => const Icon(Icons.broken_image, size: 50),
+                                                    placeholder: (_, __) => Container(
+                                                      height: 150,
+                                                      width: 300,
+                                                      color: const Color(0xFFF5F5F5),
+                                                      child: const Center(child: CircularProgressIndicator()),
+                                                    ),
                                                   ),
                                                 ),
                                               ),

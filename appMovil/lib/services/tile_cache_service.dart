@@ -272,11 +272,19 @@ class CachingTileProvider extends TileProvider {
     throw Exception('Tile $z/$x/$y no disponible');
   }
 
+  static const _subdomains = ['a', 'b', 'c', 'd'];
+  static int _sdIndex = 0;
+
   String _buildUrl(String template, int z, int x, int y) {
+    // Selección round-robin de subdomain para balancear carga de tiles
+    final sd = _subdomains[_sdIndex % _subdomains.length];
+    _sdIndex++;
+
     String url = template
         .replaceAll('{z}', '$z')
         .replaceAll('{x}', '$x')
-        .replaceAll('{y}', '$y');
+        .replaceAll('{y}', '$y')
+        .replaceAll('{s}', sd);
     additionalOptions.forEach((k, v) => url = url.replaceAll('{$k}', v));
     return url;
   }

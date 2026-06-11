@@ -51,11 +51,13 @@ class EvidenciaMarker extends StatelessWidget {
               ),
               child: ClipOval(
                 child: fotoUrl != null && fotoUrl!.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: fotoUrl!,
+                    ? Image(
+                        image: CachedNetworkImageProvider(fotoUrl!),
                         fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => _defaultIcon(),
-                        placeholder: (_, __) => _loadingSpinner(),
+                        errorBuilder: (_, __, ___) => _defaultIcon(),
+                        frameBuilder: (_, child, frame, __) => child,
+                        loadingBuilder: (_, child, progress) =>
+                            progress == null ? child : _loadingSpinner(),
                       )
                     : _defaultIcon(),
               ),

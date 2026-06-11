@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'encuesta_service.dart';
 
 /// Singleton centralizado para el estado de conectividad y calidad de red.
 ///
@@ -107,13 +108,22 @@ class ConnectivityService extends ChangeNotifier {
       );
 
       if (_isOnline) {
-        // Al recuperar red, medir latencia de inmediato
+        // Al recuperar red, medir latencia y sincronizar cola offline
         _medirLatencia();
+        _sincronizarOffline();
       } else {
         // Sin red: resetear latencia
         _setLatency(0, highLatency: false);
       }
     }
+  }
+
+  // ── Sincronización offline ────────────────────────────────────────────────
+
+  Future<void> _sincronizarOffline() async {
+    try {
+      await EncuestaService().sincronizarPendientes();
+    } catch (_) {}
   }
 
   // ── Medición de latencia ──────────────────────────────────────────────────

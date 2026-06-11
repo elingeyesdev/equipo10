@@ -26,7 +26,8 @@ class RutaVoluntario {
 class PistaMapa {
   final LatLng punto;
   final String etiqueta;
-  PistaMapa({required this.punto, required this.etiqueta});
+  final DateTime? createdAt;
+  PistaMapa({required this.punto, required this.etiqueta, this.createdAt});
 }
 
 class PanelControlViewModel extends ChangeNotifier {
@@ -44,6 +45,7 @@ class PanelControlViewModel extends ChangeNotifier {
   List<EvidenciaModel> _evidencias = [];
   List<Map<String, dynamic>> _galeria = [];
   bool _isLoading = false;
+  bool _isChangingState = false; // solo true durante cambiarEstado()
   String? _errorMessage;
   String? _filtroNombreVoluntario;
 
@@ -71,6 +73,7 @@ class PanelControlViewModel extends ChangeNotifier {
   List<List<LatLng>> get recorridosMap => rutasVoluntarios.map((r) => r.puntos).toList();
 
   bool get isLoading => _isLoading;
+  bool get isChangingState => _isChangingState;
   String? get errorMessage => _errorMessage;
 
   Future<void> cargarDatos(String fichaId) async {
@@ -95,7 +98,7 @@ class PanelControlViewModel extends ChangeNotifier {
   }
 
   Future<bool> cambiarEstado(String fichaId, String nuevoEstado, {String? justificacion}) async {
-    _isLoading = true;
+    _isChangingState = true;
     _errorMessage = null;
     notifyListeners();
 
@@ -107,16 +110,16 @@ class PanelControlViewModel extends ChangeNotifier {
       } else if (nuevoEstado == 'activo') {
         await _reporteService.reabrirReporte(fichaId);
       }
-      
+
       // Recargar para estado actualizado
       _ficha = await _reporteService.obtenerReportePorId(fichaId);
-      
-      _isLoading = false;
+
+      _isChangingState = false;
       notifyListeners();
       return true;
     } catch (e) {
       _errorMessage = 'Error al cambiar el estado: $e';
-      _isLoading = false;
+      _isChangingState = false;
       notifyListeners();
       return false;
     }
@@ -191,6 +194,9 @@ class PanelControlViewModel extends ChangeNotifier {
         _pistas.add(PistaMapa(
           punto: LatLng(lat, lng),
           etiqueta: p['mensaje']?.toString() ?? 'Pista',
+          createdAt: p['created_at'] != null
+              ? DateTime.tryParse(p['created_at'].toString().replaceAll(' ', 'T'))
+              : null,
         ));
       }
     }
