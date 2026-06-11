@@ -694,12 +694,9 @@
                     <div class="stat-change positive">
                         <i class="bi bi-chat-right-text-fill"></i>
                         @if(($totalEncuestas ?? 0) > 0)
-                            <button type="button"
-                                class="btn btn-link p-0 text-success fw-semibold text-decoration-none"
-                                style="font-size: inherit;"
-                                data-bs-toggle="modal" data-bs-target="#modalOpiniones">
+                            <a href="{{ route('resenas.index') }}" class="btn btn-link p-0 text-success fw-semibold text-decoration-none" style="font-size: inherit;">
                                 {{ $totalEncuestas }} opiniones
-                            </button>
+                            </a>
                         @else
                             0 opiniones
                         @endif
@@ -925,150 +922,6 @@
                         @endforelse
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ── Sección de Reseñas / Opiniones ───────────────────────────────────── -->
-<div class="row g-4 mb-4">
-    <div class="col-12">
-        <div class="chart-container">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                    <h5 class="mb-1 fw-bold">
-                        <i class="bi bi-star-fill text-warning me-2"></i>Reseñas de Operativos
-                    </h5>
-                    <p class="text-muted small mb-0">Opiniones de voluntarios y coordinadores sobre los operativos finalizados</p>
-                </div>
-                <span class="badge text-white px-3 py-2" style="background: linear-gradient(135deg,#f59e0b,#fbbf24);font-size:0.85rem;">
-                    {{ $totalEncuestas ?? 0 }} opiniones &nbsp;·&nbsp; {{ number_format($promedioSatisfaccion ?? 0, 1) }} / 5
-                </span>
-            </div>
-
-            @if(($encuestasDetalle ?? collect())->isEmpty())
-                <div class="text-center py-5 text-muted">
-                    <i class="bi bi-star fs-1 d-block mb-2 opacity-25"></i>
-                    <p class="mb-0">Aún no hay reseñas registradas.</p>
-                </div>
-            @else
-                <div class="row g-3">
-                    @foreach(($encuestasDetalle ?? collect()) as $enc)
-                    <div class="col-xl-4 col-md-6">
-                        <div class="p-3 rounded-3 h-100 d-flex flex-column gap-2"
-                             style="background:#f8fafc;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.06);">
-                            <!-- Cabecera: avatar + nombre + rol -->
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                                     style="width:38px;height:38px;font-weight:700;font-size:1rem;
-                                            background:{{ $enc['rol'] === 'Creador de búsqueda' ? '#ede9fe' : '#dbeafe' }};
-                                            color:{{ $enc['rol'] === 'Creador de búsqueda' ? '#7c3aed' : '#1d4ed8' }};">
-                                    {{ strtoupper(substr($enc['usuario_nombre'], 0, 1)) }}
-                                </div>
-                                <div class="flex-grow-1 min-width-0">
-                                    <div class="fw-semibold text-dark small text-truncate">{{ $enc['usuario_nombre'] }}</div>
-                                    @if($enc['rol'] === 'Creador de búsqueda')
-                                        <span class="badge" style="background:#7c3aed;color:#fff;font-size:0.65rem;">
-                                            <i class="bi bi-shield-fill me-1"></i>Creador de búsqueda
-                                        </span>
-                                    @else
-                                        <span class="badge" style="background:#0891b2;color:#fff;font-size:0.65rem;">
-                                            <i class="bi bi-person-fill me-1"></i>Voluntario
-                                        </span>
-                                    @endif
-                                </div>
-                                <span class="text-muted" style="font-size:0.7rem;white-space:nowrap;">{{ $enc['fecha'] }}</span>
-                            </div>
-                            <!-- Reporte -->
-                            <div class="text-muted" style="font-size:0.75rem;">
-                                <i class="bi bi-search me-1"></i>{{ $enc['reporte_titulo'] }}
-                            </div>
-                            <!-- Estrellas -->
-                            <div>
-                                @for($i = 1; $i <= 5; $i++)
-                                    <i class="bi {{ $i <= $enc['puntuacion'] ? 'bi-star-fill text-warning' : 'bi-star text-secondary' }}"
-                                       style="font-size:0.85rem;"></i>
-                                @endfor
-                            </div>
-                            <!-- Comentario -->
-                            @if($enc['comentario'])
-                                <p class="text-secondary mb-0 fst-italic flex-grow-1"
-                                   style="font-size:0.82rem;">"{{ $enc['comentario'] }}"</p>
-                            @else
-                                <p class="text-muted mb-0 flex-grow-1" style="font-size:0.82rem;">Sin comentario adicional.</p>
-                            @endif
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-            @endif
-        </div>
-    </div>
-</div>
-
-<!-- ── Modal de Opiniones / Reseñas ─────────────────────────────────────── -->
-<div class="modal fade" id="modalOpiniones" tabindex="-1" aria-labelledby="modalOpinionesLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header" style="background: linear-gradient(135deg, #f59e0b, #fbbf24);">
-                <h5 class="modal-title text-white fw-bold" id="modalOpinionesLabel">
-                    <i class="bi bi-star-fill me-2"></i>Opiniones de Operativos
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <div class="modal-body p-0">
-                @forelse($encuestasDetalle ?? [] as $enc)
-                <div class="p-3 border-bottom d-flex gap-3 align-items-start">
-                    <!-- Avatar inicial -->
-                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                         style="width:44px;height:44px;background:#fef3c7;color:#92400e;font-weight:700;font-size:1.1rem;">
-                        {{ strtoupper(substr($enc['usuario_nombre'], 0, 1)) }}
-                    </div>
-                    <div class="flex-grow-1 min-width-0">
-                        <!-- Nombre + rol -->
-                        <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-                            <span class="fw-semibold text-dark">{{ $enc['usuario_nombre'] }}</span>
-                            @if($enc['rol'] === 'Creador de búsqueda')
-                                <span class="badge text-white" style="background:#7c3aed;font-size:0.7rem;">
-                                    <i class="bi bi-shield-fill me-1"></i>Creador de búsqueda
-                                </span>
-                            @else
-                                <span class="badge text-white" style="background:#0891b2;font-size:0.7rem;">
-                                    <i class="bi bi-person-fill me-1"></i>Voluntario
-                                </span>
-                            @endif
-                        </div>
-                        <!-- Reporte -->
-                        <div class="text-muted small mb-1">
-                            <i class="bi bi-search me-1"></i>{{ $enc['reporte_titulo'] }}
-                        </div>
-                        <!-- Estrellas -->
-                        <div class="mb-1">
-                            @for($i = 1; $i <= 5; $i++)
-                                <i class="bi {{ $i <= $enc['puntuacion'] ? 'bi-star-fill text-warning' : 'bi-star text-secondary' }}"
-                                   style="font-size:0.9rem;"></i>
-                            @endfor
-                            <span class="text-muted small ms-1">{{ $enc['puntuacion'] }}/5</span>
-                        </div>
-                        <!-- Comentario -->
-                        @if($enc['comentario'])
-                        <p class="text-secondary small mb-0 fst-italic">"{{ $enc['comentario'] }}"</p>
-                        @else
-                        <p class="text-muted small mb-0">Sin comentario</p>
-                        @endif
-                    </div>
-                    <!-- Fecha -->
-                    <div class="text-muted small flex-shrink-0">{{ $enc['fecha'] }}</div>
-                </div>
-                @empty
-                <div class="p-4 text-center text-muted">
-                    <i class="bi bi-star fs-2 d-block mb-2"></i>
-                    Aún no hay opiniones registradas.
-                </div>
-                @endforelse
-            </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>

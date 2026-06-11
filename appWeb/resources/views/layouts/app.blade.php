@@ -747,6 +747,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('resenas.*') ? 'active' : '' }}" href="{{ route('resenas.index') }}">
+                            <i class="bi bi-star"></i>
+                            <span>Reseñas</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('categorias.*') ? 'active' : '' }}" href="{{ route('categorias.index') }}">
                             <i class="bi bi-tags"></i>
                             <span>Categorías</span>

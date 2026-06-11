@@ -67,21 +67,7 @@ class DashboardController extends Controller
         $totalEncuestas = EncuestaSatisfaccion::count();
         $promedioSatisfaccion = $totalEncuestas > 0 ? round(EncuestaSatisfaccion::avg('puntuacion'), 1) : 0;
 
-        // Reseñas con usuario y reporte para el modal de opiniones
-        $encuestasDetalle = EncuestaSatisfaccion::with(['usuario', 'reporte'])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($enc) {
-                $esCreador = $enc->reporte && $enc->usuario_id === $enc->reporte->usuario_id;
-                return [
-                    'usuario_nombre' => $enc->usuario?->nombre ?? 'Usuario eliminado',
-                    'rol'           => $esCreador ? 'Creador de búsqueda' : 'Voluntario',
-                    'reporte_titulo' => $enc->reporte?->titulo ?? 'Reporte eliminado',
-                    'puntuacion'    => $enc->puntuacion,
-                    'comentario'    => $enc->comentario,
-                    'fecha'         => $enc->created_at?->format('d/m/Y'),
-                ];
-            });
+        // Reseñas se manejan en EncuestaWebController
 
         return view('dashboard', compact(
             'totalReportes',
@@ -101,8 +87,7 @@ class DashboardController extends Controller
             'zonaCritica',
             'tendenciaSemanal',
             'totalEncuestas',
-            'promedioSatisfaccion',
-            'encuestasDetalle'
+            'promedioSatisfaccion'
         ));
     }
 }

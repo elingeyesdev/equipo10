@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\UsuarioWebController;
 use App\Http\Controllers\Web\ReporteWebController;
+use App\Http\Controllers\Web\EncuestaWebController;
 use App\Http\Controllers\Web\CategoriaWebController;
 use App\Http\Controllers\Web\ConfiguracionWebController;
 use App\Http\Controllers\Web\UserRoleController;
@@ -41,8 +42,9 @@ Route::get('/', function () {
         
         
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
         
+        // Reseñas
+        Route::get('/resenas', [EncuestaWebController::class, 'index'])->name('resenas.index');
         Route::resource('usuarios', UsuarioWebController::class);
 
         
