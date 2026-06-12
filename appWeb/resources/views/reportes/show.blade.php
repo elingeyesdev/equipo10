@@ -238,7 +238,7 @@
                         <div class="col-md-6">
                             <div class="info-card p-3">
                                 <label class="info-label"><i class="bi bi-person-badge-fill me-1 text-primary"></i> Reportado por</label>
-                                <div class="info-value mt-1">{{ $reporte->usuario->nombre ?? 'Desconocido' }}</div>
+                                <div class="info-value mt-1">{{ $reporte->usuario?->nombre ?? 'Desconocido' }}</div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -404,7 +404,7 @@
                             </div>
                             <div>
                                 <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.7rem;">Autor</small>
-                                <span class="fw-bold text-dark">{{ $foco->usuario->nombre ?? 'AnÃ³nimo' }}</span>
+                                <span class="fw-bold text-dark">{{ $foco->usuario?->nombre ?? 'Anónimo' }}</span>
                             </div>
                         </div>
                         <div class="d-flex align-items-center">
@@ -567,7 +567,7 @@
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <i class="bi bi-person-circle text-muted me-2 fs-5"></i>
-                                            <span class="fw-medium text-dark">{{ $respuesta->usuario->nombre ?? 'Desconocido' }}</span>
+                                            <span class="fw-medium text-dark">{{ $respuesta->usuario?->nombre ?? 'Desconocido' }}</span>
                                         </div>
                                     </td>
                                     <td>
@@ -667,7 +667,7 @@
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <i class="bi bi-person-circle text-muted me-2 fs-5"></i>
-                                            <span class="fw-medium text-dark">{{ $pista->usuario->nombre ?? 'Desconocido' }}</span>
+                                            <span class="fw-medium text-dark">{{ $pista->usuario?->nombre ?? 'Desconocido' }}</span>
                                         </div>
                                     </td>
                                     <td>
@@ -719,7 +719,7 @@
 const LPP_LAT   = {{ (float) $reporte->ubicacion_exacta_lat }};
 const LPP_LNG   = {{ (float) $reporte->ubicacion_exacta_lng }};
 const REPORTE_ID = "{{ $reporte->id }}";
-const TITULO    = @json($reportítulo);
+const TITULO    = @json($reporte->titulo);
 const ESTADO_REPORTE = @json($reporte->estado);
 const CREATED_AT = @json($reporte->created_at);
 const UPDATED_AT = @json($reporte->updated_at);
@@ -787,7 +787,7 @@ const NIVEL_EXPAN = calcularNivelDinamico(CREATED_AT, UPDATED_AT, ESTADO_REPORTE
 
         if ($puntos && is_array($puntos) && count($puntos) > 0) {
             $tracksJs[] = [
-                'nombre' => $vol->usuario->nombre ?? 'Voluntario',
+                'nombre' => $vol->usuario?->nombre ?? 'Voluntario',
                 'puntos' => $puntos
             ];
         }
