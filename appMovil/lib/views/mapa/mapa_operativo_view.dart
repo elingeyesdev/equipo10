@@ -58,11 +58,13 @@ class _PistaInfo {
   final String etiqueta;
   final String fecha;
   final String hora; // Añadimos la hora
+  final String? titulo;
   final String? descripcion;
   final String? cuadranteId;
   final int nivelExpansion;
   _PistaInfo({
     this.id,
+    this.titulo,
     required this.punto,
     required this.etiqueta,
     required this.fecha,
@@ -452,6 +454,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                 .map((p) {
                   return _PistaInfo(
                     id: p['id']?.toString(),
+                    titulo: p['titulo']?.toString(),
                     punto: LatLng(
                       (p['lat'] as num).toDouble(),
                       (p['lng'] as num).toDouble(),
@@ -520,6 +523,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                       );
                   return _PistaInfo(
                     id: p['id']?.toString(),
+                    titulo: p['titulo']?.toString(),
                     punto: LatLng(
                       (p['lat'] as num).toDouble(),
                       (p['lng'] as num).toDouble(),
@@ -557,6 +561,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                       null);
                   return _PistaInfo(
                     id: p['id']?.toString(),
+                    titulo: p['titulo']?.toString(),
                     punto: LatLng(
                       (p['lat'] as num).toDouble(),
                       (p['lng'] as num).toDouble(),
@@ -642,6 +647,25 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
       _pistaTooltip = null;
     });
     _detectarCuadranteTemporal(pista.punto.latitude, pista.punto.longitude);
+  }
+
+  void _iniciarSoloEdicionPista(_PistaInfo pista) {
+    if (pista.id == 'LPP') {
+      _iniciarEdicionPista(pista);
+      return;
+    }
+    setState(() {
+      _pistaEnEdicion = pista;
+      _editandoPista = true;
+      _modoPista = false;
+      _pinTemporal = pista.punto;
+      _etiquetaSeleccionada = pista.etiqueta;
+      _tituloPistaCtrl.text = pista.titulo ?? '';
+      _descripcionPistaCtrl.text = pista.descripcion ?? '';
+      _pistaTooltip = null;
+    });
+    _detectarCuadranteTemporal(pista.punto.latitude, pista.punto.longitude);
+    _mostrarSelectorEtiqueta();
   }
 
   void _confirmarEliminarPista(_PistaInfo pista) {
@@ -933,12 +957,18 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            ),
             child: SafeArea(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                   Center(
                     child: Container(
                       width: 40,
@@ -1029,7 +1059,6 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                     }).toList(),
                   ),
                   const SizedBox(height: 16),
-                  TextField(
                   // --- Nuevo campo de Título ---
                   const SizedBox(height: 12),
                   const Text('Título',
@@ -1041,6 +1070,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                   TextField(
                     controller: _tituloPistaCtrl,
                     textCapitalization: TextCapitalization.sentences,
+                    style: const TextStyle(color: Colors.black87),
                     decoration: InputDecoration(
                       hintText: 'Ej. Ropa encontrada, Huellas...',
                       hintStyle:
@@ -1074,6 +1104,9 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                   const SizedBox(height: 6),
                   TextField(
                     controller: _descripcionPistaCtrl,
+                    maxLines: 3,
+                    textCapitalization: TextCapitalization.sentences,
+                    style: const TextStyle(color: Colors.black87),
                     decoration: InputDecoration(
                       labelText: 'Descripción o detalles',
                       labelStyle:
@@ -1093,8 +1126,6 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                           borderSide:
                               const BorderSide(color: AppTheme.primary)),
                     ),
-                    style: const TextStyle(fontSize: 13),
-                    maxLines: 2,
                     textInputAction: TextInputAction.done,
                   ),
                   const SizedBox(height: 20),
@@ -1141,6 +1172,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                     ],
                   ),
                 ],
+              ),
               ),
             ),
           ),
@@ -1398,6 +1430,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     // 1. Punto inicial (Pepe - LPP)
     final _PistaInfo lppInfo = _PistaInfo(
       id: 'LPP',
+      titulo: 'Visto por última vez',
       punto: _lpp!,
       etiqueta: 'Visto por última vez',
       fecha: widget.ficha.fechaPerdida ?? '',
@@ -2153,7 +2186,9 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              _pistaTooltip!.etiqueta,
+                              (_pistaTooltip!.titulo != null && _pistaTooltip!.titulo!.isNotEmpty)
+                                  ? _pistaTooltip!.titulo!
+                                  : _pistaTooltip!.etiqueta,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 14,
@@ -2201,6 +2236,19 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                TextButton.icon(
+                                  onPressed: () =>
+                                      _iniciarSoloEdicionPista(_pistaTooltip!),
+                                  icon: const Icon(Icons.edit, size: 14),
+                                  label: const Text('Editar',
+                                      style: TextStyle(fontSize: 11)),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: const Color(0xFF10B981),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 4),
+                                    minimumSize: Size.zero,
+                                  ),
+                                ),
                                 TextButton.icon(
                                   onPressed: () =>
                                       _iniciarEdicionPista(_pistaTooltip!),

@@ -498,11 +498,15 @@ class ReporteWebController extends Controller
         }
 
         $validated = $request->validate([
+            'titulo'  => 'required|string|max:255',
             'mensaje' => 'required|string|max:1000',
         ]);
 
         $respuesta = \App\Models\Respuesta::where('id', $infoId)->where('reporte_id', $reporte)->firstOrFail();
-        $respuesta->update(['mensaje' => $validated['mensaje']]);
+        $respuesta->update([
+            'titulo'  => $validated['titulo'],
+            'mensaje' => $validated['mensaje']
+        ]);
 
         return redirect()->back()->with('success', 'Información editada correctamente.');
     }

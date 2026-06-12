@@ -28,7 +28,9 @@ class Respuesta extends Model
         'videos',
         'verificada',
         'util',
-        'estado_evidencia'
+        'estado_evidencia',
+        'titulo',
+        'categoria_informacion'
     ];
 
     protected $casts = [
