@@ -94,13 +94,13 @@ Route::get('/', function () {
     // Reanudar búsqueda
     Route::put('/reportes/{reporte}/reanudar', [ReporteWebController::class, 'reanudar'])->name('reportes.reanudar');
     // Guardar pista de búsqueda en un reporte (solo admin o creador, validado en controller)
-    Route::post('/reportes/{reporte}/pistas', [ReporteWebController::class, 'guardarPista'])->name('reportes.pistas.store');
-    // Eliminar pista/evidencia desde el panel web
-    Route::delete('/reportes/{reporte}/pistas/{pista}', [ReporteWebController::class, 'eliminarPista'])->name('reportes.pistas.destroy');
-    Route::put('/reportes/{reporte}/pistas/{pista}/editar', [ReporteWebController::class, 'editarPista'])->name('reportes.pistas.editar');
+    Route::post('/reportes/{reporte}/informacion', [ReporteWebController::class, 'guardarInformacion'])->name('reportes.informacion.store');
+    // Eliminar informacion/evidencia desde el panel web
+    Route::delete('/reportes/{reporte}/informacion/{infoId}', [ReporteWebController::class, 'eliminarInformacion'])->name('reportes.informacion.destroy');
+    Route::put('/reportes/{reporte}/informacion/{infoId}/editar', [ReporteWebController::class, 'editarInformacion'])->name('reportes.informacion.editar');
     // Aprobar o rechazar evidencia desde el panel web
-    Route::put('/reportes/{reporte}/pistas/{pista}/aprobar', [ReporteWebController::class, 'aprobarEvidencia'])->name('reportes.pistas.aprobar');
-    Route::put('/reportes/{reporte}/pistas/{pista}/rechazar', [ReporteWebController::class, 'rechazarEvidencia'])->name('reportes.pistas.rechazar');
+    Route::put('/reportes/{reporte}/informacion/{infoId}/aprobar', [ReporteWebController::class, 'aprobarEvidencia'])->name('reportes.informacion.aprobar');
+    Route::put('/reportes/{reporte}/informacion/{infoId}/rechazar', [ReporteWebController::class, 'rechazarEvidencia'])->name('reportes.informacion.rechazar');
     });
 
     

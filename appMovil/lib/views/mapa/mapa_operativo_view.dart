@@ -95,6 +95,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   LatLng? _pinTemporal;
   CuadranteModel? _cuadranteTemporal; // Cuadrante donde cae el pin
   String _etiquetaSeleccionada = 'Nueva pista';
+  final TextEditingController _tituloPistaCtrl = TextEditingController();
   final TextEditingController _descripcionPistaCtrl = TextEditingController();
   bool _guardandoPista = false;
   List<_PistaInfo> _pistas = [];
@@ -147,6 +148,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   @override
   void dispose() {
     _pollingTimer?.cancel();
+    _tituloPistaCtrl.dispose();
     _descripcionPistaCtrl.dispose();
     super.dispose();
   }
@@ -476,7 +478,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     // Con red: cargar del API y persistir
     try {
       final response =
-          await _api.client.get('/reportes/${widget.ficha.id}/pistas');
+          await _api.client.get('/reportes/${widget.ficha.id}/informacion');
       if (response.statusCode == 200 && response.data['success'] == true) {
         final List<dynamic> raw = response.data['data'] ?? [];
 
@@ -635,6 +637,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
       _modoPista = true;
       _pinTemporal = pista.punto;
       _etiquetaSeleccionada = pista.etiqueta;
+      _tituloPistaCtrl.text = pista.titulo ?? '';
       _descripcionPistaCtrl.text = pista.descripcion ?? '';
       _pistaTooltip = null;
     });
@@ -667,7 +670,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
 
   Future<void> _eliminarPista(String id) async {
     try {
-      final response = await _api.client.delete('/reportes/pistas/$id');
+      final response = await _api.client.delete('/reportes/informacion/$id');
       if (response.data['success'] == true) {
         setState(() {
           _pistas.removeWhere((p) => p.id == id);
@@ -752,21 +755,28 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
       }
 
       // ── Caso normal: crear o editar una pista ─────────────────────
+      final titulo = _tituloPistaCtrl.text.trim();
       final desc = _descripcionPistaCtrl.text.trim();
+      
+      if (titulo.isEmpty || desc.isEmpty) {
+        throw Exception('El título y la descripción son obligatorios.');
+      }
+
       final data = {
         'usuario_id': userId,
         'lat': _pinTemporal!.latitude,
         'lng': _pinTemporal!.longitude,
-        'etiqueta': _etiquetaSeleccionada,
-        'descripcion': desc.isNotEmpty ? desc : null,
+        'titulo': titulo,
+        'categoria': _etiquetaSeleccionada,
+        'descripcion': desc,
         'cuadrante_id': _cuadranteTemporal?.id,
       };
 
       final response = _editandoPista
           ? await _api.client
-              .put('/reportes/pistas/${_pistaEnEdicion!.id}', data: data)
+              .put('/reportes/informacion/${_pistaEnEdicion!.id}', data: data)
           : await _api.client
-              .post('/reportes/${widget.ficha.id}/pistas', data: data);
+              .post('/reportes/${widget.ficha.id}/informacion', data: data);
 
       if ((response.statusCode == 200 || response.statusCode == 201) &&
           response.data['success'] == true) {
@@ -776,6 +786,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
           _modoPista = false;
           _editandoPista = false;
           _pistaEnEdicion = null;
+          _tituloPistaCtrl.clear();
           _descripcionPistaCtrl.clear();
         });
 
@@ -1019,9 +1030,52 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                   ),
                   const SizedBox(height: 16),
                   TextField(
+                  // --- Nuevo campo de Título ---
+                  const SizedBox(height: 12),
+                  const Text('Título',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black54)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _tituloPistaCtrl,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                      hintText: 'Ej. Ropa encontrada, Huellas...',
+                      hintStyle:
+                          const TextStyle(color: Colors.black38, fontSize: 13),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: Colors.grey.shade300)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: Colors.grey.shade300)),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(
+                              color: AppTheme.primary, width: 2)),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 12),
+                    ),
+                  ),
+
+                  // --- Campo Descripción ---
+                  const SizedBox(height: 12),
+                  const Text('Descripción',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black54)),
+                  const SizedBox(height: 6),
+                  TextField(
                     controller: _descripcionPistaCtrl,
                     decoration: InputDecoration(
-                      labelText: 'Descripción o detalles (opcional)',
+                      labelText: 'Descripción o detalles',
                       labelStyle:
                           const TextStyle(fontSize: 13, color: Colors.grey),
                       filled: true,

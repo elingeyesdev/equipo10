@@ -1397,14 +1397,14 @@ class ReporteController extends Controller
     // =========================================================================
 
     /**
-     * Listar todas las pistas (respuestas tipo 'pista') de un reporte
+     * Listar toda la información (respuestas tipo 'informacion') de un reporte
      */
-    public function listarPistas($reporteId)
+    public function listarInformacion($reporteId)
     {
         try {
             $reporte = Reporte::findOrFail($reporteId);
 
-            $pistas = \App\Models\Respuesta::where('reporte_id', $reporte->id)
+            $informacion = \App\Models\Respuesta::where('reporte_id', $reporte->id)
                 ->where('tipo_respuesta', 'informacion')
                 ->whereNotNull('ubicacion_lat')
                 ->whereNotNull('ubicacion_lng')
@@ -1413,22 +1413,22 @@ class ReporteController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data'    => $pistas,
+                'data'    => $informacion,
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener pistas',
+                'message' => 'Error al obtener información',
                 'error'   => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Guardar una nueva pista de búsqueda desde la app móvil.
-     * Solo el creador del reporte puede guardar pistas.
+     * Guardar nueva información de búsqueda desde la app móvil.
+     * Solo el creador del reporte puede guardar información.
      */
-    public function guardarPistaApi(Request $request, $reporteId)
+    public function guardarInformacionApi(Request $request, $reporteId)
     {
         try {
             $reporte = Reporte::findOrFail($reporteId);
@@ -1438,7 +1438,7 @@ class ReporteController extends Controller
             if (!$usuarioId || $usuarioId !== $reporte->usuario_id) {
                 return response()->json([
                     'success' => false,
-                    'error'   => 'Solo el creador del operativo puede agregar pistas.',
+                    'error'   => 'Solo el creador del operativo puede agregar información.',
                 ], 403);
             }
 
@@ -1446,7 +1446,9 @@ class ReporteController extends Controller
             $validator = Validator::make($request->all(), [
                 'lat'          => 'required|numeric|between:-90,90',
                 'lng'          => 'required|numeric|between:-180,180',
-                'etiqueta'     => 'required|string|max:100',
+                'categoria'    => 'required|string|max:100',
+                'titulo'       => 'required|string|max:255',
+                'descripcion'  => 'required|string',
                 'cuadrante_id' => 'nullable|exists:cuadrantes,id',
             ]);
 
@@ -1457,85 +1459,86 @@ class ReporteController extends Controller
                 ], 422);
             }
 
-            // ── Crear pista ───────────────────────────────────────────────────
-            $pista = \App\Models\Respuesta::create([
+            // ── Crear informacion ───────────────────────────────────────────────────
+            $info = \App\Models\Respuesta::create([
                 'reporte_id'           => $reporte->id,
                 'cuadrante_id'         => $request->cuadrante_id,
                 'usuario_id'           => $usuarioId,
                 'tipo_respuesta'       => 'informacion',
-                'mensaje'              => $request->etiqueta,
+                'titulo'               => $request->titulo,
+                'categoria_informacion'=> $request->categoria,
+                'mensaje'              => $request->descripcion,
                 'ubicacion_lat'        => $request->lat,
                 'ubicacion_lng'        => $request->lng,
-                'direccion_referencia' => $request->descripcion,
                 'verificada'           => true,
             ]);
 
             return response()->json([
                 'success' => true,
-                'data'    => $pista,
-                'message' => 'Pista registrada correctamente.',
+                'data'    => $info,
+                'message' => 'Información registrada correctamente.',
             ], 201);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al guardar la pista',
+                'message' => 'Error al guardar la información',
                 'error'   => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Actualizar una pista de búsqueda existente
+     * Actualizar una información de búsqueda existente
      */
-    public function actualizarPistaApi(Request $request, $pistaId)
+    public function actualizarInformacionApi(Request $request, $infoId)
     {
         try {
-            $pista = \App\Models\Respuesta::findOrFail($pistaId);
+            $info = \App\Models\Respuesta::findOrFail($infoId);
             
-            // Validar que el usuario sea el dueño del reporte o admin
-            // (Para simplificar en esta etapa, permitimos si el token es válido)
-            
-            $pista->update([
-                'mensaje'              => $request->etiqueta ?? $pista->mensaje,
-                'ubicacion_lat'        => $request->lat ?? $pista->ubicacion_lat,
-                'ubicacion_lng'        => $request->lng ?? $pista->ubicacion_lng,
-                'direccion_referencia' => $request->descripcion ?? $pista->direccion_referencia,
-                'cuadrante_id'         => $request->cuadrante_id ?? $pista->cuadrante_id,
+            $info->update([
+                'titulo'               => $request->titulo ?? $info->titulo,
+                'categoria_informacion'=> $request->categoria ?? $info->categoria_informacion,
+                'mensaje'              => $request->descripcion ?? $info->mensaje,
+                'ubicacion_lat'        => $request->lat ?? $info->ubicacion_lat,
+                'ubicacion_lng'        => $request->lng ?? $info->ubicacion_lng,
+                'cuadrante_id'         => $request->cuadrante_id ?? $info->cuadrante_id,
             ]);
 
             return response()->json([
                 'success' => true,
-                'data'    => $pista,
-                'message' => 'Pista actualizada correctamente.',
+                'data'    => $info,
+                'message' => 'Información actualizada correctamente.',
             ], 200);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al actualizar la pista',
+                'message' => 'Error al actualizar información',
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Eliminar una pista de búsqueda
+     * Eliminar una información de búsqueda
      */
-    public function eliminarPistaApi($pistaId)
+    public function eliminarInformacionApi($infoId)
     {
         try {
-            $pista = \App\Models\Respuesta::findOrFail($pistaId);
-            $pista->delete();
+            $info = \App\Models\Respuesta::findOrFail($infoId);
+            $info->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Pista eliminada correctamente.',
+                'message' => 'Información eliminada correctamente.',
             ], 200);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al eliminar la pista',
+                'message' => 'Error al eliminar la información',
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }

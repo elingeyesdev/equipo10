@@ -213,7 +213,7 @@ class ReporteWebController extends Controller
 
         $pistaId = request('pista_id');
         if ($pistaId) {
-            $foco = \App\Models\Respuesta::with('usuario')->find($pistaId);
+            $foco = \App\Models\Respuesta::with(['usuario', 'imagenes'])->find($pistaId);
             if ($foco && $foco->reporte_id == $reporte->id) {
                 // Configurar foto e info de la vista enfocada
                 $imgFoco = null;
@@ -240,7 +240,7 @@ class ReporteWebController extends Controller
         }
 
         // ─── Separar Pistas de Evidencias ───────────────────────────────────
-        $respuestasAll = $reporte->respuestas()->with('usuario')->orderBy('created_at', 'desc')->get();
+        $respuestasAll = $reporte->respuestas()->with(['usuario', 'imagenes'])->orderBy('created_at', 'desc')->get();
         
         $pistasAdmin = $respuestasAll->filter(function($r) {
             return in_array($r->tipo_respuesta, ['pista', 'informacion']);
@@ -406,10 +406,10 @@ class ReporteWebController extends Controller
     }
 
     /**
-     * Guarda un punto de pista/avistamiento en el mapa del reporte.
+     * Guarda un punto de información en el mapa del reporte.
      * Solo permitido para administradores/editores o el creador del reporte.
      */
-    public function guardarPista(Request $request, string $reporte)
+    public function guardarInformacion(Request $request, string $reporte)
     {
         $rep = Reporte::findOrFail($reporte);
 
@@ -420,7 +420,7 @@ class ReporteWebController extends Controller
 
         if (!$esAdmin && !$esCreador) {
             return response()->json([
-                'error' => 'No tienes permiso para agregar pistas a este operativo.'
+                'error' => 'No tienes permiso para agregar información a este operativo.'
             ], 403);
         }
 
@@ -428,19 +428,22 @@ class ReporteWebController extends Controller
         $validated = $request->validate([
             'lat'          => 'required|numeric|between:-90,90',
             'lng'          => 'required|numeric|between:-180,180',
-            'etiqueta'     => 'required|string|max:100',
+            'categoria'    => 'required|string|max:100',
+            'titulo'       => 'required|string|max:255',
+            'descripcion'  => 'required|string',
             'cuadrante_id' => 'nullable|uuid|exists:cuadrantes,id',
         ]);
 
-        // ─── Crear Respuesta tipo pista ──────────────────────────────────────
-        $pista = \App\Models\Respuesta::create([
+        // ─── Crear Respuesta tipo informacion ──────────────────────────────────────
+        $info = \App\Models\Respuesta::create([
             'reporte_id'           => $rep->id,
             'usuario_id'           => $user->id,
-            'tipo_respuesta'       => 'pista',
-            'mensaje'              => $validated['etiqueta'],
+            'tipo_respuesta'       => 'informacion',
+            'titulo'               => $validated['titulo'],
+            'categoria_informacion'=> $validated['categoria'],
+            'mensaje'              => $validated['descripcion'],
             'ubicacion_lat'        => $validated['lat'],
             'ubicacion_lng'        => $validated['lng'],
-            'direccion_referencia' => $validated['etiqueta'],
             'verificada'           => true,
         ]);
 
@@ -451,15 +454,15 @@ class ReporteWebController extends Controller
 
         return response()->json([
             'success' => true,
-            'pista'   => $pista,
-            'message' => 'Pista registrada correctamente.',
+            'data'    => $info,
+            'message' => 'Información registrada correctamente.',
         ], 201);
     }
 
     /**
-     * Elimina una pista o evidencia específica.
+     * Elimina una información o evidencia específica.
      */
-    public function eliminarPista(Request $request, string $reporte, string $pista)
+    public function eliminarInformacion(Request $request, string $reporte, string $infoId)
     {
         $rep = Reporte::findOrFail($reporte);
 
@@ -472,16 +475,16 @@ class ReporteWebController extends Controller
             return redirect()->back()->with('error', 'No tienes permiso para eliminar evidencias.');
         }
 
-        $respuesta = \App\Models\Respuesta::where('id', $pista)->where('reporte_id', $reporte)->firstOrFail();
+        $respuesta = \App\Models\Respuesta::where('id', $infoId)->where('reporte_id', $reporte)->firstOrFail();
         $respuesta->delete();
 
-        return redirect()->back()->with('success', 'Evidencia eliminada correctamente.');
+        return redirect()->back()->with('success', 'Registro eliminado correctamente.');
     }
 
     /**
-     * Edita el mensaje de una pista específica.
+     * Edita el mensaje de una información específica.
      */
-    public function editarPista(Request $request, string $reporte, string $pista)
+    public function editarInformacion(Request $request, string $reporte, string $infoId)
     {
         $rep = Reporte::findOrFail($reporte);
 
@@ -491,17 +494,17 @@ class ReporteWebController extends Controller
         $esCreador = $user->id === $rep->usuario_id;
 
         if (!$esAdmin && !$esCreador) {
-            return redirect()->back()->with('error', 'No tienes permiso para editar pistas.');
+            return redirect()->back()->with('error', 'No tienes permiso para editar esta información.');
         }
 
         $validated = $request->validate([
             'mensaje' => 'required|string|max:1000',
         ]);
 
-        $respuesta = \App\Models\Respuesta::where('id', $pista)->where('reporte_id', $reporte)->firstOrFail();
+        $respuesta = \App\Models\Respuesta::where('id', $infoId)->where('reporte_id', $reporte)->firstOrFail();
         $respuesta->update(['mensaje' => $validated['mensaje']]);
 
-        return redirect()->back()->with('success', 'Pista editada correctamente.');
+        return redirect()->back()->with('success', 'Información editada correctamente.');
     }
 
     /**

@@ -1,4 +1,4 @@
-
+﻿
 @extends('layouts.app')
 
 @section('title', 'Ver Reporte')
@@ -160,22 +160,22 @@
                         @csrf
                         @method('PUT')
                         <button type="button" class="btn btn-success fw-semibold shadow-sm border-0" onclick="confirmarReanudar('{{ $reporte->id }}')">
-                            <i class="bi bi-play-circle me-1"></i> Reanudar Búsqueda
+                            <i class="bi bi-play-circle me-1"></i> Reanudar BÃºsqueda
                         </button>
                     </form>
                 @else
                     <button type="button" class="btn btn-warning fw-semibold shadow-sm border-0 text-dark" onclick="confirmarCierre('{{ $reporte->id }}')">
-                        <i class="bi bi-x-circle me-1"></i> Cerrar Búsqueda
+                        <i class="bi bi-x-circle me-1"></i> Cerrar BÃºsqueda
                     </button>
                 @endif
             @else
                 @if($reporte->estado === 'cerrado')
-                    <button type="button" class="btn btn-secondary fw-semibold shadow-sm border-0" disabled title="Solo el creador o un admin puede reanudar la búsqueda">
-                        <i class="bi bi-play-circle me-1"></i> Reanudar Búsqueda
+                    <button type="button" class="btn btn-secondary fw-semibold shadow-sm border-0" disabled title="Solo el creador o un admin puede reanudar la bÃºsqueda">
+                        <i class="bi bi-play-circle me-1"></i> Reanudar BÃºsqueda
                     </button>
                 @else
-                    <button type="button" class="btn btn-secondary fw-semibold shadow-sm border-0" disabled title="Solo el creador o un admin puede cerrar la búsqueda">
-                        <i class="bi bi-x-circle me-1"></i> Cerrar Búsqueda
+                    <button type="button" class="btn btn-secondary fw-semibold shadow-sm border-0" disabled title="Solo el creador o un admin puede cerrar la bÃºsqueda">
+                        <i class="bi bi-x-circle me-1"></i> Cerrar BÃºsqueda
                     </button>
                 @endif
             @endif
@@ -205,14 +205,14 @@
             <div class="reward-banner">
                 <h5 class="mb-0 text-white fw-bold"><i class="bi bi-cash-coin me-2 fs-4"></i> SE OFRECE RECOMPENSA</h5>
                 <h2 class="fw-bold my-2 display-6">Bs. {{ number_format($reporte->recompensa, 2) }}</h2>
-                <small class="opacity-90">Si tienes información, contáctanos inmediatamente.</small>
+                <small class="opacity-90">Si tienes informaciÃ³n, contÃ¡ctanos inmediatamente.</small>
             </div>
         </div>
     </div>
     @endif
 
     <div class="row g-4 align-items-stretch">
-        <!-- Columna Izquierda: Información Principal -->
+        <!-- Columna Izquierda: InformaciÃ³n Principal -->
         <div class="col-lg-8 d-flex flex-column">
             <div class="card border-0 shadow-sm rounded-4 mb-4 flex-grow-1 d-flex flex-column">
                 <div class="card-body p-4">
@@ -223,14 +223,14 @@
                     <div class="row g-4 mb-4">
                         <div class="col-md-6">
                             <div class="info-card p-3">
-                                <label class="info-label"><i class="bi bi-tag-fill me-1 text-primary"></i> Categoría</label>
+                                <label class="info-label"><i class="bi bi-tag-fill me-1 text-primary"></i> CategorÃ­a</label>
                                 <div class="d-flex align-items-center mt-1">
                                     @if($reporte->categoria)
                                         <span class="badge rounded-pill px-3 py-2" style="background-color: {{ $reporte->categoria->color ?? '#6c757d' }}; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">
                                             {{ $reporte->categoria->nombre }}
                                         </span>
                                     @else
-                                        <span class="badge rounded-pill px-3 py-2 bg-secondary text-white">Sin categoría</span>
+                                        <span class="badge rounded-pill px-3 py-2 bg-secondary text-white">Sin categorÃ­a</span>
                                     @endif
                                 </div>
                             </div>
@@ -271,13 +271,13 @@
                             <div class="info-card p-3">
                                 <label class="info-label"><i class="bi bi-people-fill me-1 text-primary"></i> Voluntarios Unidos</label>
                                 <div class="info-value mt-1">{{ $reporte->voluntarios()->count() }}</div>
-                                <small class="text-muted">Resumen estadístico básico</small>
+                                <small class="text-muted">Resumen estadÃ­stico bÃ¡sico</small>
                             </div>
                         </div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="info-label mb-2"><i class="bi bi-file-text-fill me-1 text-primary"></i> Descripción del Hecho</label>
+                        <label class="info-label mb-2"><i class="bi bi-file-text-fill me-1 text-primary"></i> DescripciÃ³n del Hecho</label>
                         <div class="p-4 bg-light rounded-4 border-start border-4 border-primary">
                             <p class="mb-0 text-muted" style="font-size: 1.05rem; line-height: 1.6;">
                                 {{ $reporte->descripcion }}
@@ -287,7 +287,7 @@
 
                     @if($reporte->ubicacion_exacta_lat && $reporte->ubicacion_exacta_lng)
                     <div class="mb-4 position-relative">
-                        <label class="info-label mb-2"><i class="bi bi-map-fill me-1 text-primary"></i> Mapa de Búsqueda y Ubicación</label>
+                        <label class="info-label mb-2"><i class="bi bi-map-fill me-1 text-primary"></i> Mapa de BÃºsqueda y UbicaciÃ³n</label>
                         
                         <div class="border rounded-4 overflow-hidden shadow-sm" style="position: relative;">
                             <div class="bg-white p-2 border-bottom d-flex justify-content-between align-items-center">
@@ -295,14 +295,14 @@
                                     <span class="fw-bold text-primary"><i class="bi bi-pin-map-fill me-1"></i> Puntos de avistamiento</span>
                                 </div>
                                 <div class="d-flex gap-2">
-                                    <!-- Remove Añadir Pista button -->
+                                    <!-- Remove AÃ±adir Pista button -->
                                     <button onclick="toggleMapFullscreen()" class="btn btn-light btn-sm border shadow-sm">
                                         <i class="bi bi-arrows-fullscreen"></i>
                                     </button>
                                 </div>
                             </div>
                             
-                            <!-- Eliminar panel de añadir pista -->
+                            <!-- Eliminar panel de aÃ±adir pista -->
                             
                             <!-- El Mapa -->
                             <div id="mapa-pistas-wrapper" style="position:relative; background: #f8f9fa;">
@@ -354,7 +354,7 @@
         <!-- Columna Derecha: Contacto y Timeline o Foco -->
         <div class="col-lg-4 d-flex flex-column">
             @if($foco)
-            <!-- ─── PANEL ENFOCADO ────────────────────────────────────────────── -->
+            <!-- â”€â”€â”€ PANEL ENFOCADO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
             <div class="card border-0 shadow-sm rounded-4 flex-grow-1 d-flex flex-column mb-4 border-top border-4 border-primary">
                 <div class="card-header bg-white border-bottom-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
                     <h5 class="fw-bold mb-0 text-primary">
@@ -369,7 +369,7 @@
                         <div class="d-inline-flex align-items-center justify-content-center bg-light text-primary rounded-circle mb-3" style="width: 60px; height: 60px;">
                             <i class="bi {{ in_array($foco->tipo_respuesta, ['avistamiento', 'encontrado']) ? 'bi-camera-video' : 'bi-geo-alt' }} fs-2"></i>
                         </div>
-                        <h4 class="fw-bold">{{ in_array($foco->tipo_respuesta, ['avistamiento', 'encontrado']) ? 'Evidencia (Avistamiento)' : 'Pista de Búsqueda' }}</h4>
+                        <h4 class="fw-bold">{{ in_array($foco->tipo_respuesta, ['avistamiento', 'encontrado']) ? 'Evidencia (Avistamiento)' : 'Pista de BÃºsqueda' }}</h4>
                         @if(in_array($foco->tipo_respuesta, ['avistamiento', 'encontrado']))
                             @if($foco->estado_evidencia == 'approved')
                                 <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2 rounded-pill"><i class="bi bi-check-circle-fill me-1"></i>Aprobada</span>
@@ -379,7 +379,7 @@
                                 <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-2 rounded-pill"><i class="bi bi-hourglass-split me-1"></i>Pendiente</span>
                             @endif
                         @else
-                            <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3 py-2 rounded-pill"><i class="bi bi-info-circle-fill me-1"></i>Información</span>
+                            <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3 py-2 rounded-pill"><i class="bi bi-info-circle-fill me-1"></i>InformaciÃ³n</span>
                         @endif
                     </div>
 
@@ -395,7 +395,7 @@
                             </div>
                             <div>
                                 <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.7rem;">Autor</small>
-                                <span class="fw-bold text-dark">{{ $foco->usuario->nombre ?? 'Anónimo' }}</span>
+                                <span class="fw-bold text-dark">{{ $foco->usuario->nombre ?? 'AnÃ³nimo' }}</span>
                             </div>
                         </div>
                         <div class="d-flex align-items-center">
@@ -413,7 +413,7 @@
                                 <i class="bi bi-geo-alt text-secondary"></i>
                             </div>
                             <div>
-                                <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.7rem;">Ubicación</small>
+                                <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.7rem;">UbicaciÃ³n</small>
                                 <a href="https://maps.google.com/?q={{ $foco->ubicacion_lat }},{{ $foco->ubicacion_lng }}" target="_blank" class="fw-bold text-primary text-decoration-none">Ver en Google Maps <i class="bi bi-box-arrow-up-right ms-1"></i></a>
                             </div>
                         </div>
@@ -422,7 +422,7 @@
                 </div>
             </div>
             @else
-            <!-- ─── TIMELINE NORMAL ───────────────────────────────────────────── -->
+            <!-- â”€â”€â”€ TIMELINE NORMAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
             @if($reporte->contacto_publico)
             <div class="card border-0 shadow-sm rounded-4 mb-4">
                 <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
@@ -438,7 +438,7 @@
                                 <i class="bi bi-whatsapp"></i>
                             </div>
                             <div>
-                                <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.7rem;">Teléfono</small>
+                                <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.7rem;">TelÃ©fono</small>
                                 <a href="tel:{{ $reporte->telefono_contacto }}" class="fw-bold text-dark text-decoration-none fs-5">{{ $reporte->telefono_contacto }}</a>
                             </div>
                         </div>
@@ -465,7 +465,7 @@
                         <i class="bi bi-hourglass-split me-2"></i> Seguimiento
                     </h5>
                     @if(count($timeline) > 5)
-                        <small class="text-muted" style="font-size: 0.75rem;">Desliza para ver más</small>
+                        <small class="text-muted" style="font-size: 0.75rem;">Desliza para ver mÃ¡s</small>
                     @endif
                 </div>
                 <div class="card-body p-4 flex-grow-1 d-flex flex-column">
@@ -506,7 +506,7 @@
     </div>
 </div>
 
-<!-- Nueva Sección: Registro de Evidencias (Voluntarios) -->
+<!-- Nueva SecciÃ³n: Registro de Evidencias (Voluntarios) -->
 <div class="container-fluid px-4 py-2 mt-2">
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-header bg-white border-bottom-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
@@ -580,7 +580,7 @@
                                             </a>
                                             @if(auth()->user()->hasRole('administrador') || auth()->user()->hasRole('editor') || auth()->user()->id == $reporte->usuario_id)
                                                 @if($respuesta->estado_evidencia != 'approved')
-                                                <form action="{{ route('reportes.pistas.aprobar', [$reporte->id, $respuesta->id]) }}" method="POST" class="d-inline">
+                                                <form action="{{ route('reportes.informacion.aprobar', [$reporte->id, $respuesta->id]) }}" method="POST" class="d-inline">
                                                     @csrf
                                                     @method('PUT')
                                                     <button type="submit" class="btn btn-sm btn-outline-success" title="Aprobar Evidencia">
@@ -589,7 +589,7 @@
                                                 </form>
                                                 @endif
                                                 @if($respuesta->estado_evidencia != 'rejected')
-                                                <form action="{{ route('reportes.pistas.rechazar', [$reporte->id, $respuesta->id]) }}" method="POST" class="d-inline">
+                                                <form action="{{ route('reportes.informacion.rechazar', [$reporte->id, $respuesta->id]) }}" method="POST" class="d-inline">
                                                     @csrf
                                                     @method('PUT')
                                                     <button type="submit" class="btn btn-sm btn-outline-warning" title="Rechazar Evidencia">
@@ -597,10 +597,10 @@
                                                     </button>
                                                 </form>
                                                 @endif
-                                                <form action="{{ route('reportes.pistas.destroy', [$reporte->id, $respuesta->id]) }}" method="POST" class="d-inline">
+                                                <form action="{{ route('reportes.informacion.destroy', [$reporte->id, $respuesta->id]) }}" method="POST" class="d-inline">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-pista" title="Eliminar Evidencia">
+                                                    <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-informacion" title="Eliminar Evidencia">
                                                         <i class="bi bi-trash-fill"></i>
                                                     </button>
                                                 </form>
@@ -616,19 +616,19 @@
                 <div class="text-center py-5 text-muted">
                     <i class="bi bi-inbox fs-1 mb-3 text-light"></i>
                     <h6>No hay evidencias registradas</h6>
-                    <p class="small">Las evidencias enviadas por los voluntarios aparecerán aquí.</p>
+                    <p class="small">Las evidencias enviadas por los voluntarios aparecerÃ¡n aquÃ­.</p>
                 </div>
             @endif
         </div>
     </div>
 </div>
 
-<!-- Nueva Sección: Registro de Pistas (Admin/Creador) -->
+<!-- Nueva SecciÃ³n: Registro de Pistas (Admin/Creador) -->
 <div class="container-fluid px-4 py-2">
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-header bg-white border-bottom-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
             <h5 class="fw-bold mb-0 text-info">
-                <i class="bi bi-geo-alt me-2"></i> Registro de Pistas (Oficial)
+                <i class="bi bi-geo-alt me-2"></i> Registro de Información (Oficial)
             </h5>
             <span class="badge bg-info rounded-pill">{{ count($pistasAdmin) }} registradas</span>
         </div>
@@ -666,14 +666,14 @@
                                                 <i class="bi bi-search"></i> Ver
                                             </a>
                                             @if(auth()->user()->hasRole('administrador') || auth()->user()->hasRole('editor') || auth()->user()->id == $reporte->usuario_id)
-                                                <!-- Opcional: Modal de editar se puede añadir aquí -->
-                                                <button type="button" class="btn btn-sm btn-outline-secondary" title="Editar Pista" onclick="editarPista('{{ $reporte->id }}', '{{ $pista->id }}', '{{ addslashes($pista->mensaje) }}')">
+                                                <!-- Opcional: Modal de editar se puede aÃ±adir aquÃ­ -->
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" title="Editar Pista" onclick="editarInformacion('{{ $reporte->id }}', '{{ $pista->id }}', '{{ addslashes($pista->mensaje) }}')">
                                                     <i class="bi bi-pencil-square"></i>
                                                 </button>
-                                                <form action="{{ route('reportes.pistas.destroy', [$reporte->id, $pista->id]) }}" method="POST" class="d-inline">
+                                                <form action="{{ route('reportes.informacion.destroy', [$reporte->id, $pista->id]) }}" method="POST" class="d-inline">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-pista" title="Eliminar Pista">
+                                                    <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-informacion" title="Eliminar Pista">
                                                         <i class="bi bi-trash-fill"></i>
                                                     </button>
                                                 </form>
@@ -702,7 +702,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-// ─── Datos del reporte ────────────────────────────────────────────────────────
+// â”€â”€â”€ Datos del reporte â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const LPP_LAT   = {{ (float) $reporte->ubicacion_exacta_lat }};
 const LPP_LNG   = {{ (float) $reporte->ubicacion_exacta_lng }};
 const REPORTE_ID = "{{ $reporte->id }}";
@@ -712,7 +712,7 @@ const CREATED_AT = @json($reporte->created_at);
 const UPDATED_AT = @json($reporte->updated_at);
 const RADIO_BASE = 0.0007; // Mismo radio que en cuadrantes/index
 
-// Calcular nivel dinámico basado en el tiempo (misma fórmula que cuadrantes/index)
+// Calcular nivel dinÃ¡mico basado en el tiempo (misma fÃ³rmula que cuadrantes/index)
 function calcularNivelDinamico(fechaStr, fechaFinStr, estado) {
     if (!fechaStr) return 1;
     const fecha = new Date(fechaStr);
@@ -736,11 +736,11 @@ function calcularNivelDinamico(fechaStr, fechaFinStr, estado) {
 const NIVEL_EXPAN = calcularNivelDinamico(CREATED_AT, UPDATED_AT, ESTADO_REPORTE);
 @php
     $pistasJs = $pistas->map(function($p) {
-        // Usar relationLoaded para evitar RelationNotFoundException si no se precargó correctamente
+        // Usar relationLoaded para evitar RelationNotFoundException si no se precargÃ³ correctamente
         $imagenesRel = $p->relationLoaded('imagenes') ? $p->getRelation('imagenes') : null;
         $img = $imagenesRel && $imagenesRel->count() > 0 ? $imagenesRel->first()->url : null;
 
-        // Fallback: Si no hay en la relación, revisar la columna JSON
+        // Fallback: Si no hay en la relaciÃ³n, revisar la columna JSON
         if (!$img && is_array($p->imagenes) && count($p->imagenes) > 0) {
             $firstImg = $p->imagenes[0];
             $img = is_string($firstImg) ? $firstImg : ($firstImg['url'] ?? null);
@@ -783,11 +783,11 @@ const NIVEL_EXPAN = calcularNivelDinamico(CREATED_AT, UPDATED_AT, ESTADO_REPORTE
 const PISTAS_BD = @json($pistasJs);
 const TRACKING_BD = @json($tracksJs);
 
-// ─── Estado ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Estado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let mapPistas, modoPista = false, pinTemporal = null;
 let latSeleccionada = null, lngSeleccionada = null;
 
-// ─── Iconos ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Iconos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const iconLPP = L.divIcon({
     className: '',
     html: `<div style="
@@ -830,10 +830,10 @@ const iconTemporal = L.divIcon({
     iconSize:[22,22], iconAnchor:[11,11]
 });
 
-// ─── Init Mapa ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Init Mapa â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @if($reporte->ubicacion_exacta_lat && $reporte->ubicacion_exacta_lng)
 document.addEventListener('DOMContentLoaded', function() {
-    // Inyectar estilos de animación
+    // Inyectar estilos de animaciÃ³n
     const style = document.createElement('style');
     style.textContent = `
         @keyframes pulsoRojo {
@@ -907,35 +907,35 @@ document.addEventListener('DOMContentLoaded', function() {
     // Capa satelital por defecto
     const satelital = L.tileLayer(
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        { attribution: '© Esri' }
+        { attribution: 'Â© Esri' }
     );
     const callejero = L.tileLayer(
         'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        { attribution: '© OpenStreetMap' }
+        { attribution: 'Â© OpenStreetMap' }
     );
     satelital.addTo(mapPistas);
     L.control.layers({'Satelital': satelital, 'Callejero': callejero}).addTo(mapPistas);
 
-    // ── Marcador LPP (punto original, siempre visible) ──────────────────────
+    // â”€â”€ Marcador LPP (punto original, siempre visible) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const tooltipLPP = buildTooltip('Punto de inicio (LPP)', null, '');
     L.marker([LPP_LAT, LPP_LNG], {icon: iconLPP, zIndexOffset: 1000})
      .bindTooltip(tooltipLPP, {permanent: false, direction:'top', offset:[0,-12], className:'leaflet-tooltip-pista'})
      .bindPopup(`<strong>Ultima ubicacion conocida</strong><br><em>${TITULO}</em>`)
      .addTo(mapPistas);
 
-    // ── Zona de Búsqueda LPP (Desde la BD) ───────────────────────────────
+    // â”€â”€ Zona de BÃºsqueda LPP (Desde la BD) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     dibujarZonaBusqueda(LPP_LAT, LPP_LNG, NIVEL_EXPAN);
 
-    // ── Marcadores de pistas existentes (BD) ────────────────────────────────
+    // â”€â”€ Marcadores de pistas existentes (BD) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     PISTAS_BD.forEach(p => {
-        // Añadir un pequeñísimo offset aleatorio para que si dos evidencias están en el 
+        // AÃ±adir un pequeÃ±Ã­simo offset aleatorio para que si dos evidencias estÃ¡n en el 
         // mismo punto exacto, no se solapen completamente y el usuario pueda ver ambas.
         let latOffset = (Math.random() - 0.5) * 0.0001;
         let lngOffset = (Math.random() - 0.5) * 0.0001;
         agregarMarcadorPista(p.lat + latOffset, p.lng + lngOffset, p.etiqueta, p.fecha, p.nivel_expansion, p.has_image, p.image_url, p.created_at, p.id);
     });
 
-    // ── Rutas de Tracking de los Voluntarios ────────────────────────────────
+    // â”€â”€ Rutas de Tracking de los Voluntarios â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     TRACKING_BD.forEach(track => {
         let pts = track.puntos;
         if (typeof pts === 'string') {
@@ -966,7 +966,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // ── Clic en el mapa para agregar pista ──────────────────────────────────
+    // â”€â”€ Clic en el mapa para agregar pista â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     mapPistas.on('click', function(e) {
         if (!modoPista) return;
         latSeleccionada = e.latlng.lat.toFixed(6);
@@ -985,7 +985,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 @endif
 
-// ─── Construir tooltip bonito con foto ────────────────────────────────────────
+// â”€â”€â”€ Construir tooltip bonito con foto â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function buildTooltip(etiqueta, foto, fecha) {
     const fotoHtml = foto
         ? `<img src="${foto}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid #f59e0b;flex-shrink:0;">`
@@ -999,7 +999,7 @@ function buildTooltip(etiqueta, foto, fecha) {
     </div>`;
 }
 
-// ─── Agregar marcador de pista al mapa ────────────────────────────────────────
+// â”€â”€â”€ Agregar marcador de pista al mapa â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function agregarMarcadorPista(lat, lng, etiqueta, fecha, nivel, hasImage, imageUrl, createdAtStr, id) {
     const tooltipHtml = buildTooltip(etiqueta, imageUrl, fecha);
     const mIcon = hasImage ? iconEvidencia : iconPista;
@@ -1016,10 +1016,10 @@ function agregarMarcadorPista(lat, lng, etiqueta, fecha, nivel, hasImage, imageU
      .bindPopup(popupContent)
      .addTo(mapPistas);
      
-    // Las evidencias no tienen cuadrantes ni nivel de expansión, solo son marcadores en el mapa
+    // Las evidencias no tienen cuadrantes ni nivel de expansiÃ³n, solo son marcadores en el mapa
 }
 
-// ─── Dibujar cuadrado verde de búsqueda ──────────────────────────────────────
+// â”€â”€â”€ Dibujar cuadrado verde de bÃºsqueda â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function dibujarZonaBusqueda(lat, lng, nivel) {
     const radio = RADIO_BASE * nivel;
     const nLat = parseFloat(lat);
@@ -1038,7 +1038,7 @@ function dibujarZonaBusqueda(lat, lng, nivel) {
     }).addTo(mapPistas);
 }
 
-// ─── Activar/Cancelar modo pista ─────────────────────────────────────────────
+// â”€â”€â”€ Activar/Cancelar modo pista â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function activarModoPista() {
     modoPista = true;
     document.getElementById('panel-pista').style.display = 'block';
@@ -1053,14 +1053,14 @@ function cancelarModoPista() {
     document.getElementById('mapa-pistas').classList.remove('modo-pista');
     document.getElementById('btn-modo-pista').style.display = 'inline-flex';
     document.getElementById('btn-guardar-pista').disabled = true;
-    document.getElementById('coords-text').textContent = 'Haz clic en el mapa para elegir ubicación';
+    document.getElementById('coords-text').textContent = 'Haz clic en el mapa para elegir ubicaciÃ³n';
     document.getElementById('coords-status').style.background = '#fef3c7';
     document.getElementById('coords-status').style.borderColor = '#fcd34d';
     if (pinTemporal) { mapPistas.removeLayer(pinTemporal); pinTemporal = null; }
     document.getElementById('pista-msg').innerHTML = '';
 }
 
-// ─── Guardar pista vía AJAX ───────────────────────────────────────────────────
+// â”€â”€â”€ Guardar pista vÃ­a AJAX â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function guardarPista() {
     if (!latSeleccionada || !lngSeleccionada) return;
 
@@ -1103,7 +1103,7 @@ function guardarPista() {
 
         Swal.fire({
             icon: 'success',
-            title: '¡Pista registrada!',
+            title: 'Â¡Pista registrada!',
             text: `"${etiqueta}" guardada en el mapa.`,
             timer: 2500,
             showConfirmButton: false,
@@ -1114,26 +1114,26 @@ function guardarPista() {
         cancelarModoPista();
     })
     .catch(() => {
-        msg.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>Error de conexión.</span>`;
+        msg.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>Error de conexiÃ³n.</span>`;
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-cloud-arrow-up-fill me-2"></i>Guardar Pista';
     });
 }
 
-// ─── Confirmar eliminación de pista ──────────────────────────────────────────
+// â”€â”€â”€ Confirmar eliminaciÃ³n de pista â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 document.addEventListener('DOMContentLoaded', function() {
-    const btnEliminarPista = document.querySelectorAll('.btn-eliminar-pista');
+    const btnEliminarPista = document.querySelectorAll('.btn-eliminar-informacion');
     btnEliminarPista.forEach(btn => {
         btn.addEventListener('click', function() {
             const form = this.closest('form');
             Swal.fire({
-                title: '¿Eliminar evidencia?',
-                text: "Esta acción no se puede deshacer y se borrará la foto y el mensaje para siempre.",
+                title: 'Â¿Eliminar evidencia?',
+                text: "Esta acciÃ³n no se puede deshacer y se borrarÃ¡ la foto y el mensaje para siempre.",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Sí, eliminar',
+                confirmButtonText: 'SÃ­, eliminar',
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -1144,7 +1144,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-function editarPista(reporteId, pistaId, mensajeActual) {
+function editarInformacion(reporteId, pistaId, mensajeActual) {
     Swal.fire({
         title: 'Editar Pista',
         input: 'textarea',
@@ -1155,7 +1155,7 @@ function editarPista(reporteId, pistaId, mensajeActual) {
         cancelButtonText: 'Cancelar',
         inputValidator: (value) => {
             if (!value) {
-                return 'El mensaje no puede estar vacío'
+                return 'El mensaje no puede estar vacÃ­o'
             }
         }
     }).then((result) => {
@@ -1207,7 +1207,7 @@ function editarPista(reporteId, pistaId, mensajeActual) {
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.12));
 }
 </style>
-<!-- Formulario oculto para cerrar búsqueda -->
+<!-- Formulario oculto para cerrar bÃºsqueda -->
 <form id="form-cerrar-{{ $reporte->id }}" action="{{ route('reportes.cerrar', $reporte->id) }}" method="POST" style="display: none;">
     @csrf
     @method('PUT')
@@ -1217,13 +1217,13 @@ function editarPista(reporteId, pistaId, mensajeActual) {
 <script>
 function confirmarReanudar(id) {
     Swal.fire({
-        title: 'Reanudar Búsqueda',
-        text: "Al reanudar esta búsqueda, volverá a estar activa y visible para los voluntarios.",
+        title: 'Reanudar BÃºsqueda',
+        text: "Al reanudar esta bÃºsqueda, volverÃ¡ a estar activa y visible para los voluntarios.",
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#198754',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="bi bi-play-circle"></i> Confirmar Reanudación',
+        confirmButtonText: '<i class="bi bi-play-circle"></i> Confirmar ReanudaciÃ³n',
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -1234,12 +1234,12 @@ function confirmarReanudar(id) {
 
 function confirmarCierre(id) {
     Swal.fire({
-        title: 'Cerrar Búsqueda',
-        text: "Al cerrar esta búsqueda, dejará de ser visible para los voluntarios en la app móvil y se les notificará.",
+        title: 'Cerrar BÃºsqueda',
+        text: "Al cerrar esta bÃºsqueda, dejarÃ¡ de ser visible para los voluntarios en la app mÃ³vil y se les notificarÃ¡.",
         icon: 'warning',
         input: 'textarea',
         inputLabel: 'Motivo del cierre',
-        inputPlaceholder: 'Ej. El operativo fue cancelado por orden superior, o se encontró lo buscado...',
+        inputPlaceholder: 'Ej. El operativo fue cancelado por orden superior, o se encontrÃ³ lo buscado...',
         inputAttributes: {
             'aria-label': 'Motivo del cierre'
         },
@@ -1250,7 +1250,7 @@ function confirmarCierre(id) {
         cancelButtonText: 'Cancelar',
         inputValidator: (value) => {
             if (!value) {
-                return '¡Debes ingresar un motivo para el cierre!'
+                return 'Â¡Debes ingresar un motivo para el cierre!'
             }
         }
     }).then((result) => {
@@ -1263,19 +1263,19 @@ function confirmarCierre(id) {
 
 function confirmarEliminacion(id) {
     Swal.fire({
-        title: '¿Eliminar permanentemente?',
-        text: "Esta acción no se puede deshacer y eliminará todos los registros asociados. Se notificará a los participantes.",
+        title: 'Â¿Eliminar permanentemente?',
+        text: "Esta acciÃ³n no se puede deshacer y eliminarÃ¡ todos los registros asociados. Se notificarÃ¡ a los participantes.",
         icon: 'error',
         input: 'textarea',
-        inputLabel: 'Motivo de eliminación',
+        inputLabel: 'Motivo de eliminaciÃ³n',
         inputPlaceholder: 'Ej. Reporte falso, spam, duplicado...',
         inputValidator: (value) => {
-            if (!value) return '¡Debes ingresar un motivo para eliminar!';
+            if (!value) return 'Â¡Debes ingresar un motivo para eliminar!';
         },
         showCancelButton: true,
         confirmButtonColor: '#dc3545',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="bi bi-trash"></i> Sí, eliminar',
+        confirmButtonText: '<i class="bi bi-trash"></i> SÃ­, eliminar',
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {

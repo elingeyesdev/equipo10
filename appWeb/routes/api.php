@@ -119,11 +119,11 @@ Route::prefix('grupos')->group(function () {
 Route::prefix('reportes')->group(function () {
     // IMPORTANTE: Rutas específicas PRIMERO
 
-    // Obtener pistas de búsqueda de un reporte
-    Route::get('{reporteId}/pistas', [ReporteController::class, 'listarPistas']);
-    Route::post('{reporteId}/pistas', [ReporteController::class, 'guardarPistaApi']);
-    Route::put('pistas/{pistaId}', [ReporteController::class, 'actualizarPistaApi']);
-    Route::delete('pistas/{pistaId}', [ReporteController::class, 'eliminarPistaApi']);
+    // Obtener información de búsqueda de un reporte
+    Route::get('{reporteId}/informacion', [ReporteController::class, 'listarInformacion']);
+    Route::post('{reporteId}/informacion', [ReporteController::class, 'guardarInformacionApi']);
+    Route::put('informacion/{infoId}', [ReporteController::class, 'actualizarInformacionApi']);
+    Route::delete('informacion/{infoId}', [ReporteController::class, 'eliminarInformacionApi']);
     
     // Verificar expansiones automáticas (ejecutar periódicamente)
     Route::post('verificar-expansiones', [ReporteController::class, 'verificarExpansionesAutomaticas']);
