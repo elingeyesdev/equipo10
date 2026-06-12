@@ -75,31 +75,48 @@ class ReporteService {
     }
   }
 
-  /// Obtiene los comentarios públicos de un reporte
-  Future<List<Map<String, dynamic>>> obtenerComentarios(
-      String reporteId) async {
+  /// Obtiene los comentarios públicos de un reporte (paginados, 20 por página)
+  Future<Map<String, dynamic>> obtenerComentarios(
+      String reporteId, {int page = 1}) async {
     try {
-      final response =
-          await _api.client.get('/reportes/$reporteId/comentarios');
+      final response = await _api.client.get(
+        '/reportes/$reporteId/comentarios',
+        queryParameters: {'page': page},
+      );
       if (response.statusCode == 200 && response.data['success'] == true) {
-        return List<Map<String, dynamic>>.from(response.data['data']);
+        return {
+          'data': List<Map<String, dynamic>>.from(
+              response.data['data'] as List),
+          'has_more': response.data['has_more'] ?? false,
+          'next_page': response.data['next_page'],
+        };
       }
-      return [];
+      return {'data': <Map<String, dynamic>>[], 'has_more': false, 'next_page': null};
     } catch (e) {
-      return [];
+      return {'data': <Map<String, dynamic>>[], 'has_more': false, 'next_page': null};
     }
   }
 
-  /// Envía un comentario público a un reporte
-  Future<bool> enviarComentario(
-      String reporteId, String texto, String usuarioId) async {
+  /// Envía un comentario público a un reporte (el usuario lo infiere el backend desde el token)
+  Future<bool> enviarComentario(String reporteId, String texto) async {
     try {
       final response =
           await _api.client.post('/reportes/$reporteId/comentarios', data: {
         'texto': texto,
-        'usuario_id': usuarioId,
       });
       return response.statusCode == 201 && response.data['success'] == true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Elimina un comentario propio (o del reporte si eres el creador)
+  Future<bool> eliminarComentario(
+      String reporteId, String comentarioId) async {
+    try {
+      final response = await _api.client
+          .delete('/reportes/$reporteId/comentarios/$comentarioId');
+      return response.statusCode == 200 && response.data['success'] == true;
     } catch (e) {
       return false;
     }

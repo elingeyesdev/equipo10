@@ -999,11 +999,19 @@ class ReporteController extends Controller
     public function listarComentarios($reporteId)
     {
         try {
+            $page        = request()->query('page', 1);
             $comentarios = \App\Models\Comentario::where('reporte_id', $reporteId)
                 ->with('usuario')
                 ->orderBy('created_at', 'asc')
-                ->get();
-            return response()->json(['success' => true, 'data' => $comentarios], 200);
+                ->paginate(20, ['*'], 'page', $page);
+
+            return response()->json([
+                'success'   => true,
+                'data'      => $comentarios->items(),
+                'has_more'  => $comentarios->hasMorePages(),
+                'total'     => $comentarios->total(),
+                'next_page' => $comentarios->hasMorePages() ? $page + 1 : null,
+            ], 200);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
@@ -1015,21 +1023,48 @@ class ReporteController extends Controller
     public function agregarComentario(Request $request, $reporteId)
     {
         $request->validate([
-            'usuario_id' => 'required|exists:usuarios,id',
-            'texto' => 'required|string'
+            'texto' => 'required|string|max:1000'
         ]);
 
         try {
             $comentario = \App\Models\Comentario::create([
                 'reporte_id' => $reporteId,
-                'usuario_id' => $request->usuario_id,
-                'texto' => $request->texto
+                'usuario_id' => auth()->id(),
+                'texto'      => $request->texto
             ]);
 
             return response()->json([
                 'success' => true,
-                'data' => $comentario->load('usuario')
+                'data'    => $comentario->load('usuario')
             ], 201);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Eliminar Comentario (solo el autor o el creador del reporte)
+     */
+    public function eliminarComentario($reporteId, $comentarioId)
+    {
+        try {
+            $comentario = \App\Models\Comentario::where('id', $comentarioId)
+                ->where('reporte_id', $reporteId)
+                ->firstOrFail();
+
+            $reporte = \App\Models\Reporte::findOrFail($reporteId);
+            $userId  = auth()->id();
+
+            if ($comentario->usuario_id !== $userId && $reporte->usuario_id !== $userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permiso para eliminar este comentario.'
+                ], 403);
+            }
+
+            $comentario->delete();
+
+            return response()->json(['success' => true], 200);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }

@@ -17,7 +17,9 @@ import '../panel_control/panel_control_view.dart';
 import '../tracking/tracking_view.dart';
 import '../widgets/full_screen_image_view.dart';
 import '../../theme/app_theme.dart';
+import 'comentarios_section.dart';
 import 'evidencias_section.dart';
+import 'report_dialogs.dart';
 import 'unirse_bottom_sheet.dart';
 import 'geofencing_bloqueado_sheet.dart';
 import '../../widgets/map_tile_layer.dart';
@@ -38,6 +40,7 @@ class DetalleFichaView extends StatefulWidget {
 
 class _DetalleFichaViewState extends State<DetalleFichaView> {
   bool _huboCambios = false;
+  int _selectedTab = 0;
   late EvidenciaViewModel _evidenciaVm;
 
   @override
@@ -62,8 +65,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
     final ficha = vm.ficha;
     if (ficha == null) return;
 
-    // Abrir el Bottom Sheet de confirmación con el formulario del voluntario.
-    // El propio sheet llama al API y navega a la pantalla de bienvenida si tiene éxito.
     await UnirseBottomSheet.show(
       context,
       ficha: ficha,
@@ -71,7 +72,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
       voluntariosActivos: vm.voluntariosCount,
     );
 
-    // Refrescar el detalle al volver (el estado yaVinculado habrá cambiado)
     if (mounted) {
       setState(() => _huboCambios = true);
       context.read<DetalleFichaViewModel>().cargarFicha(
@@ -82,39 +82,8 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
   }
 
   Future<void> _onAbandonar() async {
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.exit_to_app, color: Colors.orange),
-            SizedBox(width: 8),
-            Text('Abandonar operativo'),
-          ],
-        ),
-        content: const Text(
-          '¿Estás seguro de que deseas retirarte de esta búsqueda? '
-          'Tu recorrido hasta ahora quedará guardado.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Abandonar'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmar != true || !mounted) return;
+    final confirmar = await showAbandonarOperativoDialog(context);
+    if (!confirmar || !mounted) return;
 
     final vm = context.read<DetalleFichaViewModel>();
     final success = await vm.abandonarBusqueda(
@@ -135,36 +104,8 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
   }
 
   Future<void> _onEliminar() async {
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red),
-            SizedBox(width: 8),
-            Text('Eliminar ficha'),
-          ],
-        ),
-        content: const Text(
-          '¿Estás seguro de que deseas eliminar esta ficha? '
-          'Esta acción no se puede deshacer.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmar != true || !mounted) return;
+    final confirmar = await showEliminarReporteDialog(context);
+    if (!confirmar || !mounted) return;
 
     final editVm = context.read<EditarFichaViewModel>();
     final nav = Navigator.of(context);
@@ -189,6 +130,36 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
           backgroundColor: Colors.red.shade700,
         ),
       );
+    }
+  }
+
+  Future<void> _onIrAlPanel() async {
+    final detaVm = context.read<DetalleFichaViewModel>();
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PanelControlView(fichaId: widget.fichaId),
+      ),
+    );
+    if (mounted) {
+      setState(() => _huboCambios = true);
+      detaVm.cargarFicha(widget.fichaId, widget.currentUserId);
+    }
+  }
+
+  Future<void> _onEditar(dynamic ficha) async {
+    final detaVm = context.read<DetalleFichaViewModel>();
+    final nav = Navigator.of(context);
+    final result = await nav.push<bool>(
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => EditarFichaViewModel(),
+          child: EditarFichaView(ficha: ficha),
+        ),
+      ),
+    );
+    if (result == true && mounted) {
+      setState(() => _huboCambios = true);
+      detaVm.cargarFicha(widget.fichaId, widget.currentUserId);
     }
   }
 
@@ -223,371 +194,120 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
           Navigator.of(context).pop(_huboCambios);
         },
         child: Scaffold(
+          backgroundColor: AppTheme.backgroundLight,
           appBar: AppBar(
+            backgroundColor: AppTheme.surface,
+            elevation: 0,
+            centerTitle: false,
+            titleSpacing: 0,
+            surfaceTintColor: Colors.transparent,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
+              icon: const Icon(Icons.arrow_back, color: AppTheme.darkBase),
               onPressed: () => Navigator.of(context).pop(_huboCambios),
             ),
-            title: Text(ficha.titulo, overflow: TextOverflow.ellipsis),
+            title: const Text(
+              'Detalle del reporte',
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: AppTheme.darkBase,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             actions: esCreador
                 ? [
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined),
-                      tooltip: 'Editar ficha',
-                      onPressed: () async {
-                        final detaVm = context.read<DetalleFichaViewModel>();
-                        final nav = Navigator.of(context);
-                        final result = await nav.push<bool>(
-                          MaterialPageRoute(
-                            builder: (_) => ChangeNotifierProvider(
-                              create: (_) => EditarFichaViewModel(),
-                              child: EditarFichaView(ficha: ficha),
-                            ),
-                          ),
-                        );
-                        if (result == true && mounted) {
-                          setState(() => _huboCambios = true);
-                          detaVm.cargarFicha(
-                            widget.fichaId,
-                            widget.currentUserId,
-                          );
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert,
+                          color: AppTheme.darkBase),
+                      color: AppTheme.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      onSelected: (value) async {
+                        if (value == 'editar') {
+                          await _onEditar(ficha);
+                        } else if (value == 'eliminar') {
+                          await _onEliminar();
+                        } else if (value == 'panel') {
+                          await _onIrAlPanel();
                         }
                       },
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        color: Color(0xFFEF9A9A),
-                      ),
-                      tooltip: 'Eliminar ficha',
-                      onPressed: _onEliminar,
+                      itemBuilder: (_) => [
+                        const PopupMenuItem(
+                          value: 'editar',
+                          child: Text(
+                            'Editar reporte',
+                            style: TextStyle(color: AppTheme.surface),
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'panel',
+                          child: Text(
+                            'Ir al Panel de Control',
+                            style: TextStyle(color: AppTheme.surface),
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'eliminar',
+                          child: Text(
+                            'Eliminar reporte',
+                            style: TextStyle(
+                              color: AppTheme.accent,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ]
                 : null,
           ),
-          body: DefaultTabController(
-            length: 3,
-            child: NestedScrollView(
-              headerSliverBuilder: (context, innerBoxIsScrolled) {
-                return [
-                  SliverToBoxAdapter(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _HeroImage(
-                            fotoUrl: ficha.fotoUrl,
-                            categoria: ficha.nombreCategoria),
-                        Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    crossAxisAlignment:
-                                        WrapCrossAlignment.center,
-                                    children: [
-                                      _EstadoBadge(estado: ficha.estado),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF3E5F5),
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                          border: Border.all(
-                                              color: const Color(0xFF8E24AA)),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(Icons.group,
-                                                size: 14,
-                                                color: Color(0xFF8E24AA)),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              '${vm.voluntariosCount} Voluntarios',
-                                              style: const TextStyle(
-                                                fontSize: 11,
-                                                color: Color(0xFF8E24AA),
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      if (esCreador)
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 10, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.primary
-                                                .withValues(alpha: 0.1),
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                            border: Border.all(
-                                                color: AppTheme.primary),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              if (ficha.avatarUsuario != null &&
-                                                  ficha.avatarUsuario!
-                                                      .isNotEmpty) ...[
-                                                CircleAvatar(
-                                                  radius: 8,
-                                                  backgroundImage:
-                                                      CachedNetworkImageProvider(
-                                                          ficha.avatarUsuario!),
-                                                  backgroundColor:
-                                                      Colors.transparent,
-                                                ),
-                                              ] else
-                                                const Icon(Icons.person,
-                                                    size: 14,
-                                                    color: AppTheme.primary),
-                                              const SizedBox(width: 4),
-                                              const Text(
-                                                'Tú creaste esta búsqueda',
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  color: AppTheme.primary,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    ficha.titulo,
-                                    style: const TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF1A1A1A),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Container(
-                                    height: 3,
-                                    width: 40,
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.info,
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  _buildActionArea(
-                                      vm, esCreador, esBloqueado, estadoText),
-                                ]))
-                      ],
-                    ),
-                  ),
-                  SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _SliverAppBarDelegate(
-                      const TabBar(
-                        labelColor: AppTheme.primary,
-                        unselectedLabelColor: Colors.grey,
-                        indicatorColor: AppTheme.primary,
-                        indicatorWeight: 3,
-                        tabs: [
-                          Tab(text: "Detalles"),
-                          Tab(text: "Evidencias"),
-                          Tab(text: "Comentarios"),
-                        ],
+          body: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _HeroImage(
+                    fotoUrl: ficha.fotoUrl,
+                    categoria: ficha.nombreCategoria),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        ficha.titulo,
+                        textAlign: TextAlign.left,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primary,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 8),
+                      _EstadoSubtitulo(
+                        estado: ficha.estado,
+                        voluntariosCount: vm.voluntariosCount,
+                        esCreador: esCreador,
+                        yaVinculado: vm.yaVinculado,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildActionArea(vm, esCreador, esBloqueado, estadoText),
+                      if (esBloqueado || vm.yaVinculado || !esCreador)
+                        const SizedBox(height: 16),
+                    ],
                   ),
-                ];
-              },
-              body: TabBarView(
-                children: [
-                  // Tab 1: Detalles
-                  SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Descripción del caso',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF5F6368),
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          ficha.descripcion,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: Color(0xFF1A1A1A),
-                            height: 1.6,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        _InfoSection(ficha: ficha),
-                        const SizedBox(height: 20),
-                        if (ficha.latitud != null && ficha.longitud != null)
-                          InkWell(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => MapaOperativoView(
-                                    ficha: ficha,
-                                    esCreador: esCreador,
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Container(
-                              width: double.infinity,
-                              height: 160,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE3F2FD),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                    color: AppTheme.info, width: 1.5),
-                              ),
-                              clipBehavior: Clip.hardEdge,
-                              child: Stack(
-                                children: [
-                                  IgnorePointer(
-                                    child: Consumer<EvidenciaViewModel>(
-                                        builder: (context, evidenciaVm, _) {
-                                      return FlutterMap(
-                                        options: MapOptions(
-                                          initialCenter: LatLng(
-                                              ficha.latitud!, ficha.longitud!),
-                                          initialZoom: 15.0,
-                                          interactionOptions:
-                                              const InteractionOptions(
-                                                  flags: InteractiveFlag.none),
-                                        ),
-                                        children: [
-                                          MapTileLayer(useSatellite: false),
-                                          MarkerLayer(
-                                            markers: [
-                                              Marker(
-                                                point: LatLng(ficha.latitud!,
-                                                    ficha.longitud!),
-                                                width: 40,
-                                                height: 40,
-                                                child: const Icon(
-                                                    Icons.location_on,
-                                                    color: Colors.red,
-                                                    size: 40),
-                                              ),
-                                              ...evidenciaVm.evidencias
-                                                  .where((e) =>
-                                                      (esCreador ||
-                                                          e.estado ==
-                                                              'approved') &&
-                                                      e.lat != null &&
-                                                      e.lng != null)
-                                                  .map((evidencia) {
-                                                return Marker(
-                                                  point: LatLng(evidencia.lat!,
-                                                      evidencia.lng!),
-                                                  width: 30,
-                                                  height: 30,
-                                                  child: const Icon(
-                                                      Icons.camera_alt,
-                                                      color: Colors.blueAccent,
-                                                      size: 24),
-                                                );
-                                              }),
-                                            ],
-                                          ),
-                                        ],
-                                      );
-                                    }),
-                                  ),
-                                  Container(
-                                    color: Colors.black.withValues(alpha: 0.1),
-                                  ),
-                                  Center(
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: const Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.map, color: AppTheme.info),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Ver Mapa de Cuadrantes',
-                                            style: TextStyle(
-                                              color: AppTheme.primaryLight,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(Icons.location_on,
-                                  color: AppTheme.primary, size: 20),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  (ficha.direccionReferencia != null &&
-                                          (ficha.direccionReferencia as String)
-                                              .isNotEmpty)
-                                      ? (ficha.direccionReferencia as String)
-                                      : ((ficha.cuadranteNombre != null &&
-                                              ficha.cuadranteNombre!.isNotEmpty)
-                                          ? '${ficha.cuadranteNombre} (${ficha.cuadranteZona ?? "Zona"})'
-                                          : 'Ubicación seleccionada en el mapa'),
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF1A1A1A),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Tab 2: Evidencias
-                  SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: EvidenciasSection(
-                      reporteId: widget.fichaId,
-                      usuarioId: widget.currentUserId,
-                      puedePublicar: ficha.estado.toLowerCase() == 'activo',
-                      esCreador: esCreador,
-                    ),
-                  ),
-                  // Tab 3: Comentarios
-                  SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: _buildComentariosSection(vm),
-                  ),
-                ],
-              ),
+                ),
+                // Segmented navigation (inline, scrolls with page)
+                _SegmentedNavBar(
+                  selectedIndex: _selectedTab,
+                  onChanged: (i) => setState(() => _selectedTab = i),
+                ),
+                // Tab content — no inner scroll, page scrolls as one
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: _buildTabContent(
+                      context, vm, ficha, esCreador),
+                ),
+              ],
             ),
           ),
         ),
@@ -595,41 +315,194 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
     );
   }
 
+  Widget _buildTabContent(BuildContext context, DetalleFichaViewModel vm,
+      dynamic ficha, bool esCreador) {
+    switch (_selectedTab) {
+      case 1:
+        return EvidenciasSection(
+          reporteId: widget.fichaId,
+          usuarioId: widget.currentUserId,
+          puedePublicar: ficha.estado.toLowerCase() == 'activo',
+          esCreador: esCreador,
+        );
+      case 2:
+        return ComentariosSection(
+          comentarios: vm.comentarios
+              .map((c) => Map<String, dynamic>.from(c as Map))
+              .toList(),
+          currentUserId: widget.currentUserId,
+          puedeComentar: ficha.estado.toLowerCase() == 'activo',
+          esCreadorDelReporte: esCreador,
+          hasMore: vm.hasMoreComentarios,
+          onEnviar: (texto) =>
+              vm.enviarComentario(widget.fichaId, texto),
+          onEliminar: (comentarioId) =>
+              vm.eliminarComentario(widget.fichaId, comentarioId),
+          onCargarMas: () => vm.cargarMasComentarios(),
+          onRefresh: () => vm.refrescarComentarios(),
+        );
+      default:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Descripción del caso',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textSecondary,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              ficha.descripcion,
+              style: const TextStyle(
+                fontSize: 15,
+                color: AppTheme.textPrimary,
+                height: 1.6,
+              ),
+            ),
+            const SizedBox(height: 24),
+            _InfoSection(ficha: ficha),
+            const SizedBox(height: 20),
+            if (ficha.latitud != null && ficha.longitud != null)
+              InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MapaOperativoView(
+                        ficha: ficha,
+                        esCreador: esCreador,
+                      ),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: double.infinity,
+                  height: 160,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.info, width: 1.5),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(
+                    children: [
+                      IgnorePointer(
+                        child: Consumer<EvidenciaViewModel>(
+                            builder: (context, evidenciaVm, _) {
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            clipBehavior: Clip.antiAliasWithSaveLayer,
+                            child: FlutterMap(
+                              options: MapOptions(
+                                initialCenter:
+                                    LatLng(ficha.latitud!, ficha.longitud!),
+                                initialZoom: 15.0,
+                                interactionOptions: const InteractionOptions(
+                                    flags: InteractiveFlag.none),
+                              ),
+                              children: [
+                                MapTileLayer(useSatellite: false),
+                                MarkerLayer(
+                                  markers: [
+                                    Marker(
+                                      point: LatLng(
+                                          ficha.latitud!, ficha.longitud!),
+                                      width: 40,
+                                      height: 40,
+                                      child: const Icon(Icons.location_on,
+                                          color: Colors.red, size: 40),
+                                    ),
+                                    ...evidenciaVm.evidencias
+                                        .where((e) =>
+                                            (esCreador ||
+                                                e.estado == 'approved') &&
+                                            e.lat != null &&
+                                            e.lng != null)
+                                        .map((evidencia) {
+                                      return Marker(
+                                        point: LatLng(
+                                            evidencia.lat!, evidencia.lng!),
+                                        width: 30,
+                                        height: 30,
+                                        child: const Icon(Icons.camera_alt,
+                                            color: Colors.blueAccent, size: 24),
+                                      );
+                                    }),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ),
+                      Container(color: Colors.black.withValues(alpha: 0.1)),
+                      Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryBase,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.map, color: AppTheme.surface),
+                              SizedBox(width: 8),
+                              Text(
+                                'Ver mapa de cuadrantes',
+                                style: TextStyle(
+                                  color: AppTheme.surface,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.location_on,
+                      color: AppTheme.primary, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      (ficha.direccionReferencia != null &&
+                              (ficha.direccionReferencia as String).isNotEmpty)
+                          ? (ficha.direccionReferencia as String)
+                          : ((ficha.cuadranteNombre != null &&
+                                  ficha.cuadranteNombre!.isNotEmpty)
+                              ? '${ficha.cuadranteNombre} (${ficha.cuadranteZona ?? "Zona"})'
+                              : 'Ubicación seleccionada en el mapa'),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+    }
+  }
+
   Widget _buildActionArea(DetalleFichaViewModel vm, bool esCreador,
       bool esBloqueado, String estadoText) {
     if (esCreador) {
-      return Column(
-        children: [
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton.icon(
-              onPressed: () async {
-                final detaVm = context.read<DetalleFichaViewModel>();
-                await Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => PanelControlView(fichaId: widget.fichaId),
-                  ),
-                );
-                if (mounted) {
-                  setState(() => _huboCambios = true);
-                  detaVm.cargarFicha(widget.fichaId, widget.currentUserId);
-                }
-              },
-              icon: const Icon(Icons.admin_panel_settings_outlined),
-              label: const Text('Ir al Panel de Control de la búsqueda'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          if (esBloqueado) _BannerBloqueado(estado: estadoText),
-        ],
-      );
+      return esBloqueado ? _BannerBloqueado(estado: estadoText) : const SizedBox.shrink();
     }
 
     if (esBloqueado) {
@@ -641,35 +514,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
     if (vm.yaVinculado) {
       return Column(
         children: [
-          // Banner de participación activa
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.success),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.check_circle, color: AppTheme.success, size: 20),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Ya estás participando en esta búsqueda',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppTheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          // Botón principal: Iniciar búsqueda
           SizedBox(
             width: double.infinity,
             height: 50,
@@ -678,31 +522,27 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                shape: const StadiumBorder(),
               ),
               icon: const Icon(Icons.directions_walk),
               label: const Text(
-                'Iniciar mi Búsqueda',
+                'Iniciar mi búsqueda',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
           ),
           const SizedBox(height: 8),
-          // Botón secundario: Abandonar operativo
           SizedBox(
             width: double.infinity,
             height: 44,
-            child: OutlinedButton.icon(
+            child: ElevatedButton(
               onPressed: vm.isLoading ? null : _onAbandonar,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.orange.shade700,
-                side: BorderSide(color: Colors.orange.shade300),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.accent,
+                foregroundColor: AppTheme.darkDark,
+                shape: const StadiumBorder(),
               ),
-              icon: const Icon(Icons.exit_to_app, size: 18),
-              label: const Text(
+              child: const Text(
                 'Abandonar operativo',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
               ),
@@ -720,8 +560,7 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppTheme.info,
           foregroundColor: Colors.white,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: const StadiumBorder(),
         ),
         icon: vm.isLoading
             ? const SizedBox(
@@ -749,7 +588,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
       return;
     }
 
-    // Usar el TrackingViewModel global (inyectado en main.dart)
     final trackingVm = context.read<TrackingViewModel>();
     final pos = await trackingVm.verificarGeofencing(
       latMin: ficha.cuadranteLatMin!,
@@ -761,15 +599,10 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
     if (!mounted) return;
 
     if (pos == null) {
-      // Usar getLastKnownPosition() en lugar de getCurrentPosition():
-      // es instantáneo porque no espera señal GPS, solo lee el último
-      // dato en caché del sistema. El sheet muestra el mapa igual sin ella.
       Position? posActual;
       try {
         posActual = await Geolocator.getLastKnownPosition();
-      } catch (_) {
-        // Si tampoco hay posición en caché, el sheet se muestra sin el punto azul
-      }
+      } catch (_) {}
 
       if (!mounted) return;
 
@@ -797,92 +630,6 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
     }
   }
 
-  Widget _buildComentariosSection(DetalleFichaViewModel vm) {
-    final TextEditingController ctrl = TextEditingController();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Comentarios Ciudadanos',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.primary,
-          ),
-        ),
-        const SizedBox(height: 16),
-        if (vm.comentarios.isEmpty)
-          const Text('No hay comentarios aún. ¡Sé el primero en escribir!',
-              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic))
-        else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: vm.comentarios.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final c = vm.comentarios[index];
-              final autor =
-                  c['usuario'] != null ? c['usuario']['nombre'] : 'Anónimo';
-              return Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(autor,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 13)),
-                    const SizedBox(height: 4),
-                    Text(c['texto'] ?? '',
-                        style: const TextStyle(fontSize: 14)),
-                  ],
-                ),
-              );
-            },
-          ),
-        const SizedBox(height: 16),
-        if (vm.ficha?.estado.toLowerCase() == 'activo')
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: ctrl,
-                  decoration: InputDecoration(
-                    hintText: 'Añadir comentario...',
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                      borderSide: const BorderSide(color: Colors.grey),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              CircleAvatar(
-                backgroundColor: AppTheme.primary,
-                child: IconButton(
-                  icon: const Icon(Icons.send, color: Colors.white, size: 18),
-                  onPressed: () async {
-                    if (ctrl.text.trim().isEmpty) return;
-                    await vm.enviarComentario(
-                        widget.fichaId, ctrl.text.trim(), widget.currentUserId);
-                    ctrl.clear();
-                  },
-                ),
-              ),
-            ],
-          ),
-      ],
-    );
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -893,34 +640,48 @@ class _BannerBloqueado extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final e = estado.toLowerCase();
+    final bool esResuelto =
+        e == 'resuelto' || e == 'finalizado' || e == 'cerrado';
+
+    final Color bgColor =
+        esResuelto ? AppTheme.backgroundDark : AppTheme.accent;
+    final Color contentColor =
+        esResuelto ? AppTheme.textSecondary : AppTheme.darkDark;
+    final titulo = esResuelto ? 'Reporte resuelto' : 'Reporte pausado';
+    final subtitulo = esResuelto
+        ? 'Este caso ha sido cerrado exitosamente.'
+        : 'No se admiten nuevos voluntarios.';
+    final icono =
+        esResuelto ? Icons.check_circle_outline : Icons.lock_outline;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF3E0),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFF9800), width: 1.5),
+        color: bgColor,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
-          const Icon(Icons.lock, color: Color(0xFFE65100), size: 22),
+          Icon(icono, color: contentColor, size: 22),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Búsqueda $estado',
-                  style: const TextStyle(
-                    color: Color(0xFFE65100),
+                  titulo,
+                  style: TextStyle(
+                    color: contentColor,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
                 ),
                 const SizedBox(height: 2),
-                const Text(
-                  'No se admiten nuevos voluntarios.',
-                  style: TextStyle(color: Color(0xFF5F6368), fontSize: 12),
+                Text(
+                  subtitulo,
+                  style: TextStyle(color: contentColor, fontSize: 12),
                 ),
               ],
             ),
@@ -970,14 +731,18 @@ class _HeroImage extends StatelessWidget {
             },
             child: Hero(
               tag: 'hero-image-${fotoUrl!}',
-              child: CachedNetworkImage(
-                imageUrl: fotoUrl!,
+              child: Container(
                 width: double.infinity,
                 height: 300,
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-                placeholder: (context, url) => _placeholder(),
-                errorWidget: (context, url, error) => _placeholder(),
+                color: AppTheme.backgroundLight,
+                child: CachedNetworkImage(
+                  imageUrl: fotoUrl!,
+                  width: double.infinity,
+                  height: 300,
+                  fit: BoxFit.contain,
+                  placeholder: (context, url) => _placeholder(),
+                  errorWidget: (context, url, error) => _placeholder(),
+                ),
               ),
             ),
           )
@@ -1017,57 +782,54 @@ class _HeroImage extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-class _EstadoBadge extends StatelessWidget {
+class _EstadoSubtitulo extends StatelessWidget {
   final String estado;
+  final int voluntariosCount;
+  final bool esCreador;
+  final bool yaVinculado;
 
-  const _EstadoBadge({required this.estado});
+  const _EstadoSubtitulo({
+    required this.estado,
+    required this.voluntariosCount,
+    required this.esCreador,
+    this.yaVinculado = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final isActive = estado.toLowerCase() == 'activo';
-    Color bg;
-    Color border;
-
-    if (isActive) {
-      bg = AppTheme.primary.withValues(alpha: 0.06);
-      border = AppTheme.success;
-    } else if (estado.toLowerCase() == 'pausado') {
-      bg = const Color(0xFFFFF3E0);
-      border = const Color(0xFFFF9800);
+    final e = estado.toLowerCase();
+    final Color dotColor;
+    if (e == 'activo') {
+      dotColor = AppTheme.primaryBase;
+    } else if (e == 'pausado') {
+      dotColor = AppTheme.accent;
     } else {
-      bg = const Color(0xFFFFEBEE);
-      border = const Color(0xFFF44336);
+      dotColor = AppTheme.backgroundDark;
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: border,
-              shape: BoxShape.circle,
-            ),
+    final parts = <String>[
+      estado[0].toUpperCase() + estado.substring(1),
+      '$voluntariosCount ${voluntariosCount == 1 ? 'voluntario' : 'voluntarios'}',
+      if (esCreador) 'Creado por ti',
+      if (!esCreador && yaVinculado) 'Participando',
+    ];
+
+    return Row(
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          parts.join(' • '),
+          style: const TextStyle(
+            fontSize: 13,
+            color: AppTheme.textSecondary,
           ),
-          const SizedBox(width: 6),
-          Text(
-            estado.toUpperCase(),
-            style: TextStyle(
-              fontSize: 12,
-              color: border,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -1109,8 +871,7 @@ class _InfoSection extends StatelessWidget {
               _MiniCard(
                   icon: Icons.monetization_on_outlined,
                   label: 'Recompensa',
-                  value: '${ficha.recompensa} BOB',
-                  color: Colors.green),
+                  value: '${ficha.recompensa} BOB'),
           ],
         ),
         const SizedBox(height: 16),
@@ -1118,91 +879,131 @@ class _InfoSection extends StatelessWidget {
                 (ficha.telefonoContacto as String).isNotEmpty) ||
             (ficha.emailContacto != null &&
                 (ficha.emailContacto as String).isNotEmpty))
-          Card(
-            elevation: 0,
-            color: const Color(0xFFF8F9FA),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: Color(0xFFE0E0E0))),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('INFORMACIÓN DE CONTACTO',
-                      style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF5F6368),
-                          letterSpacing: 1.2)),
-                  const SizedBox(height: 12),
-                  if (ficha.telefonoContacto != null &&
-                      (ficha.telefonoContacto as String).isNotEmpty)
-                    _ContactRow(
-                        icon: Icons.phone_outlined,
-                        text: ficha.telefonoContacto),
-                  if (ficha.emailContacto != null &&
-                      (ficha.emailContacto as String).isNotEmpty)
-                    _ContactRow(
-                        icon: Icons.email_outlined, text: ficha.emailContacto),
-                ],
-              ),
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'INFORMACIÓN DE CONTACTO',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textSecondary,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (ficha.telefonoContacto != null &&
+                    (ficha.telefonoContacto as String).isNotEmpty)
+                  _ContactRow(
+                      icon: Icons.phone_outlined,
+                      text: ficha.telefonoContacto),
+                if (ficha.emailContacto != null &&
+                    (ficha.emailContacto as String).isNotEmpty)
+                  _ContactRow(
+                      icon: Icons.email_outlined, text: ficha.emailContacto),
+              ],
             ),
           ),
         const SizedBox(height: 16),
         if (ficha.caracteristicas != null &&
             (ficha.caracteristicas as Map).isNotEmpty)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('CARACTERÍSTICAS',
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'CARACTERÍSTICAS',
                   style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF5F6368),
-                      letterSpacing: 1.2)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: (ficha.caracteristicas as Map<String, dynamic>)
-                    .entries
-                    .map((entry) {
-                  final clave = entry.key;
-                  final valor = entry.value;
-
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textSecondary,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Builder(builder: (context) {
                   final camposRef = ficha.nombreCategoria != null
                       ? CamposCategoria.paraNombre(ficha.nombreCategoria!)
                       : <CampoCategoria>[];
-                  final campoRef =
-                      camposRef.where((c) => c.clave == clave).firstOrNull;
+                  final entries =
+                      (ficha.caracteristicas as Map<String, dynamic>)
+                          .entries
+                          .map((entry) {
+                    final clave = entry.key;
+                    final valor = entry.value;
+                    final campoRef = camposRef
+                        .where((c) => c.clave == clave)
+                        .firstOrNull;
+                    final etiqueta = campoRef?.etiqueta ??
+                        clave.replaceAll('_', ' ').toUpperCase();
+                    final icono =
+                        campoRef?.icono ?? Icons.info_outline;
+                    String valorStr;
+                    if (valor is bool) {
+                      valorStr = valor ? 'Sí' : 'No';
+                    } else if (valor == 1 ||
+                        valor == '1' ||
+                        valor == 'true') {
+                      valorStr = 'Sí';
+                    } else if (valor == 0 ||
+                        valor == '0' ||
+                        valor == 'false') {
+                      valorStr = 'No';
+                    } else {
+                      valorStr = valor.toString();
+                    }
+                    return (icono: icono, texto: '$etiqueta: $valorStr');
+                  }).toList();
 
-                  final etiqueta = campoRef?.etiqueta ??
-                      clave.replaceAll('_', ' ').toUpperCase();
-                  final icono = campoRef?.icono ?? Icons.info_outline;
-
-                  String valorStr;
-                  if (valor is bool) {
-                    valorStr = valor ? 'Sí' : 'No';
-                  } else if (valor == 1 || valor == '1' || valor == 'true') {
-                    valorStr = 'Sí';
-                  } else if (valor == 0 || valor == '0' || valor == 'false') {
-                    valorStr = 'No';
-                  } else {
-                    valorStr = valor.toString();
+                  // Build interleaved list: [item, separator, item, ...]
+                  final widgets = <Widget>[];
+                  for (int i = 0; i < entries.length; i++) {
+                    final item = entries[i];
+                    widgets.add(Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(item.icono,
+                            size: 14, color: AppTheme.primaryBase),
+                        const SizedBox(width: 5),
+                        Text(
+                          item.texto,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ));
+                    if (i < entries.length - 1) {
+                      widgets.add(const Text(
+                        ' • ',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ));
+                    }
                   }
-
-                  return Chip(
-                    avatar: Icon(icono, size: 16, color: AppTheme.primary),
-                    label: Text('$etiqueta: $valorStr'),
-                    backgroundColor: AppTheme.primary.withValues(alpha: 0.06),
-                    side: BorderSide.none,
-                    labelStyle:
-                        const TextStyle(fontSize: 13, color: Color(0xFF1A1A1A)),
+                  return Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    runSpacing: 6,
+                    children: widgets,
                   );
-                }).toList(),
-              ),
-            ],
+                }),
+              ],
+            ),
           ),
         const SizedBox(height: 24),
         Row(
@@ -1212,17 +1013,19 @@ class _InfoSection extends StatelessWidget {
                 (ficha.nombreUsuario as String).isNotEmpty)
               Expanded(
                 child: Text('Reportado por: ${ficha.nombreUsuario}',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    style: const TextStyle(
+                        fontSize: 12, color: AppTheme.textSecondary)),
               ),
             if (ficha.vistas != null)
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(Icons.remove_red_eye_outlined,
-                      size: 14, color: Colors.grey),
+                      size: 14, color: AppTheme.textSecondary),
                   const SizedBox(width: 4),
                   Text('${ficha.vistas} vistas',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      style: const TextStyle(
+                          fontSize: 12, color: AppTheme.textSecondary)),
                 ],
               ),
           ],
@@ -1237,22 +1040,20 @@ class _MiniCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  final Color color;
 
-  const _MiniCard(
-      {required this.icon,
-      required this.label,
-      required this.value,
-      this.color = AppTheme.primaryLight});
+  const _MiniCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1260,24 +1061,31 @@ class _MiniCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 14, color: color),
+              Icon(icon, size: 14, color: AppTheme.primaryBase),
               const SizedBox(width: 4),
               Expanded(
-                  child: Text(label,
-                      style: TextStyle(
-                          fontSize: 10,
-                          color: color,
-                          fontWeight: FontWeight.bold),
-                      overflow: TextOverflow.ellipsis)),
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 4),
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87),
-              overflow: TextOverflow.ellipsis),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
@@ -1298,39 +1106,85 @@ class _ContactRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: const Color(0xFF5F6368)),
+          Icon(icon, size: 18, color: AppTheme.primaryBase),
           const SizedBox(width: 8),
           Expanded(
-              child: Text(text,
-                  style:
-                      const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)))),
+            child: Text(
+              text,
+              style: const TextStyle(
+                  fontSize: 14, color: AppTheme.textPrimary),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
-  _SliverAppBarDelegate(this._tabBar);
+// ─────────────────────────────────────────────────────────────────────────────
+class _SegmentedNavBar extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onChanged;
 
-  final TabBar _tabBar;
+  static const List<String> _labels = ['Detalles', 'Evidencias', 'Comentarios'];
+
+  const _SegmentedNavBar({
+    required this.selectedIndex,
+    required this.onChanged,
+  });
 
   @override
-  double get minExtent => _tabBar.preferredSize.height;
-  @override
-  double get maxExtent => _tabBar.preferredSize.height;
-
-  @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
-      child: _tabBar,
+      color: AppTheme.backgroundLight,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.background,
+          borderRadius: BorderRadius.circular(100),
+        ),
+        padding: const EdgeInsets.all(3),
+        child: Row(
+          children: List.generate(_labels.length, (i) {
+            final isSelected = i == selectedIndex;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => onChanged(i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppTheme.surface : Colors.transparent,
+                    borderRadius: BorderRadius.circular(100),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: AppTheme.darkBase.withValues(alpha: 0.10),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            )
+                          ]
+                        : null,
+                  ),
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(vertical: 7),
+                  child: Text(
+                    _labels[i],
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected
+                          ? AppTheme.textPrimary
+                          : AppTheme.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ),
     );
-  }
-
-  @override
-  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
-    return false;
   }
 }

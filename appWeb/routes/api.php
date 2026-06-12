@@ -172,7 +172,10 @@ Route::prefix('reportes')->group(function () {
     
     // Comentarios públicos
     Route::get('{reporteId}/comentarios', [ReporteController::class, 'listarComentarios']);
-    Route::post('{reporteId}/comentarios', [ReporteController::class, 'agregarComentario']);
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('{reporteId}/comentarios', [ReporteController::class, 'agregarComentario']);
+        Route::delete('{reporteId}/comentarios/{comentarioId}', [ReporteController::class, 'eliminarComentario']);
+    });
 
     // E13.2 – Datos consolidados para el reporte final PDF (ANTES de la ruta genérica {id})
     Route::get('{id}/reporte-final', [ReporteController::class, 'reporteFinal']);

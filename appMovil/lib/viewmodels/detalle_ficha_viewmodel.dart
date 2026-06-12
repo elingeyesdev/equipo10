@@ -15,7 +15,12 @@ class DetalleFichaViewModel extends ChangeNotifier {
   int _voluntariosCount = 0;
   String? _errorMessage;
   String? _successMessage;
+
+  // ── Comentarios ──────────────────────────────────────────────────────────
   List<Map<String, dynamic>> _comentarios = [];
+  bool _hasMoreComentarios = false;
+  int _currentPage = 1;
+  String? _reporteIdActual;
 
   ReporteModel? get ficha => _ficha;
   bool get isLoading => _isLoading;
@@ -24,6 +29,7 @@ class DetalleFichaViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   String? get successMessage => _successMessage;
   List<Map<String, dynamic>> get comentarios => _comentarios;
+  bool get hasMoreComentarios => _hasMoreComentarios;
 
   void _setLoading(bool value) {
     _isLoading = value;
@@ -36,6 +42,10 @@ class DetalleFichaViewModel extends ChangeNotifier {
     // Esto evita que la pantalla de detalle muestre brevemente los datos
     // del reporte anterior mientras carga el nuevo.
     _ficha = null;
+    _comentarios = [];
+    _currentPage = 1;
+    _hasMoreComentarios = false;
+    _reporteIdActual = fichaId;
     _setLoading(true);
     _errorMessage = null;
     try {
@@ -46,7 +56,7 @@ class DetalleFichaViewModel extends ChangeNotifier {
       );
       final voluntarios = await _vinculacionService.obtenerVoluntarios(fichaId);
       _voluntariosCount = voluntarios.length;
-      _comentarios = await _reporteService.obtenerComentarios(fichaId);
+      await _cargarPaginaComentarios(fichaId, pagina: 1, resetear: true);
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -54,6 +64,38 @@ class DetalleFichaViewModel extends ChangeNotifier {
         _setLoading(false);
       }
     }
+  }
+
+  /// Carga una página de comentarios. Si [resetear] es true reinicia la lista.
+  Future<void> _cargarPaginaComentarios(String reporteId,
+      {required int pagina, bool resetear = false}) async {
+    final result =
+        await _reporteService.obtenerComentarios(reporteId, page: pagina);
+    final nuevos =
+        List<Map<String, dynamic>>.from(result['data'] as List);
+    if (resetear) {
+      _comentarios = nuevos;
+    } else {
+      _comentarios = [..._comentarios, ...nuevos];
+    }
+    _hasMoreComentarios = result['has_more'] == true;
+    _currentPage = pagina;
+  }
+
+  /// Carga la siguiente página de comentarios ("Cargar más").
+  Future<void> cargarMasComentarios() async {
+    if (!_hasMoreComentarios || _reporteIdActual == null) return;
+    await _cargarPaginaComentarios(_reporteIdActual!,
+        pagina: _currentPage + 1, resetear: false);
+    notifyListeners();
+  }
+
+  /// Refresca silenciosamente los comentarios desde la página 1 (usado por polling).
+  Future<void> refrescarComentarios() async {
+    if (_reporteIdActual == null) return;
+    await _cargarPaginaComentarios(_reporteIdActual!,
+        pagina: 1, resetear: true);
+    notifyListeners();
   }
 
   /// Une el usuario a la búsqueda con metadata opcional del formulario.
@@ -189,15 +231,26 @@ class DetalleFichaViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> enviarComentario(
-      String reporteId, String texto, String usuarioId) async {
-    final ok =
-        await _reporteService.enviarComentario(reporteId, texto, usuarioId);
+  Future<void> enviarComentario(String reporteId, String texto) async {
+    final ok = await _reporteService.enviarComentario(reporteId, texto);
     if (ok) {
-      _comentarios = await _reporteService.obtenerComentarios(reporteId);
-      notifyListeners();
+      // Refresca desde página 1 para que el nuevo comentario aparezca al final
+      await refrescarComentarios();
     } else {
       _errorMessage = 'Error al enviar el comentario.';
+      notifyListeners();
+    }
+  }
+
+  Future<void> eliminarComentario(
+      String reporteId, String comentarioId) async {
+    final ok =
+        await _reporteService.eliminarComentario(reporteId, comentarioId);
+    if (ok) {
+      _comentarios.removeWhere((c) => c['id']?.toString() == comentarioId);
+      notifyListeners();
+    } else {
+      _errorMessage = 'No se pudo eliminar el comentario.';
       notifyListeners();
     }
   }

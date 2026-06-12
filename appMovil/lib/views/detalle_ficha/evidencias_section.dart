@@ -46,64 +46,56 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
 
     final fuente = await showModalBottomSheet<String>(
       context: context,
+      backgroundColor: AppTheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDDDDDD),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                child: Text(
-                  'Agregar evidencia fotográfica',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
                   decoration: BoxDecoration(
-                    color: AppTheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
+                    color: AppTheme.border,
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  child: const Icon(Icons.camera_alt, color: AppTheme.primary),
                 ),
-                title: const Text('Tomar foto ahora',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('Abre la cámara del dispositivo'),
+              ),
+              const Text(
+                'Agregar evidencia',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: AppTheme.primary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Elige cómo quieres agregar tu foto',
+                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+              ),
+              const SizedBox(height: 20),
+              _BottomSheetOption(
+                icono: Icons.camera_alt_outlined,
+                titulo: 'Tomar foto ahora',
+                subtitulo: 'Abre la cámara del dispositivo',
                 onTap: () => Navigator.of(ctx).pop('camara'),
               ),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppTheme.info.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.photo_library, color: AppTheme.info),
-                ),
-                title: const Text('Elegir de galería',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('Selecciona una foto existente'),
+              const SizedBox(height: 12),
+              _BottomSheetOption(
+                icono: Icons.photo_library_outlined,
+                titulo: 'Elegir de galería',
+                subtitulo: 'Selecciona una foto existente',
                 onTap: () => Navigator.of(ctx).pop('galeria'),
               ),
+              const SizedBox(height: 8),
             ],
           ),
         ),
@@ -208,37 +200,13 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Encabezado
-        Row(
-          children: [
-            const Icon(Icons.camera_enhance, color: AppTheme.primary, size: 20),
-            const SizedBox(width: 8),
-            const Expanded(
-              child: Text(
-                'Evidencias Fotográficas',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primary,
-                ),
-              ),
-            ),
-            if (totalVisible > 0)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '$totalVisible',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-          ],
+        const Text(
+          'Evidencias fotográficas',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.primary,
+          ),
         ),
         const SizedBox(height: 4),
         const Text(
@@ -259,8 +227,7 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
                 foregroundColor: AppTheme.primary,
                 side: const BorderSide(color: AppTheme.primary),
                 minimumSize: const Size(double.infinity, 46),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                shape: const StadiumBorder(),
                 textStyle:
                     const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
@@ -521,21 +488,67 @@ class _EvidenciaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.border),
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: AppTheme.darkBase.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Encabezado del post ──────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+            child: Row(
+              children: [
+                if (evidencia.avatarUsuario != null &&
+                    evidencia.avatarUsuario!.isNotEmpty)
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundImage: CachedNetworkImageProvider(
+                        evidencia.avatarUsuario!),
+                    backgroundColor: Colors.transparent,
+                  )
+                else
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                    child: const Icon(Icons.person,
+                        size: 18, color: AppTheme.primary),
+                  ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        evidencia.nombreUsuario ?? 'Voluntario',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        _tiempoRelativo(evidencia.creadoEn),
+                        style: const TextStyle(
+                            fontSize: 11, color: AppTheme.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // ── Imagen del post (ancho completo) ─────────────────────────
           if (evidencia.fotoUrl != null && evidencia.fotoUrl!.isNotEmpty)
             GestureDetector(
               onTap: () => Navigator.push(
@@ -549,97 +562,46 @@ class _EvidenciaCard extends StatelessWidget {
               ),
               child: Hero(
                 tag: 'evidencia-${evidencia.id}',
-                child: ClipRRect(
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(14)),
-                  child: CachedNetworkImage(
-                    imageUrl: evidencia.fotoUrl!,
-                    width: double.infinity,
+                child: CachedNetworkImage(
+                  imageUrl: evidencia.fotoUrl!,
+                  width: double.infinity,
+                  height: 200,
+                  fit: BoxFit.cover,
+                  placeholder: (_, __) => Container(
                     height: 200,
-                    fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(
-                      height: 200,
-                      color: AppTheme.primary.withValues(alpha: 0.06),
-                      child: const Center(child: CircularProgressIndicator()),
-                    ),
-                    errorWidget: (_, __, ___) => Container(
-                      height: 200,
-                      color: const Color(0xFFF5F5F5),
-                      child: const Center(
-                        child: Icon(Icons.broken_image_outlined,
-                            size: 48, color: Colors.grey),
-                      ),
+                    color: AppTheme.primary.withValues(alpha: 0.06),
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (_, __, ___) => Container(
+                    height: 200,
+                    color: AppTheme.backgroundLight,
+                    child: const Center(
+                      child: Icon(Icons.broken_image_outlined,
+                          size: 48, color: AppTheme.textSecondary),
                     ),
                   ),
                 ),
               ),
             ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  evidencia.descripcion,
+          // ── Pie del post ─────────────────────────────────────────────
+          if (evidencia.descripcion.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: RichText(
+                text: TextSpan(
                   style: const TextStyle(
                       fontSize: 14, color: AppTheme.textPrimary, height: 1.5),
-                ),
-                const SizedBox(height: 10),
-                if (evidencia.lat != null && evidencia.lng != null)
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on,
-                          size: 13, color: AppTheme.success),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${evidencia.lat!.toStringAsFixed(5)}, ${evidencia.lng!.toStringAsFixed(5)}',
-                        style: const TextStyle(
-                            fontSize: 11,
-                            color: AppTheme.success,
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
-                if (evidencia.lat != null) const SizedBox(height: 8),
-                Row(
                   children: [
-                    if (evidencia.avatarUsuario != null &&
-                        evidencia.avatarUsuario!.isNotEmpty)
-                      CircleAvatar(
-                        radius: 12,
-                        backgroundImage: CachedNetworkImageProvider(
-                            evidencia.avatarUsuario!),
-                        backgroundColor: Colors.transparent,
-                      )
-                    else
-                      CircleAvatar(
-                        radius: 12,
-                        backgroundColor:
-                            AppTheme.primary.withValues(alpha: 0.1),
-                        child: const Icon(Icons.person,
-                            size: 14, color: AppTheme.primary),
-                      ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        evidencia.nombreUsuario ?? 'Voluntario',
-                        style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textSecondary),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    TextSpan(
+                      text: evidencia.nombreUsuario ?? 'Voluntario',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    Text(
-                      _tiempoRelativo(evidencia.creadoEn),
-                      style: const TextStyle(
-                          fontSize: 11, color: AppTheme.textSecondary),
-                    ),
+                    const TextSpan(text: ' '),
+                    TextSpan(text: evidencia.descripcion),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -725,22 +687,6 @@ class _EvidenciaOfflineCard extends StatelessWidget {
                   style: const TextStyle(
                       fontSize: 14, color: AppTheme.textPrimary, height: 1.5),
                 ),
-                const SizedBox(height: 10),
-                if (offline.lat != null && offline.lng != null)
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on,
-                          size: 13, color: AppTheme.success),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${offline.lat!.toStringAsFixed(5)}, ${offline.lng!.toStringAsFixed(5)}',
-                        style: const TextStyle(
-                            fontSize: 11,
-                            color: AppTheme.success,
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
               ],
             ),
           ),
@@ -971,6 +917,69 @@ class _EvidenciaPendienteAdminCardState
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Opción del BottomSheet de agregar evidencia
+// ─────────────────────────────────────────────────────────────────────────────
+class _BottomSheetOption extends StatelessWidget {
+  final IconData icono;
+  final String titulo;
+  final String subtitulo;
+  final VoidCallback onTap;
+
+  const _BottomSheetOption({
+    required this.icono,
+    required this.titulo,
+    required this.subtitulo,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.primaryBase,
+              ),
+              child: Icon(icono, color: AppTheme.surface, size: 22),
+            ),
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  titulo,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitulo,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
