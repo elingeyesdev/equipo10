@@ -280,7 +280,7 @@
                         <label class="info-label mb-2"><i class="bi bi-file-text-fill me-1 text-primary"></i> Descripción del Hecho</label>
                         <div class="p-4 bg-light rounded-4 border-start border-4 border-primary">
                             <p class="mb-0 text-muted" style="font-size: 1.05rem; line-height: 1.6;">
-                                {{ $reporte->descripción }}
+                                {{ $reporte->descripcion }}
                             </p>
                         </div>
                     </div>
@@ -328,7 +328,7 @@
                 <div class="position-relative bg-light" style="min-height: 400px;">
                     @if($fotoPrincipal)
                         <img src="{{ $fotoPrincipal }}" 
-                             alt="{{ $títuloPrincipal }}" 
+                             alt="{{ $tituloPrincipal }}" 
                              class="w-100" 
                              style="height: 500px; object-fit: cover;">
                     @else
@@ -341,9 +341,9 @@
                     @endif
                     <div class="position-absolute bottom-0 start-0 w-100 p-4" 
                          style="background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);">
-                        <h5 class="text-white fw-bold mb-1">{{ $títuloPrincipal }}</h5>
-                        @if($descripcióncipal)
-                            <p class="text-white-50 mb-1 small">{{ $descripcióncipal }}</p>
+                        <h5 class="text-white fw-bold mb-1">{{ $tituloPrincipal }}</h5>
+                        @if($descripcionPrincipal)
+                            <p class="text-white-50 mb-1 small">{{ $descripcionPrincipal }}</p>
                         @endif
                         <p class="text-white-50 mb-0 small"><i class="bi bi-clock"></i> {{ $fechaPrincipal }}</p>
                     </div>
@@ -487,12 +487,12 @@
                                 </div>
                                 <div class="ps-4 ms-3"> <!-- Increased spacing: ps-3 ms-2 -> ps-4 ms-3 -->
                                     <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <h6 class="fw-bold mb-0 text-dark small">{{ $eventítulo'] }}</h6>
+                                        <h6 class="fw-bold mb-0 text-dark small">{{ $evento['titulo'] }}</h6>
                                         <span class="text-muted" style="font-size: 0.7rem;">{{ $evento['fecha'] ? $evento['fecha']->diffForHumans() : '' }}</span>
                                     </div>
                                     <div class="timeline-item-content p-2 rounded bg-light border-start border-3 border-{{ $evento['color'] }}">
                                         <p class="text-secondary small mb-1" style="line-height: 1.3;">
-                                            {{ $evento['descripción'] }}
+                                            {{ $evento['descripcion'] }}
                                         </p>
                                         @if($evento['usuario'])
                                             <div class="d-flex align-items-center mt-1">
