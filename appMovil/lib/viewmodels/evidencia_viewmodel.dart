@@ -244,4 +244,19 @@ class EvidenciaViewModel extends ChangeNotifier {
       return false;
     }
   }
+
+  /// Eliminar una evidencia: la borra del backend y recarga la lista.
+  Future<bool> eliminarEvidencia(String evidenciaId, String reporteId) async {
+    try {
+      await _service.eliminarEvidencia(evidenciaId);
+      final todas = await _service.obtenerEvidencias(reporteId);
+      _evidencias = todas;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
 }

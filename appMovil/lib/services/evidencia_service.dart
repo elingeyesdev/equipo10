@@ -305,4 +305,13 @@ class EvidenciaService {
           response.data['message'] ?? 'Error al rechazar evidencia.');
     }
   }
+
+  // Eliminar una evidencia por su ID de respuesta
+  Future<void> eliminarEvidencia(String respuestaId) async {
+    final response = await _api.client.delete('/respuestas/$respuestaId');
+    if (response.statusCode != 200 || response.data['success'] != true) {
+      throw Exception(
+          response.data['message'] ?? 'Error al eliminar evidencia.');
+    }
+  }
 }

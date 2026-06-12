@@ -641,6 +641,39 @@ class _EvidenciaCardState extends State<_EvidenciaCard> {
     );
   }
 
+  Future<void> _eliminar() async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Eliminar Evidencia?'),
+        content: const Text('Esta acción no se puede deshacer.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true) return;
+
+    setState(() => _procesando = true);
+    final vm = context.read<EvidenciaViewModel>();
+    final ok = await vm.eliminarEvidencia(widget.evidencia.id, widget.reporteId);
+    if (!mounted) return;
+    setState(() => _procesando = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(ok ? 'Evidencia eliminada' : 'Error al eliminar evidencia'),
+        backgroundColor: ok ? Colors.black87 : Colors.red.shade700,
+      ),
+    );
+  }
+
   String _tiempoRelativo(DateTime? dt) {
     if (dt == null) return '';
     final diff = DateTime.now().difference(dt);
@@ -831,55 +864,79 @@ class _EvidenciaCardState extends State<_EvidenciaCard> {
                     ),
                   ],
                 ),
-                // Botones aprobar/rechazar solo para pendientes
-                if (widget.tipo == 'pending') ...[
-                  const SizedBox(height: 14),
-                  if (_procesando)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: CircularProgressIndicator(),
-                      ),
-                    )
-                  else
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => _accion(false),
-                            icon: const Icon(Icons.close,
-                                color: Colors.red, size: 18),
-                            label: const Text('Rechazar',
-                                style: TextStyle(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.bold)),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: const BorderSide(color: Colors.red),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10)),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () => _accion(true),
-                            icon: const Icon(Icons.check, size: 18),
-                            label: const Text('Aprobar',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              backgroundColor: AppTheme.success,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10)),
-                            ),
-                          ),
-                        ),
-                      ],
+                // Acciones de Gestión de Evidencia (Aprobar/Rechazar/Eliminar siempre visibles)
+                const SizedBox(height: 14),
+                if (_procesando)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: CircularProgressIndicator(),
                     ),
-                ],
+                  )
+                else
+                  Column(
+                    children: [
+                      Row(
+                        children: [
+                          if (widget.evidencia.estado != 'rejected')
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () => _accion(false),
+                                icon: Icon(Icons.close_rounded, color: Colors.red.shade700, size: 20),
+                                label: Text('Rechazar',
+                                    style: TextStyle(
+                                        color: Colors.red.shade700,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14)),
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  backgroundColor: Colors.red.shade50,
+                                  foregroundColor: Colors.red.shade700,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
+                            ),
+                          if (widget.evidencia.estado != 'rejected' && widget.evidencia.estado != 'approved')
+                            const SizedBox(width: 12),
+                          if (widget.evidencia.estado != 'approved')
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () => _accion(true),
+                                icon: const Icon(Icons.check_rounded, size: 20, color: Colors.white),
+                                label: const Text('Aprobar',
+                                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.white)),
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  backgroundColor: AppTheme.success,
+                                  elevation: 2,
+                                  shadowColor: AppTheme.success.withValues(alpha: 0.4),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: TextButton.icon(
+                          onPressed: _eliminar,
+                          icon: Icon(Icons.delete_outline_rounded, color: Colors.grey.shade600, size: 20),
+                          label: Text('Eliminar Evidencia Definitivamente', 
+                              style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor: Colors.grey.shade100,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),

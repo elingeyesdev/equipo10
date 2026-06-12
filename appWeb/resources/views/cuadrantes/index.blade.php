@@ -992,7 +992,7 @@
                         <i class="bi bi-calendar"></i> ${new Date(resp.created_at).toLocaleDateString()}
                     </p>
                     <p class="small mb-3 text-truncate-2">${resp.mensaje || 'Sin detalle'}</p>
-                    <a href="/reportes/${r.id}?lat=${resp.ubicacion_lat}&lng=${resp.ubicacion_lng}" class="btn btn-warning text-dark btn-sm w-100 fw-bold">
+                    <a href="/reportes/${r.id}?pista_id=${resp.id}" class="btn btn-warning text-dark btn-sm w-100 fw-bold">
                         VER REPORTE
                     </a>
                 </div>

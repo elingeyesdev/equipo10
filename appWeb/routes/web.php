@@ -95,6 +95,12 @@ Route::get('/', function () {
     Route::put('/reportes/{reporte}/reanudar', [ReporteWebController::class, 'reanudar'])->name('reportes.reanudar');
     // Guardar pista de búsqueda en un reporte (solo admin o creador, validado en controller)
     Route::post('/reportes/{reporte}/pistas', [ReporteWebController::class, 'guardarPista'])->name('reportes.pistas.store');
+    // Eliminar pista/evidencia desde el panel web
+    Route::delete('/reportes/{reporte}/pistas/{pista}', [ReporteWebController::class, 'eliminarPista'])->name('reportes.pistas.destroy');
+    Route::put('/reportes/{reporte}/pistas/{pista}/editar', [ReporteWebController::class, 'editarPista'])->name('reportes.pistas.editar');
+    // Aprobar o rechazar evidencia desde el panel web
+    Route::put('/reportes/{reporte}/pistas/{pista}/aprobar', [ReporteWebController::class, 'aprobarEvidencia'])->name('reportes.pistas.aprobar');
+    Route::put('/reportes/{reporte}/pistas/{pista}/rechazar', [ReporteWebController::class, 'rechazarEvidencia'])->name('reportes.pistas.rechazar');
     });
 
     

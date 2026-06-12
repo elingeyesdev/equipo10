@@ -351,8 +351,78 @@
             </div>
         </div>
 
-        <!-- Columna Derecha: Contacto y Timeline -->
+        <!-- Columna Derecha: Contacto y Timeline o Foco -->
         <div class="col-lg-4 d-flex flex-column">
+            @if($foco)
+            <!-- ─── PANEL ENFOCADO ────────────────────────────────────────────── -->
+            <div class="card border-0 shadow-sm rounded-4 flex-grow-1 d-flex flex-column mb-4 border-top border-4 border-primary">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-primary">
+                        <i class="bi bi-search me-2"></i> Detalle Seleccionado
+                    </h5>
+                    <a href="{{ route('reportes.show', $reporte->id) }}" class="btn btn-sm btn-outline-secondary rounded-pill">
+                        <i class="bi bi-arrow-left"></i> Ver Todo
+                    </a>
+                </div>
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="mb-4 text-center">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-light text-primary rounded-circle mb-3" style="width: 60px; height: 60px;">
+                            <i class="bi {{ in_array($foco->tipo_respuesta, ['avistamiento', 'encontrado']) ? 'bi-camera-video' : 'bi-geo-alt' }} fs-2"></i>
+                        </div>
+                        <h4 class="fw-bold">{{ in_array($foco->tipo_respuesta, ['avistamiento', 'encontrado']) ? 'Evidencia (Avistamiento)' : 'Pista de Búsqueda' }}</h4>
+                        @if(in_array($foco->tipo_respuesta, ['avistamiento', 'encontrado']))
+                            @if($foco->estado_evidencia == 'approved')
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2 rounded-pill"><i class="bi bi-check-circle-fill me-1"></i>Aprobada</span>
+                            @elseif($foco->estado_evidencia == 'rejected')
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-2 rounded-pill"><i class="bi bi-x-circle-fill me-1"></i>Rechazada</span>
+                            @else
+                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-2 rounded-pill"><i class="bi bi-hourglass-split me-1"></i>Pendiente</span>
+                            @endif
+                        @else
+                            <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3 py-2 rounded-pill"><i class="bi bi-info-circle-fill me-1"></i>Información</span>
+                        @endif
+                    </div>
+
+                    <div class="bg-light p-3 rounded-4 mb-4">
+                        <h6 class="fw-bold text-muted mb-2 text-uppercase" style="font-size: 0.75rem;">Mensaje</h6>
+                        <p class="fs-5 mb-0 text-dark" style="line-height: 1.4;">{{ $foco->mensaje }}</p>
+                    </div>
+
+                    <div class="vstack gap-3 mt-auto">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-white border rounded-circle p-2 me-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 40px; height: 40px;">
+                                <i class="bi bi-person text-secondary"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.7rem;">Autor</small>
+                                <span class="fw-bold text-dark">{{ $foco->usuario->nombre ?? 'Anónimo' }}</span>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="bg-white border rounded-circle p-2 me-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 40px; height: 40px;">
+                                <i class="bi bi-calendar3 text-secondary"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.7rem;">Fecha y Hora</small>
+                                <span class="fw-bold text-dark">{{ $foco->created_at->format('d/m/Y H:i') }}</span>
+                            </div>
+                        </div>
+                        @if($foco->ubicacion_lat && $foco->ubicacion_lng)
+                        <div class="d-flex align-items-center">
+                            <div class="bg-white border rounded-circle p-2 me-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 40px; height: 40px;">
+                                <i class="bi bi-geo-alt text-secondary"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.7rem;">Ubicación</small>
+                                <a href="https://maps.google.com/?q={{ $foco->ubicacion_lat }},{{ $foco->ubicacion_lng }}" target="_blank" class="fw-bold text-primary text-decoration-none">Ver en Google Maps <i class="bi bi-box-arrow-up-right ms-1"></i></a>
+                            </div>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            @else
+            <!-- ─── TIMELINE NORMAL ───────────────────────────────────────────── -->
             @if($reporte->contacto_publico)
             <div class="card border-0 shadow-sm rounded-4 mb-4">
                 <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
@@ -431,6 +501,196 @@
                     </div>
                 </div>
             </div>
+            @endif
+        </div>
+    </div>
+</div>
+
+<!-- Nueva Sección: Registro de Evidencias (Voluntarios) -->
+<div class="container-fluid px-4 py-2 mt-2">
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white border-bottom-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0 text-primary">
+                <i class="bi bi-camera-video me-2"></i> Registro de Evidencias (Voluntarios)
+            </h5>
+            <span class="badge bg-primary rounded-pill">{{ count($evidenciasVoluntarios) }} registradas</span>
+        </div>
+        <div class="card-body p-4">
+            @if(count($evidenciasVoluntarios) > 0)
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col" class="border-0 rounded-start">Foto</th>
+                                <th scope="col" class="border-0">Mensaje</th>
+                                <th scope="col" class="border-0">Autor</th>
+                                <th scope="col" class="border-0">Estado</th>
+                                <th scope="col" class="border-0">Fecha</th>
+                                <th scope="col" class="border-0 rounded-end text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($evidenciasVoluntarios as $respuesta)
+                                <tr>
+                                    <td>
+                                        @php
+                                            $imgRel = $respuesta->relationLoaded('imagenes') ? $respuesta->getRelation('imagenes') : null;
+                                            $imgUrl = $imgRel && $imgRel->count() > 0 ? $imgRel->first()->url : null;
+                                            if (!$imgUrl && is_array($respuesta->imagenes) && count($respuesta->imagenes) > 0) {
+                                                $first = $respuesta->imagenes[0];
+                                                $imgUrl = is_string($first) ? $first : ($first['url'] ?? null);
+                                            }
+                                        @endphp
+                                        @if($imgUrl)
+                                            <a href="{{ $imgUrl }}" target="_blank">
+                                                <img src="{{ $imgUrl }}" alt="Evidencia" class="rounded object-fit-cover shadow-sm" style="width: 50px; height: 50px; border: 2px solid #e2e8f0;">
+                                            </a>
+                                        @else
+                                            <div class="rounded bg-light d-flex align-items-center justify-content-center text-secondary shadow-sm" style="width: 50px; height: 50px; border: 2px solid #e2e8f0;">
+                                                <i class="bi bi-camera-video-off"></i>
+                                            </div>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <p class="mb-0 fw-semibold text-dark">{{ Str::limit($respuesta->mensaje, 50) }}</p>
+                                        <small class="text-muted text-uppercase" style="font-size: 0.7rem;">{{ $respuesta->tipo_respuesta }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-person-circle text-muted me-2 fs-5"></i>
+                                            <span class="fw-medium text-dark">{{ $respuesta->usuario->nombre ?? 'Desconocido' }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if($respuesta->estado_evidencia == 'approved')
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i>Aprobada</span>
+                                        @elseif($respuesta->estado_evidencia == 'rejected')
+                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1"><i class="bi bi-x-circle-fill me-1"></i>Rechazada</span>
+                                        @else
+                                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1"><i class="bi bi-hourglass-split me-1"></i>Pendiente</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <small class="text-muted"><i class="bi bi-calendar-event me-1"></i>{{ $respuesta->created_at->format('d/m/Y H:i') }}</small>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="d-flex gap-1 justify-content-end">
+                                            <a href="{{ route('reportes.show', ['reporte' => $reporte->id, 'pista_id' => $respuesta->id]) }}" class="btn btn-sm btn-outline-primary" title="Ver Detalles">
+                                                <i class="bi bi-search"></i>
+                                            </a>
+                                            @if(auth()->user()->hasRole('administrador') || auth()->user()->hasRole('editor') || auth()->user()->id == $reporte->usuario_id)
+                                                @if($respuesta->estado_evidencia != 'approved')
+                                                <form action="{{ route('reportes.pistas.aprobar', [$reporte->id, $respuesta->id]) }}" method="POST" class="d-inline">
+                                                    @csrf
+                                                    @method('PUT')
+                                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Aprobar Evidencia">
+                                                        <i class="bi bi-check-lg"></i>
+                                                    </button>
+                                                </form>
+                                                @endif
+                                                @if($respuesta->estado_evidencia != 'rejected')
+                                                <form action="{{ route('reportes.pistas.rechazar', [$reporte->id, $respuesta->id]) }}" method="POST" class="d-inline">
+                                                    @csrf
+                                                    @method('PUT')
+                                                    <button type="submit" class="btn btn-sm btn-outline-warning" title="Rechazar Evidencia">
+                                                        <i class="bi bi-x-lg"></i>
+                                                    </button>
+                                                </form>
+                                                @endif
+                                                <form action="{{ route('reportes.pistas.destroy', [$reporte->id, $respuesta->id]) }}" method="POST" class="d-inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-pista" title="Eliminar Evidencia">
+                                                        <i class="bi bi-trash-fill"></i>
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-inbox fs-1 mb-3 text-light"></i>
+                    <h6>No hay evidencias registradas</h6>
+                    <p class="small">Las evidencias enviadas por los voluntarios aparecerán aquí.</p>
+                </div>
+            @endif
+        </div>
+    </div>
+</div>
+
+<!-- Nueva Sección: Registro de Pistas (Admin/Creador) -->
+<div class="container-fluid px-4 py-2">
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white border-bottom-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0 text-info">
+                <i class="bi bi-geo-alt me-2"></i> Registro de Pistas (Oficial)
+            </h5>
+            <span class="badge bg-info rounded-pill">{{ count($pistasAdmin) }} registradas</span>
+        </div>
+        <div class="card-body p-4">
+            @if(count($pistasAdmin) > 0)
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col" class="border-0 rounded-start">Mensaje</th>
+                                <th scope="col" class="border-0">Autor</th>
+                                <th scope="col" class="border-0">Fecha</th>
+                                <th scope="col" class="border-0 rounded-end text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($pistasAdmin as $pista)
+                                <tr>
+                                    <td>
+                                        <p class="mb-0 fw-semibold text-dark">{{ Str::limit($pista->mensaje, 50) }}</p>
+                                        <small class="text-muted text-uppercase" style="font-size: 0.7rem;">{{ $pista->tipo_respuesta }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-person-circle text-muted me-2 fs-5"></i>
+                                            <span class="fw-medium text-dark">{{ $pista->usuario->nombre ?? 'Desconocido' }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted"><i class="bi bi-calendar-event me-1"></i>{{ $pista->created_at->format('d/m/Y H:i') }}</small>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="d-flex gap-1 justify-content-end">
+                                            <a href="{{ route('reportes.show', ['reporte' => $reporte->id, 'pista_id' => $pista->id]) }}" class="btn btn-sm btn-outline-info" title="Ver Detalles">
+                                                <i class="bi bi-search"></i> Ver
+                                            </a>
+                                            @if(auth()->user()->hasRole('administrador') || auth()->user()->hasRole('editor') || auth()->user()->id == $reporte->usuario_id)
+                                                <!-- Opcional: Modal de editar se puede añadir aquí -->
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" title="Editar Pista" onclick="editarPista('{{ $reporte->id }}', '{{ $pista->id }}', '{{ addslashes($pista->mensaje) }}')">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </button>
+                                                <form action="{{ route('reportes.pistas.destroy', [$reporte->id, $pista->id]) }}" method="POST" class="d-inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-pista" title="Eliminar Pista">
+                                                        <i class="bi bi-trash-fill"></i>
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-geo fs-1 mb-3 text-light"></i>
+                    <h6>No hay pistas oficiales registradas</h6>
+                </div>
+            @endif
         </div>
     </div>
 </div>
@@ -487,6 +747,7 @@ const NIVEL_EXPAN = calcularNivelDinamico(CREATED_AT, UPDATED_AT, ESTADO_REPORTE
         }
 
         return [
+            'id'       => $p->id,
             'lat'      => (float) $p->ubicacion_lat,
             'lng'      => (float) $p->ubicacion_lng,
             'etiqueta' => $p->mensaje,
@@ -500,7 +761,17 @@ const NIVEL_EXPAN = calcularNivelDinamico(CREATED_AT, UPDATED_AT, ESTADO_REPORTE
 
     $tracksJs = [];
     foreach($reporte->voluntarios as $vol) {
-        $puntos = is_string($vol->recorrido_puntos) ? json_decode($vol->recorrido_puntos, true) : $vol->recorrido_puntos;
+        $puntos = $vol->recorrido_puntos;
+        
+        if (is_string($puntos)) {
+            $p = json_decode($puntos, true);
+            if (json_last_error() === JSON_ERROR_NONE) $puntos = $p;
+        }
+        if (is_string($puntos)) {
+            $p = json_decode($puntos, true);
+            if (json_last_error() === JSON_ERROR_NONE) $puntos = $p;
+        }
+
         if ($puntos && is_array($puntos) && count($puntos) > 0) {
             $tracksJs[] = [
                 'nombre' => $vol->usuario->nombre ?? 'Voluntario',
@@ -656,22 +927,42 @@ document.addEventListener('DOMContentLoaded', function() {
     dibujarZonaBusqueda(LPP_LAT, LPP_LNG, NIVEL_EXPAN);
 
     // ── Marcadores de pistas existentes (BD) ────────────────────────────────
-    PISTAS_BD.forEach(p => agregarMarcadorPista(p.lat, p.lng, p.etiqueta, p.fecha, p.nivel_expansion, p.has_image, p.image_url, p.created_at));
+    PISTAS_BD.forEach(p => {
+        // Añadir un pequeñísimo offset aleatorio para que si dos evidencias están en el 
+        // mismo punto exacto, no se solapen completamente y el usuario pueda ver ambas.
+        let latOffset = (Math.random() - 0.5) * 0.0001;
+        let lngOffset = (Math.random() - 0.5) * 0.0001;
+        agregarMarcadorPista(p.lat + latOffset, p.lng + lngOffset, p.etiqueta, p.fecha, p.nivel_expansion, p.has_image, p.image_url, p.created_at, p.id);
+    });
 
     // ── Rutas de Tracking de los Voluntarios ────────────────────────────────
     TRACKING_BD.forEach(track => {
-        if (track.puntos && track.puntos.length > 0) {
-            const latlngs = track.puntos.map(pt => [pt.lat, pt.lng]);
-            const polyline = L.polyline(latlngs, {
-                color: '#10b981', // emerald-500
-                weight: 4,
-                opacity: 0.8,
-                dashArray: '10, 10',
-                lineJoin: 'round'
-            }).addTo(mapPistas);
-            
-            // Tooltip para identificar el voluntario
-            polyline.bindTooltip('Ruta: ' + track.nombre, {sticky: true});
+        let pts = track.puntos;
+        if (typeof pts === 'string') {
+            try { pts = JSON.parse(pts); } catch(e) {}
+        }
+        if (typeof pts === 'string') {
+            try { pts = JSON.parse(pts); } catch(e) {}
+        }
+
+        if (Array.isArray(pts) && pts.length > 0) {
+            const latlngs = [];
+            pts.forEach(pt => {
+                if (Array.isArray(pt) && pt.length >= 2) latlngs.push([pt[0], pt[1]]);
+                else if (pt && typeof pt === 'object' && pt.lat && pt.lng) latlngs.push([pt.lat, pt.lng]);
+            });
+
+            if (latlngs.length > 0) {
+                const polyline = L.polyline(latlngs, {
+                    color: '#10b981', // emerald-500
+                    weight: 4,
+                    opacity: 0.8,
+                    dashArray: '10, 10',
+                    lineJoin: 'round'
+                }).addTo(mapPistas);
+                
+                polyline.bindTooltip('Ruta: ' + track.nombre, {sticky: true});
+            }
         }
     });
 
@@ -709,16 +1000,20 @@ function buildTooltip(etiqueta, foto, fecha) {
 }
 
 // ─── Agregar marcador de pista al mapa ────────────────────────────────────────
-function agregarMarcadorPista(lat, lng, etiqueta, fecha, nivel, hasImage, imageUrl, createdAtStr) {
+function agregarMarcadorPista(lat, lng, etiqueta, fecha, nivel, hasImage, imageUrl, createdAtStr, id) {
     const tooltipHtml = buildTooltip(etiqueta, imageUrl, fecha);
     const mIcon = hasImage ? iconEvidencia : iconPista;
+    let popupContent = `<strong>${etiqueta}</strong><br><small class="text-muted">${fecha}</small>`;
+    if (id) {
+        popupContent += `<br><a href="?pista_id=${id}" class="btn btn-sm btn-outline-primary mt-2 w-100" style="font-size: 10px; padding: 2px 5px;"><i class="bi bi-search"></i> Ver Detalles</a>`;
+    }
     L.marker([lat, lng], {icon: mIcon})
      .bindTooltip(tooltipHtml, {
          permanent: false, direction: 'top', offset: [0, -10],
          className: 'leaflet-tooltip-pista',
          opacity: 1
      })
-     .bindPopup(`<strong>${etiqueta}</strong><br><small class="text-muted">${fecha}</small>`)
+     .bindPopup(popupContent)
      .addTo(mapPistas);
      
     // Las evidencias no tienen cuadrantes ni nivel de expansión, solo son marcadores en el mapa
@@ -822,6 +1117,78 @@ function guardarPista() {
         msg.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>Error de conexión.</span>`;
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-cloud-arrow-up-fill me-2"></i>Guardar Pista';
+    });
+}
+
+// ─── Confirmar eliminación de pista ──────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+    const btnEliminarPista = document.querySelectorAll('.btn-eliminar-pista');
+    btnEliminarPista.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const form = this.closest('form');
+            Swal.fire({
+                title: '¿Eliminar evidencia?',
+                text: "Esta acción no se puede deshacer y se borrará la foto y el mensaje para siempre.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
+});
+
+function editarPista(reporteId, pistaId, mensajeActual) {
+    Swal.fire({
+        title: 'Editar Pista',
+        input: 'textarea',
+        inputLabel: 'Mensaje de la pista',
+        inputValue: mensajeActual,
+        showCancelButton: true,
+        confirmButtonText: 'Guardar cambios',
+        cancelButtonText: 'Cancelar',
+        inputValidator: (value) => {
+            if (!value) {
+                return 'El mensaje no puede estar vacío'
+            }
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Create a form and submit it dynamically
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/reportes/${reporteId}/pistas/${pistaId}/editar`;
+            
+            const csrfToken = document.querySelector('input[name="_token"]').value;
+            
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = '_token';
+            csrfInput.value = csrfToken;
+            
+            const methodInput = document.createElement('input');
+            methodInput.type = 'hidden';
+            methodInput.name = '_method';
+            methodInput.value = 'PUT';
+            
+            const mensajeInput = document.createElement('input');
+            mensajeInput.type = 'hidden';
+            mensajeInput.name = 'mensaje';
+            mensajeInput.value = result.value;
+            
+            form.appendChild(csrfInput);
+            form.appendChild(methodInput);
+            form.appendChild(mensajeInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
     });
 }
 </script>

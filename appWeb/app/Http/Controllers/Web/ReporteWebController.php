@@ -194,51 +194,65 @@ class ReporteWebController extends Controller
             ->with('imagenes')
             ->whereNotNull('ubicacion_lat')
             ->whereNotNull('ubicacion_lng')
+            ->where(function($q) {
+                $q->where('estado_evidencia', 'approved')
+                  ->orWhereIn('tipo_respuesta', ['pista', 'informacion']);
+            })
             ->orderBy('created_at')
             ->get();
 
         // Lista de cuadrantes para el selector de reasignación
         $cuadrantes = Cuadrante::orderBy('codigo')->get(['id', 'codigo', 'nombre', 'zona']);
 
-        // ─── Variables de imagen principal ───────────────────────────────────
-        $qLat = request('lat');
-        $qLng = request('lng');
-
+        // ─── Lógica de Foco Dinámico (pista_id) ──────────────────────────────
         $fotoPrincipal      = $reporte->imagenes->count() > 0 ? $reporte->imagenes->first()->url : null;
         $tituloPrincipal    = 'Foto del Reporte';
         $descripcionPrincipal = '';
         $fechaPrincipal     = $reporte->created_at ? $reporte->created_at->format('d/m/Y H:i') : 'Fecha desconocida';
+        $foco = null;
 
-        if ($qLat && $qLng) {
-            foreach ($pistas as $p) {
-                $imgPista = null;
-                if ($p->relationLoaded('imagenes') && $p->getRelation('imagenes')->count() > 0) {
-                    $imgPista = $p->getRelation('imagenes')->first()->url;
+        $pistaId = request('pista_id');
+        if ($pistaId) {
+            $foco = \App\Models\Respuesta::with('usuario')->find($pistaId);
+            if ($foco && $foco->reporte_id == $reporte->id) {
+                // Configurar foto e info de la vista enfocada
+                $imgFoco = null;
+                if ($foco->relationLoaded('imagenes') && $foco->getRelation('imagenes')->count() > 0) {
+                    $imgFoco = $foco->getRelation('imagenes')->first()->url;
                 }
-                if (!$imgPista && is_array($p->imagenes) && count($p->imagenes) > 0) {
-                    $first = $p->imagenes[0];
-                    $imgPista = is_string($first) ? $first : ($first['url'] ?? null);
+                if (!$imgFoco && is_array($foco->imagenes) && count($foco->imagenes) > 0) {
+                    $first = $foco->imagenes[0];
+                    $imgFoco = is_string($first) ? $first : ($first['url'] ?? null);
                 }
 
-                if (abs((float)$p->ubicacion_lat - (float)$qLat) < 0.0001 &&
-                    abs((float)$p->ubicacion_lng - (float)$qLng) < 0.0001) {
-                    if ($imgPista) {
-                        $fotoPrincipal        = $imgPista;
-                        $tituloPrincipal      = 'Foto de la Evidencia';
-                        $descripcionPrincipal = $p->mensaje;
-                        $fechaPrincipal       = $p->created_at ? $p->created_at->format('d/m/Y H:i') : '';
-                    } else {
-                        $tituloPrincipal      = 'Información de la Pista';
-                        $descripcionPrincipal = $p->mensaje;
-                        $fechaPrincipal       = $p->created_at ? $p->created_at->format('d/m/Y H:i') : '';
-                    }
-                    break;
+                if ($imgFoco) {
+                    $fotoPrincipal = $imgFoco;
                 }
+                // Si no hay foto en la pista/evidencia, conservamos la foto principal del reporte.
+
+                $esAvistamiento = in_array($foco->tipo_respuesta, ['avistamiento', 'encontrado']);
+                $tituloPrincipal = $esAvistamiento ? 'Foto de la Evidencia' : 'Información de la Pista';
+                $descripcionPrincipal = $foco->mensaje;
+                $fechaPrincipal = $foco->created_at ? $foco->created_at->format('d/m/Y H:i') : '';
+            } else {
+                $foco = null; // Evitar conflictos si no pertenece
             }
         }
 
+        // ─── Separar Pistas de Evidencias ───────────────────────────────────
+        $respuestasAll = $reporte->respuestas()->with('usuario')->orderBy('created_at', 'desc')->get();
+        
+        $pistasAdmin = $respuestasAll->filter(function($r) {
+            return in_array($r->tipo_respuesta, ['pista', 'informacion']);
+        });
+        
+        $evidenciasVoluntarios = $respuestasAll->filter(function($r) {
+            return !in_array($r->tipo_respuesta, ['pista', 'informacion']);
+        });
+
         return view('reportes.show', compact(
-            'reporte', 'timeline', 'pistas', 'cuadrantes',
+            'reporte', 'timeline', 'pistas', 'cuadrantes', 
+            'pistasAdmin', 'evidenciasVoluntarios', 'foco',
             'fotoPrincipal', 'tituloPrincipal', 'descripcionPrincipal', 'fechaPrincipal'
         ));
     }
@@ -440,5 +454,97 @@ class ReporteWebController extends Controller
             'pista'   => $pista,
             'message' => 'Pista registrada correctamente.',
         ], 201);
+    }
+
+    /**
+     * Elimina una pista o evidencia específica.
+     */
+    public function eliminarPista(Request $request, string $reporte, string $pista)
+    {
+        $rep = Reporte::findOrFail($reporte);
+
+        // Autorización
+        $user = auth()->user();
+        $esAdmin   = $user->hasRole('administrador') || $user->hasRole('editor');
+        $esCreador = $user->id === $rep->usuario_id;
+
+        if (!$esAdmin && !$esCreador) {
+            return redirect()->back()->with('error', 'No tienes permiso para eliminar evidencias.');
+        }
+
+        $respuesta = \App\Models\Respuesta::where('id', $pista)->where('reporte_id', $reporte)->firstOrFail();
+        $respuesta->delete();
+
+        return redirect()->back()->with('success', 'Evidencia eliminada correctamente.');
+    }
+
+    /**
+     * Edita el mensaje de una pista específica.
+     */
+    public function editarPista(Request $request, string $reporte, string $pista)
+    {
+        $rep = Reporte::findOrFail($reporte);
+
+        // Autorización
+        $user = auth()->user();
+        $esAdmin   = $user->hasRole('administrador') || $user->hasRole('editor');
+        $esCreador = $user->id === $rep->usuario_id;
+
+        if (!$esAdmin && !$esCreador) {
+            return redirect()->back()->with('error', 'No tienes permiso para editar pistas.');
+        }
+
+        $validated = $request->validate([
+            'mensaje' => 'required|string|max:1000',
+        ]);
+
+        $respuesta = \App\Models\Respuesta::where('id', $pista)->where('reporte_id', $reporte)->firstOrFail();
+        $respuesta->update(['mensaje' => $validated['mensaje']]);
+
+        return redirect()->back()->with('success', 'Pista editada correctamente.');
+    }
+
+    /**
+     * Aprueba una evidencia desde el panel web.
+     */
+    public function aprobarEvidencia(Request $request, string $reporte, string $pista)
+    {
+        $rep = Reporte::findOrFail($reporte);
+
+        // Autorización
+        $user = auth()->user();
+        $esAdmin   = $user->hasRole('administrador') || $user->hasRole('editor');
+
+        if (!$esAdmin && $user->id !== $rep->usuario_id) {
+            return redirect()->back()->with('error', 'No tienes permiso para aprobar evidencias.');
+        }
+
+        $respuesta = \App\Models\Respuesta::where('id', $pista)->where('reporte_id', $reporte)->firstOrFail();
+        $respuesta->update(['estado_evidencia' => 'approved']);
+
+        // Opcional: Enviar notificación al voluntario aquí (se puede extraer del API si se desea, por ahora solo actualiza el estado)
+
+        return redirect()->back()->with('success', 'Evidencia aprobada correctamente.');
+    }
+
+    /**
+     * Rechaza una evidencia desde el panel web.
+     */
+    public function rechazarEvidencia(Request $request, string $reporte, string $pista)
+    {
+        $rep = Reporte::findOrFail($reporte);
+
+        // Autorización
+        $user = auth()->user();
+        $esAdmin   = $user->hasRole('administrador') || $user->hasRole('editor');
+
+        if (!$esAdmin && $user->id !== $rep->usuario_id) {
+            return redirect()->back()->with('error', 'No tienes permiso para rechazar evidencias.');
+        }
+
+        $respuesta = \App\Models\Respuesta::where('id', $pista)->where('reporte_id', $reporte)->firstOrFail();
+        $respuesta->update(['estado_evidencia' => 'rejected']);
+
+        return redirect()->back()->with('success', 'Evidencia rechazada correctamente.');
     }
 }

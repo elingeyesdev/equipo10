@@ -29,7 +29,12 @@ class CuadranteWebController extends Controller
 
         // Obtener reportes activos con ubicación para el mapa
         // Obtener TODOS los reportes con ubicación para el mapa "Amber Alert"
-        $reportes = \App\Models\Reporte::with(['categoria', 'imagenes', 'respuestas.imagenes'])
+        $reportes = \App\Models\Reporte::with(['categoria', 'imagenes', 'respuestas' => function($query) {
+            $query->where(function($q) {
+                $q->where('estado_evidencia', 'approved')
+                  ->orWhereIn('tipo_respuesta', ['pista', 'informacion']);
+            });
+        }, 'respuestas.imagenes'])
             ->whereNotNull('ubicacion_exacta_lat')
             ->whereNotNull('ubicacion_exacta_lng')
             ->get(); // Traemos todos los atributos para el detalle completo
