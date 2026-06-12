@@ -1464,16 +1464,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
         alignment: Alignment.center,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () {
-            Future.delayed(const Duration(milliseconds: 150), () {
-              if (!mounted) return;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) return;
-                setState(() =>
-                    _pistaTooltip = _pistaTooltip == lppInfo ? null : lppInfo);
-              });
-            });
-          },
+          onTap: () => setState(() => _pistaTooltip = lppInfo),
           child: MouseRegion(
             cursor: SystemMouseCursors.click,
             child: LppMarker(
@@ -1497,16 +1488,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
           alignment: Alignment.center,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () {
-              Future.delayed(const Duration(milliseconds: 100), () {
-                if (!mounted) return;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (!mounted) return;
-                  setState(() =>
-                      _pistaTooltip = _pistaTooltip == pista ? null : pista);
-                });
-              });
-            },
+            onTap: () => setState(() => _pistaTooltip = pista),
             child: Container(
               width: 22,
               height: 22,
@@ -1987,121 +1969,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
           ),
 
           // E9.2 — Indicador de estado del caché de tiles
-          if (_descargandoTiles || _descargaCompletada)
-            Positioned(
-              bottom: _modoPista ? 76 : 128,
-              left: 12,
-              right: 80, // No solapar con los FABs de la derecha
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.95),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [
-                    BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 6,
-                        offset: Offset(0, 2))
-                  ],
-                ),
-                child: _descargaCompletada
-                    ? const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.offline_pin,
-                              color: Color(0xFF10B981), size: 16),
-                          SizedBox(width: 6),
-                          Text(
-                            'Área guardada offline',
-                            style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF10B981)),
-                          ),
-                        ],
-                      )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const SizedBox(
-                                width: 12,
-                                height: 12,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 1.5,
-                                  valueColor:
-                                      AlwaysStoppedAnimation(AppTheme.primary),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Guardando mapa offline... $_tilesCompletados/$_tilesTotal',
-                                style: const TextStyle(
-                                    fontSize: 11, fontWeight: FontWeight.w600),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          if (_tilesTotal > 0)
-                            LinearProgressIndicator(
-                              value: _tilesTotal > 0
-                                  ? _tilesCompletados / _tilesTotal
-                                  : 0,
-                              backgroundColor: Colors.grey[200],
-                              valueColor: const AlwaysStoppedAnimation(
-                                  AppTheme.primary),
-                              minHeight: 3,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                        ],
-                      ),
-              ),
-            ),
-
-          // Botón manual de re-descarga (visible cuando no está descargando)
-          if (!_descargandoTiles &&
-              !_descargaCompletada &&
-              ConnectivityService().isOnline)
-            Positioned(
-              bottom: _modoPista ? 76 : 128,
-              left: 12,
-              child: GestureDetector(
-                onTap: _preDescargarTiles,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.92),
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: const [
-                      BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 4,
-                          offset: Offset(0, 2))
-                    ],
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.download_for_offline_outlined,
-                          size: 16, color: AppTheme.primary),
-                      SizedBox(width: 5),
-                      Text(
-                        'Guardar offline',
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.primary),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          // Descarga de tiles en segundo plano — sin UI visible
 
           Positioned(
             bottom: (_modoPista && _pinTemporal != null) ? 130 : 72,
@@ -2323,15 +2191,13 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                     _buildPanelDot(
                       color: const Color(0xFFD32F2F),
                       icon: Icons.person,
-                      onTap: () => setState(() => _pistaTooltip =
-                          _pistaTooltip == lppInfo ? null : lppInfo),
+                      onTap: () => setState(() => _pistaTooltip = lppInfo),
                     ),
                     // Pistas (amarillo)
                     ..._pistas.map((p) => _buildPanelDot(
                           color: const Color(0xFFF59E0B),
                           icon: Icons.location_on,
-                          onTap: () => setState(() =>
-                              _pistaTooltip = _pistaTooltip == p ? null : p),
+                          onTap: () => setState(() => _pistaTooltip = p),
                         )),
                     // Evidencias (morado) — muestra miniatura de la foto
                     ..._evidencias
@@ -2401,7 +2267,27 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                       ),
                     ),
                     SizedBox(
-                      width: 130,
+                      width: 36,
+                      height: 36,
+                      child: IconButton(
+                        onPressed: () => setState(() {
+                          _modoPista = false;
+                          _editandoPista = false;
+                          _pistaEnEdicion = null;
+                          _pinTemporal = null;
+                          _cuadranteTemporal = null;
+                          _pistaTooltip = null;
+                          _tituloPistaCtrl.clear();
+                          _descripcionPistaCtrl.clear();
+                        }),
+                        icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                        tooltip: 'Cancelar',
+                        padding: EdgeInsets.zero,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 120,
                       height: 40,
                       child: ElevatedButton(
                         onPressed:

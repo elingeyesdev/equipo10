@@ -347,14 +347,10 @@ class _TrackingViewState extends State<TrackingView> {
                         child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: () {
-                            Future.delayed(const Duration(milliseconds: 150),
-                                () {
-                              if (!mounted) return;
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                if (!mounted) return;
-                                showDialog(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
+                            if (!mounted) return;
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
                                     title: const Text('Evidencia'),
                                     content: SingleChildScrollView(
                                       child: Column(
@@ -419,8 +415,6 @@ class _TrackingViewState extends State<TrackingView> {
                                     ],
                                   ),
                                 );
-                              });
-                            });
                           },
                           child: EvidenciaMarker(
                             fotoUrl: evidencia.fotoUrl,
