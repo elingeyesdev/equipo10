@@ -38,9 +38,7 @@
                      </form>
                 </div>
                 <div class="col-md-4 text-end">
-                    <a href="{{ route('reportes.create') }}" class="btn btn-success text-white">
-                        <i class="bi bi-plus-lg me-2"></i>Nuevo Reporte
-                    </a>
+                    <!-- Botón de Nuevo Reporte eliminado -->
                 </div>
             </div>
         </div>

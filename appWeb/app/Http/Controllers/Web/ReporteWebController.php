@@ -289,54 +289,38 @@ class ReporteWebController extends Controller
     public function cerrar(Request $request, string $id)
     {
         $reporte = Reporte::findOrFail($id);
-        
+
         $request->validate([
             'motivo_cierre' => 'required|string|max:500'
         ]);
 
-        $reporte->update([
-            'estado' => 'cerrado',
-            'motivo_cierre' => $request->motivo_cierre
-        ]);
+        try {
+            // Guardar estado y motivo usando asignación directa para evitar problemas de fillable
+            $reporte->estado = 'cerrado';
+            $reporte->motivo_cierre = $request->motivo_cierre;
+            $reporte->save();
 
-        // Notificar a voluntarios y al creador
-        $usuariosANotificar = \App\Models\ReporteVoluntario::where('reporte_id', $reporte->id)->pluck('usuario_id')->toArray();
-        if (!in_array($reporte->usuario_id, $usuariosANotificar)) {
-            $usuariosANotificar[] = $reporte->usuario_id;
-        }
-
-        $adminText = auth()->user()->hasRole('administrador') ? ' por un administrador' : '';
-        $titulo = 'Búsqueda Cerrada';
-        $mensaje = 'La búsqueda "' . $reporte->titulo . '" ha sido cerrada' . $adminText . '. Motivo: ' . $request->motivo_cierre;
-        $fcm = new FcmService();
-
-        foreach (array_unique($usuariosANotificar) as $userId) {
-            $notif = \App\Models\Notificacion::create([
-                'usuario_id' => $userId,
-                'tipo' => 'alerta_operativo',
-                'titulo' => $titulo,
-                'mensaje' => $mensaje,
-                'leida' => false,
-                'enviada_push' => false,
-            ]);
-
-            // Enviar FCM si el usuario tiene token
-            $usuario = \App\Models\Usuario::find($userId);
-            if ($usuario && !empty($usuario->fcm_token) && $fcm->estaConfigurado()) {
-                $enviado = $fcm->enviarAToken(
-                    $usuario->fcm_token,
-                    $titulo,
-                    $mensaje,
-                    ['reporte_id' => $reporte->id, 'tipo' => 'alerta_operativo']
-                );
-                if ($enviado) {
-                    $notif->update(['enviada_push' => true]);
-                }
+            // Notificar a voluntarios y al creador
+            $usuariosANotificar = \App\Models\ReporteVoluntario::where('reporte_id', $reporte->id)
+                ->pluck('usuario_id')->toArray();
+            if (!in_array($reporte->usuario_id, $usuariosANotificar)) {
+                $usuariosANotificar[] = $reporte->usuario_id;
             }
-        }
 
-        return redirect()->route('reportes.show', $reporte->id)
-            ->with('success', 'Búsqueda cerrada exitosamente.');
+            $adminText = auth()->user()->hasRole('administrador') ? ' por un administrador' : '';
+            $titulo  = 'Búsqueda Cerrada';
+            $mensaje = 'La búsqueda "' . $reporte->titulo . '" ha sido cerrada' . $adminText . '. Motivo: ' . $request->motivo_cierre;
+
+            $this->notificarGrupo($reporte, $titulo, $mensaje, $usuariosANotificar);
+
+            return redirect()->route('reportes.show', $reporte->id)
+                ->with('success', 'Búsqueda cerrada exitosamente.');
+
+        } catch (\Exception $e) {
+            \Log::error('[cerrar] Error al cerrar reporte ' . $id . ': ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Error al cerrar la búsqueda: ' . $e->getMessage());
+        }
     }
 
     public function pausar(Request $request, string $id)
@@ -348,42 +332,14 @@ class ReporteWebController extends Controller
                 ->with('error', 'Solo se puede pausar una búsqueda activa.');
         }
 
-        $reporte->update(['estado' => 'pausado']);
+        $reporte->estado = 'pausado';
+        $reporte->save();
 
-        // Notificar a voluntarios y creador
-        $usuariosANotificar = \App\Models\ReporteVoluntario::where('reporte_id', $reporte->id)
-            ->pluck('usuario_id')->toArray();
-        if (!in_array($reporte->usuario_id, $usuariosANotificar)) {
-            $usuariosANotificar[] = $reporte->usuario_id;
-        }
-
-        $titulo  = 'Búsqueda Pausada';
-        $mensaje = 'La búsqueda "' . $reporte->titulo . '" ha sido pausada temporalmente. Te avisaremos cuando se reanude.';
-        $fcm     = new FcmService();
-
-        foreach (array_unique($usuariosANotificar) as $userId) {
-            $notif = \App\Models\Notificacion::create([
-                'usuario_id'   => $userId,
-                'tipo'         => 'alerta_operativo',
-                'titulo'       => $titulo,
-                'mensaje'      => $mensaje,
-                'leida'        => false,
-                'enviada_push' => false,
-            ]);
-
-            $usuario = \App\Models\Usuario::find($userId);
-            if ($usuario && !empty($usuario->fcm_token) && $fcm->estaConfigurado()) {
-                $enviado = $fcm->enviarAToken(
-                    $usuario->fcm_token,
-                    $titulo,
-                    $mensaje,
-                    ['reporte_id' => $reporte->id, 'tipo' => 'alerta_operativo']
-                );
-                if ($enviado) {
-                    $notif->update(['enviada_push' => true]);
-                }
-            }
-        }
+        $this->notificarGrupo(
+            $reporte,
+            'Búsqueda Pausada',
+            'La búsqueda "' . $reporte->titulo . '" ha sido pausada temporalmente. Te avisaremos cuando se reanude.'
+        );
 
         return redirect()->route('reportes.show', $reporte->id)
             ->with('success', 'Búsqueda pausada. Los voluntarios serán notificados.');
@@ -408,33 +364,11 @@ class ReporteWebController extends Controller
             $usuariosANotificar[] = $reporte->usuario_id;
         }
 
-        $titulo  = 'Búsqueda Reanudada';
-        $mensaje = 'La búsqueda "' . $reporte->titulo . '" ha sido reanudada. ¡Volvemos a buscar!';
-        $fcm     = new FcmService();
-
-        foreach (array_unique($usuariosANotificar) as $userId) {
-            $notif = \App\Models\Notificacion::create([
-                'usuario_id'   => $userId,
-                'tipo'         => 'alerta_operativo',
-                'titulo'       => $titulo,
-                'mensaje'      => $mensaje,
-                'leida'        => false,
-                'enviada_push' => false,
-            ]);
-
-            $usuario = \App\Models\Usuario::find($userId);
-            if ($usuario && !empty($usuario->fcm_token) && $fcm->estaConfigurado()) {
-                $enviado = $fcm->enviarAToken(
-                    $usuario->fcm_token,
-                    $titulo,
-                    $mensaje,
-                    ['reporte_id' => $reporte->id, 'tipo' => 'alerta_operativo']
-                );
-                if ($enviado) {
-                    $notif->update(['enviada_push' => true]);
-                }
-            }
-        }
+        $this->notificarGrupo(
+            $reporte,
+            'Búsqueda Reanudada',
+            'La búsqueda "' . $reporte->titulo . '" ha sido reanudada. ¡Volvemos a buscar!'
+        );
 
         return redirect()->route('reportes.show', $reporte->id)
             ->with('success', 'Búsqueda reanudada exitosamente.');
@@ -599,7 +533,7 @@ class ReporteWebController extends Controller
     /**
      * Aprueba una evidencia desde el panel web.
      */
-    public function aprobarEvidencia(Request $request, string $reporte, string $pista)
+    public function aprobarEvidencia(Request $request, string $reporte, string $infoId)
     {
         $rep = Reporte::findOrFail($reporte);
 
@@ -611,7 +545,7 @@ class ReporteWebController extends Controller
             return redirect()->back()->with('error', 'No tienes permiso para aprobar evidencias.');
         }
 
-        $respuesta = \App\Models\Respuesta::where('id', $pista)->where('reporte_id', $reporte)->firstOrFail();
+        $respuesta = \App\Models\Respuesta::where('id', $infoId)->where('reporte_id', $reporte)->firstOrFail();
         $respuesta->update(['estado_evidencia' => 'approved']);
 
         // Opcional: Enviar notificación al voluntario aquí (se puede extraer del API si se desea, por ahora solo actualiza el estado)
@@ -622,7 +556,7 @@ class ReporteWebController extends Controller
     /**
      * Rechaza una evidencia desde el panel web.
      */
-    public function rechazarEvidencia(Request $request, string $reporte, string $pista)
+    public function rechazarEvidencia(Request $request, string $reporte, string $infoId)
     {
         $rep = Reporte::findOrFail($reporte);
 
@@ -634,9 +568,65 @@ class ReporteWebController extends Controller
             return redirect()->back()->with('error', 'No tienes permiso para rechazar evidencias.');
         }
 
-        $respuesta = \App\Models\Respuesta::where('id', $pista)->where('reporte_id', $reporte)->firstOrFail();
+        $respuesta = \App\Models\Respuesta::where('id', $infoId)->where('reporte_id', $reporte)->firstOrFail();
         $respuesta->update(['estado_evidencia' => 'rejected']);
 
         return redirect()->back()->with('success', 'Evidencia rechazada correctamente.');
+    }
+
+    /**
+     * Envia notificaciones a todos los voluntarios + creador de un reporte.
+     * Deduplica por FCM token para evitar notificaciones dobles cuando un mismo
+     * dispositivo tiene dos cuentas registradas como voluntarios.
+     */
+    private function notificarGrupo(
+        Reporte $reporte,
+        string $titulo,
+        string $mensaje,
+        ?array $usuariosIds = null
+    ): void {
+        if ($usuariosIds === null) {
+            $usuariosIds = \App\Models\ReporteVoluntario::where('reporte_id', $reporte->id)
+                ->pluck('usuario_id')->toArray();
+            if (!in_array($reporte->usuario_id, $usuariosIds)) {
+                $usuariosIds[] = $reporte->usuario_id;
+            }
+        }
+
+        $fcm = new FcmService();
+        $tokenEnviados = [];
+
+        foreach (array_unique($usuariosIds) as $userId) {
+            try {
+                $notif = \App\Models\Notificacion::create([
+                    'usuario_id'   => $userId,
+                    'tipo'         => 'alerta_operativo',
+                    'titulo'       => $titulo,
+                    'mensaje'      => $mensaje,
+                    'leida'        => false,
+                    'enviada_push' => false,
+                ]);
+
+                $usuario = \App\Models\Usuario::find($userId);
+                if ($usuario && !empty($usuario->fcm_token) && $fcm->estaConfigurado()) {
+                    if (in_array($usuario->fcm_token, $tokenEnviados)) {
+                        continue;
+                    }
+                    $tokenEnviados[] = $usuario->fcm_token;
+
+                    $enviado = $fcm->enviarAToken(
+                        $usuario->fcm_token,
+                        $titulo,
+                        $mensaje,
+                        ['reporte_id' => $reporte->id, 'tipo' => 'alerta_operativo']
+                    );
+                    if ($enviado) {
+                        $notif->update(['enviada_push' => true]);
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::error('[notificarGrupo] Error notificando usuario ' . $userId . ': ' . $e->getMessage());
+            }
+        }
     }
 }

@@ -191,15 +191,7 @@
                 @endif
             @endif
 
-            @if(auth()->check() && auth()->user()->hasRole('administrador'))
-                <form action="{{ route('reportes.destroy', $reporte->id) }}" method="POST" class="d-inline" id="form-eliminar-{{ $reporte->id }}">
-                    @csrf
-                    @method('DELETE')
-                    <button type="button" class="btn btn-danger fw-semibold shadow-sm border-0" onclick="confirmarEliminacion('{{ $reporte->id }}')">
-                        <i class="bi bi-trash me-1"></i> Eliminar
-                    </button>
-                </form>
-            @endif
+            <!-- Opción de eliminar reporte removida a petición -->
 
             <a href="{{ route('reportes.edit', $reporte->id) }}" class="btn btn-light bg-white text-primary fw-semibold shadow-sm border-0">
                 <i class="bi bi-pencil me-2"></i> Editar
@@ -216,7 +208,7 @@
             <div class="reward-banner">
                 <h5 class="mb-0 text-white fw-bold"><i class="bi bi-cash-coin me-2 fs-4"></i> SE OFRECE RECOMPENSA</h5>
                 <h2 class="fw-bold my-2 display-6">Bs. {{ number_format($reporte->recompensa, 2) }}</h2>
-                <small class="opacity-90">Si tienes informaciÃ³n, contÃ¡ctanos inmediatamente.</small>
+                <small class="opacity-90">Si tienes información, contáctanos inmediatamente.</small>
             </div>
         </div>
     </div>
@@ -234,14 +226,14 @@
                     <div class="row g-4 mb-4">
                         <div class="col-md-6">
                             <div class="info-card p-3">
-                                <label class="info-label"><i class="bi bi-tag-fill me-1 text-primary"></i> CategorÃ­a</label>
+                                <label class="info-label"><i class="bi bi-tag-fill me-1 text-primary"></i> Categoría</label>
                                 <div class="d-flex align-items-center mt-1">
                                     @if($reporte->categoria)
                                         <span class="badge rounded-pill px-3 py-2" style="background-color: {{ $reporte->categoria->color ?? '#6c757d' }}; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">
                                             {{ $reporte->categoria->nombre }}
                                         </span>
                                     @else
-                                        <span class="badge rounded-pill px-3 py-2 bg-secondary text-white">Sin categorÃ­a</span>
+                                        <span class="badge rounded-pill px-3 py-2 bg-secondary text-white">Sin categoría</span>
                                     @endif
                                 </div>
                             </div>
@@ -282,7 +274,7 @@
                             <div class="info-card p-3">
                                 <label class="info-label"><i class="bi bi-people-fill me-1 text-primary"></i> Voluntarios Unidos</label>
                                 <div class="info-value mt-1">{{ $reporte->voluntarios()->count() }}</div>
-                                <small class="text-muted">Resumen estadÃ­stico bÃ¡sico</small>
+                                <small class="text-muted">Resumen estadístico básico</small>
                             </div>
                         </div>
                     </div>
@@ -298,7 +290,7 @@
 
                     @if($reporte->ubicacion_exacta_lat && $reporte->ubicacion_exacta_lng)
                     <div class="mb-4 position-relative">
-                        <label class="info-label mb-2"><i class="bi bi-map-fill me-1 text-primary"></i> Mapa de BÃºsqueda y UbicaciÃ³n</label>
+                        <label class="info-label mb-2"><i class="bi bi-map-fill me-1 text-primary"></i> Mapa de Búsqueda y Ubicación</label>
                         
                         <div class="border rounded-4 overflow-hidden shadow-sm" style="position: relative;">
                             <div class="bg-white p-2 border-bottom d-flex justify-content-between align-items-center">
@@ -306,14 +298,14 @@
                                     <span class="fw-bold text-primary"><i class="bi bi-pin-map-fill me-1"></i> Puntos de avistamiento</span>
                                 </div>
                                 <div class="d-flex gap-2">
-                                    <!-- Remove AÃ±adir Pista button -->
+                                    <!-- Remove Añadir Pista button -->
                                     <button onclick="toggleMapFullscreen()" class="btn btn-light btn-sm border shadow-sm">
                                         <i class="bi bi-arrows-fullscreen"></i>
                                     </button>
                                 </div>
                             </div>
                             
-                            <!-- Eliminar panel de aÃ±adir pista -->
+                            <!-- Eliminar panel de añadir pista -->
                             
                             <!-- El Mapa -->
                             <div id="mapa-pistas-wrapper" style="position:relative; background: #f8f9fa;">
@@ -338,10 +330,10 @@
             <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
                 <div class="position-relative bg-light" style="min-height: 400px;">
                     @if($fotoPrincipal)
-                        <img src="{{ $fotoPrincipal }}" 
-                             alt="{{ $tituloPrincipal }}" 
-                             class="w-100" 
-                             style="height: 500px; object-fit: cover;">
+                        <img src="{{ $fotoPrincipal }}"
+                             alt="{{ $tituloPrincipal }}"
+                             class="w-100"
+                             style="height: 500px; object-fit: contain; background: #111;">
                     @else
                         <div class="d-flex align-items-center justify-content-center" style="height: 500px;">
                             <div class="text-center text-muted">
@@ -380,7 +372,6 @@
                         <div class="d-inline-flex align-items-center justify-content-center bg-light text-primary rounded-circle mb-3" style="width: 60px; height: 60px;">
                             <i class="bi {{ in_array($foco->tipo_respuesta, ['avistamiento', 'encontrado']) ? 'bi-camera-video' : 'bi-geo-alt' }} fs-2"></i>
                         </div>
-                        <h4 class="fw-bold">{{ in_array($foco->tipo_respuesta, ['avistamiento', 'encontrado']) ? 'Evidencia (Avistamiento)' : 'Pista de BÃºsqueda' }}</h4>
                         <h4 class="fw-bold">{{ in_array($foco->tipo_respuesta, ['avistamiento', 'encontrado']) ? 'Evidencia (Avistamiento)' : 'Pista de Búsqueda' }}</h4>
                         @if(in_array($foco->tipo_respuesta, ['avistamiento', 'encontrado']))
                             @if($foco->estado_evidencia == 'approved')
@@ -433,7 +424,7 @@
                                 <i class="bi bi-geo-alt text-secondary"></i>
                             </div>
                             <div>
-                                <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.7rem;">UbicaciÃ³n</small>
+                                <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.7rem;">Ubicación</small>
                                 <a href="https://maps.google.com/?q={{ $foco->ubicacion_lat }},{{ $foco->ubicacion_lng }}" target="_blank" class="fw-bold text-primary text-decoration-none">Ver en Google Maps <i class="bi bi-box-arrow-up-right ms-1"></i></a>
                             </div>
                         </div>
@@ -458,7 +449,7 @@
                                 <i class="bi bi-whatsapp"></i>
                             </div>
                             <div>
-                                <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.7rem;">TelÃ©fono</small>
+                                <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.7rem;">Teléfono</small>
                                 <a href="tel:{{ $reporte->telefono_contacto }}" class="fw-bold text-dark text-decoration-none fs-5">{{ $reporte->telefono_contacto }}</a>
                             </div>
                         </div>
@@ -485,7 +476,7 @@
                         <i class="bi bi-hourglass-split me-2"></i> Seguimiento
                     </h5>
                     @if(count($timeline) > 5)
-                        <small class="text-muted" style="font-size: 0.75rem;">Desliza para ver mÃ¡s</small>
+                        <small class="text-muted" style="font-size: 0.75rem;">Desliza para ver más</small>
                     @endif
                 </div>
                 <div class="card-body p-4 flex-grow-1 d-flex flex-column">
@@ -526,7 +517,7 @@
     </div>
 </div>
 
-<!-- Nueva SecciÃ³n: Registro de Evidencias (Voluntarios) -->
+<!-- Nueva Sección: Registro de Evidencias (Voluntarios) -->
 <div class="container-fluid px-4 py-2 mt-2">
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-header bg-white border-bottom-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
@@ -636,14 +627,14 @@
                 <div class="text-center py-5 text-muted">
                     <i class="bi bi-inbox fs-1 mb-3 text-light"></i>
                     <h6>No hay evidencias registradas</h6>
-                    <p class="small">Las evidencias enviadas por los voluntarios aparecerÃ¡n aquÃ­.</p>
+                    <p class="small">Las evidencias enviadas por los voluntarios aparecerán aquí.</p>
                 </div>
             @endif
         </div>
     </div>
 </div>
 
-<!-- Nueva SecciÃ³n: Registro de Pistas (Admin/Creador) -->
+<!-- Nueva Sección: Registro de Pistas (Admin/Creador) -->
 <div class="container-fluid px-4 py-2">
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-header bg-white border-bottom-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
@@ -690,8 +681,8 @@
                                                 <i class="bi bi-search"></i> Ver
                                             </a>
                                             @if(auth()->user()->hasRole('administrador') || auth()->user()->hasRole('editor') || auth()->user()->id == $reporte->usuario_id)
-                                                <!-- Opcional: Modal de editar se puede aÃ±adir aquÃ­ -->
-                                                <button type="button" class="btn btn-sm btn-outline-secondary" title="Editar Información" onclick="editarInformacion('{{ $reporte->id }}', '{{ $pista->id }}', '{{ addslashes($pista->titulo) }}', '{{ addslashes($pista->mensaje) }}')">
+                                                <!-- Opcional: Modal de editar se puede añadir aquí -->
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" title="Editar Información" onclick="editarInformacion('{{ $reporte->id }}', '{{ $pista->id }}', '{{ addslashes($pista->titulo ?? '') }}', '{{ addslashes($pista->mensaje ?? '') }}')">
                                                     <i class="bi bi-pencil-square"></i>
                                                 </button>
                                                 <form action="{{ route('reportes.informacion.destroy', [$reporte->id, $pista->id]) }}" method="POST" class="d-inline">
@@ -736,7 +727,7 @@ const CREATED_AT = @json($reporte->created_at);
 const UPDATED_AT = @json($reporte->updated_at);
 const RADIO_BASE = 0.0007; // Mismo radio que en cuadrantes/index
 
-// Calcular nivel dinÃ¡mico basado en el tiempo (misma fÃ³rmula que cuadrantes/index)
+// Calcular nivel dinámico basado en el tiempo (misma fórmula que cuadrantes/index)
 function calcularNivelDinamico(fechaStr, fechaFinStr, estado) {
     if (!fechaStr) return 1;
     const fecha = new Date(fechaStr);
@@ -760,11 +751,11 @@ function calcularNivelDinamico(fechaStr, fechaFinStr, estado) {
 const NIVEL_EXPAN = calcularNivelDinamico(CREATED_AT, UPDATED_AT, ESTADO_REPORTE);
 @php
     $pistasJs = $pistas->map(function($p) {
-        // Usar relationLoaded para evitar RelationNotFoundException si no se precargÃ³ correctamente
+        // Usar relationLoaded para evitar RelationNotFoundException si no se precargó correctamente
         $imagenesRel = $p->relationLoaded('imagenes') ? $p->getRelation('imagenes') : null;
         $img = $imagenesRel && $imagenesRel->count() > 0 ? $imagenesRel->first()->url : null;
 
-        // Fallback: Si no hay en la relaciÃ³n, revisar la columna JSON
+        // Fallback: Si no hay en la relación, revisar la columna JSON
         if (!$img && is_array($p->imagenes) && count($p->imagenes) > 0) {
             $firstImg = $p->imagenes[0];
             $img = is_string($firstImg) ? $firstImg : ($firstImg['url'] ?? null);
@@ -857,7 +848,7 @@ const iconTemporal = L.divIcon({
 // â”€â”€â”€ Init Mapa â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @if($reporte->ubicacion_exacta_lat && $reporte->ubicacion_exacta_lng)
 document.addEventListener('DOMContentLoaded', function() {
-    // Inyectar estilos de animaciÃ³n
+    // Inyectar estilos de animación
     const style = document.createElement('style');
     style.textContent = `
         @keyframes pulsoRojo {
@@ -1138,20 +1129,20 @@ function guardarPista() {
         cancelarModoPista();
     })
     .catch(() => {
-        msg.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>Error de conexiÃ³n.</span>`;
+        msg.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>Error de conexión.</span>`;
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-cloud-arrow-up-fill me-2"></i>Guardar Pista';
     });
 }
 
-// â”€â”€â”€ Confirmar eliminaciÃ³n de pista â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€â”€ Confirmar eliminación de pista â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 document.addEventListener('DOMContentLoaded', function() {
     const btnEliminarPista = document.querySelectorAll('.btn-eliminar-informacion');
     btnEliminarPista.forEach(btn => {
         btn.addEventListener('click', function() {
             const form = this.closest('form');
             Swal.fire({
-                title: 'Â¿Eliminar evidencia?',
+                title: '¿Eliminar evidencia?',
                 text: "Esta acción no se puede deshacer y se borrará la foto y el mensaje para siempre.",
                 icon: 'warning',
                 showCancelButton: true,
@@ -1237,7 +1228,7 @@ function editarInformacion(reporteId, pistaId, tituloActual, mensajeActual) {
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.12));
 }
 </style>
-<!-- Formulario oculto para cerrar bÃºsqueda -->
+<!-- Formulario oculto para cerrar búsqueda -->
 <form id="form-cerrar-{{ $reporte->id }}" action="{{ route('reportes.cerrar', $reporte->id) }}" method="POST" style="display: none;">
     @csrf
     @method('PUT')
@@ -1264,13 +1255,13 @@ function confirmarPausa(id) {
 
 function confirmarReanudar(id) {
     Swal.fire({
-        title: 'Reanudar BÃºsqueda',
-        text: "Al reanudar esta bÃºsqueda, volverÃ¡ a estar activa y visible para los voluntarios.",
+        title: 'Reanudar Búsqueda',
+        text: "Al reanudar esta búsqueda, volverá a estar activa y visible para los voluntarios.",
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#198754',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="bi bi-play-circle"></i> Confirmar ReanudaciÃ³n',
+        confirmButtonText: '<i class="bi bi-play-circle"></i> Confirmar Reanudación',
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -1281,12 +1272,12 @@ function confirmarReanudar(id) {
 
 function confirmarCierre(id) {
     Swal.fire({
-        title: 'Cerrar BÃºsqueda',
-        text: "Al cerrar esta bÃºsqueda, dejarÃ¡ de ser visible para los voluntarios en la app mÃ³vil y se les notificarÃ¡.",
+        title: 'Cerrar Búsqueda',
+        text: "Al cerrar esta búsqueda, dejará de ser visible para los voluntarios en la app móvil y se les notificará.",
         icon: 'warning',
         input: 'textarea',
         inputLabel: 'Motivo del cierre',
-        inputPlaceholder: 'Ej. El operativo fue cancelado por orden superior, o se encontrÃ³ lo buscado...',
+        inputPlaceholder: 'Ej. El operativo fue cancelado por orden superior, o se encontró lo buscado...',
         inputAttributes: {
             'aria-label': 'Motivo del cierre'
         },
@@ -1297,7 +1288,7 @@ function confirmarCierre(id) {
         cancelButtonText: 'Cancelar',
         inputValidator: (value) => {
             if (!value) {
-                return 'Â¡Debes ingresar un motivo para el cierre!'
+                return '¡Debes ingresar un motivo para el cierre!'
             }
         }
     }).then((result) => {
@@ -1307,37 +1298,38 @@ function confirmarCierre(id) {
         }
     });
 }
-</script>
-
-@endsection
-inacion(id) {
+function confirmarEliminacion(id) {
     Swal.fire({
-        title: 'Â¿Eliminar permanentemente?',
-        text: "Esta acción no se puede deshacer y eliminarÃ¡ todos los registros asociados. Se notificarÃ¡ a los participantes.",
+        title: '¿Eliminar permanentemente?',
+        text: "Esta acción no se puede deshacer y eliminará todos los registros asociados. Se notificará a los participantes.",
         icon: 'error',
         input: 'textarea',
-        inputLabel: 'Motivo de eliminaciÃ³n',
+        inputLabel: 'Motivo de eliminación',
         inputPlaceholder: 'Ej. Reporte falso, spam, duplicado...',
-        inputValidator: (value) => {
-            if (!value) return 'Â¡Debes ingresar un motivo para eliminar!';
+        inputAttributes: {
+            'aria-label': 'Motivo de eliminacion'
         },
         showCancelButton: true,
         confirmButtonColor: '#dc3545',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="bi bi-trash"></i> Sí, eliminar',
-        cancelButtonText: 'Cancelar'
+        confirmButtonText: '<i class="bi bi-trash"></i> Sí, eliminar definitivamente',
+        cancelButtonText: 'Cancelar',
+        inputValidator: (value) => {
+            if (!value) {
+                return 'Debes ingresar un motivo para la eliminacion';
+            }
+        }
     }).then((result) => {
         if (result.isConfirmed) {
-            let form = document.getElementById('form-eliminar-' + id);
-            let input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'motivo_eliminacion';
-            input.value = result.value;
-            form.appendChild(input);
+            const form = document.getElementById('form-eliminar-' + id);
+            const motivoInput = document.createElement('input');
+            motivoInput.type = 'hidden';
+            motivoInput.name = 'motivo_eliminacion';
+            motivoInput.value = result.value;
+            form.appendChild(motivoInput);
             form.submit();
         }
     });
 }
 </script>
-
 @endsection

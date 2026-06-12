@@ -19,9 +19,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use App\Services\FcmService;
-use Carbon\Carbon;
-use App\Services\FcmService;
 use App\Services\NotificacionPlantillas;
+use Carbon\Carbon;
 
 class ReporteController extends Controller
 {
@@ -1421,6 +1420,34 @@ class ReporteController extends Controller
     // =========================================================================
 
     /**
+     * Obtener todas las pistas/respuestas con coordenadas (usado por la app móvil en Panel de Control)
+     */
+    public function obtenerPistasApp($reporteId)
+    {
+        try {
+            $reporte = Reporte::findOrFail($reporteId);
+
+            $pistas = \App\Models\Respuesta::where('reporte_id', $reporte->id)
+                ->whereNotNull('ubicacion_lat')
+                ->whereNotNull('ubicacion_lng')
+                ->whereIn('tipo_respuesta', ['pista', 'informacion', 'avistamiento', 'encontrado'])
+                ->orderBy('created_at')
+                ->get(['id', 'tipo_respuesta', 'mensaje', 'ubicacion_lat', 'ubicacion_lng', 'created_at', 'estado_evidencia']);
+
+            return response()->json([
+                'success' => true,
+                'data' => $pistas,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener pistas',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Listar toda la información (respuestas tipo 'informacion') de un reporte
      */
     public function listarInformacion($reporteId)
@@ -1859,8 +1886,8 @@ class ReporteController extends Controller
     }
 
     /**
-     * Calcular distancia entre dos coordenadas usando la fórmula de Haversine.
-     * Retorna la distancia en kilómetros.
+     * Calcular distancia entre dos coordenadas usando la formula de Haversine.
+     * Retorna la distancia en kilometros.
      */
     private function haversineKm(float $lat1, float $lng1, float $lat2, float $lng2): float
     {
@@ -1876,4 +1903,3 @@ class ReporteController extends Controller
         return $radioTierra * $c;
     }
 }
-

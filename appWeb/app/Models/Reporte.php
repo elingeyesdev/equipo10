@@ -38,7 +38,8 @@ class Reporte extends Model
         'recompensa',
         'justificacion',
         'vistas',
-        
+        'motivo_cierre',
+        'motivo_eliminacion',
     ];
 
     protected $casts = [

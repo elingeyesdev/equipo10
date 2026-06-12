@@ -97,6 +97,17 @@ class FcmService
                         'title' => $titulo,
                         'body' => $cuerpo,
                     ],
+                    // TTL: si no se puede entregar en 1 hora, Firebase descarta la notificación
+                    // Esto evita que notificaciones viejas lleguen horas después (Doze mode)
+                    'android' => [
+                        'ttl' => '3600s',
+                        'priority' => 'HIGH',
+                    ],
+                    'apns' => [
+                        'headers' => [
+                            'apns-expiration' => (string)(time() + 3600),
+                        ],
+                    ],
                 ],
             ];
 

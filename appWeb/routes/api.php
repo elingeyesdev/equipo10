@@ -119,6 +119,9 @@ Route::prefix('grupos')->group(function () {
 Route::prefix('reportes')->group(function () {
     // IMPORTANTE: Rutas específicas PRIMERO
 
+    // Obtener pistas del mapa (alias usado por la app móvil)
+    Route::get('{reporteId}/pistas', [ReporteController::class, 'obtenerPistasApp']);
+
     // Obtener información de búsqueda de un reporte
     Route::get('{reporteId}/informacion', [ReporteController::class, 'listarInformacion']);
     Route::post('{reporteId}/informacion', [ReporteController::class, 'guardarInformacionApi']);
