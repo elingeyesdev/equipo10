@@ -118,18 +118,19 @@ class TrackingViewModel extends ChangeNotifier {
       _refreshTimer =
           Timer.periodic(const Duration(seconds: 3), (_) => notifyListeners());
 
-      // Arrancar Foreground Service (Android) para mantener GPS en background
+      // Arrancar Foreground Service (Android) para mantener GPS en background.
+      // IMPORTANTE: registrar el callback ANTES de startService para no perder
+      // eventos que lleguen inmediatamente al arrancar el servicio.
       if (!kIsWeb && Platform.isAndroid) {
-        await TrackingForegroundService().start(
-          titulo: 'GPS activo — grabando recorrido',
-          reporteId: reporteId,
-          usuarioId: usuarioId,
-        );
-        // Desregistrar callback previo si existía
         _removeServiceCallback?.call();
         _removeServiceCallback = TrackingForegroundService().listenForActions(
           onPausar: () => pausarBusqueda(),
           onTerminar: () => terminarBusqueda(),
+        );
+        await TrackingForegroundService().start(
+          titulo: 'GPS activo — grabando recorrido',
+          reporteId: reporteId,
+          usuarioId: usuarioId,
         );
       }
 

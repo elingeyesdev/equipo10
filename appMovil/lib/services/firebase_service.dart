@@ -52,13 +52,20 @@ class FCMService {
     }
   }
 
-  Future<void> sendTokenToBackend(String token) async {
+  /// Envía el token FCM al backend.
+  /// [explicitUserId] permite pasarlo directamente tras login (cuando ya se
+  /// tiene el ID pero aún no está guardado en SharedPreferences).
+  Future<void> sendTokenToBackend([String? explicitUserId]) async {
     try {
-      final userId = await _apiService.getCurrentUserId();
+      final userId = explicitUserId ?? await _apiService.getCurrentUserId();
       if (userId == null) return;
 
+      // Obtener el token FCM actual del dispositivo
+      final fcmToken = await _messaging.getToken();
+      if (fcmToken == null) return;
+
       await _apiService.client.put('/auth/fcm-token/$userId', data: {
-        'fcm_token': token,
+        'fcm_token': fcmToken,
       });
       debugPrint('Token FCM enviado al backend exitosamente');
     } catch (e) {

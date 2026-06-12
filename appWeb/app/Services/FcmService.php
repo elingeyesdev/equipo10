@@ -14,9 +14,10 @@ class FcmService
 
     public function __construct()
     {
-        $this->projectId = config('services.firebase.project_id', '');
+        $this->projectId   = config('services.firebase.project_id', '');
         $this->clientEmail = config('services.firebase.client_email', '');
-        $this->privateKey = config('services.firebase.private_key', '');
+        // Las variables de entorno almacenan \n como literal — convertir a saltos reales
+        $this->privateKey  = str_replace('\\n', "\n", config('services.firebase.private_key', ''));
     }
 
     /**

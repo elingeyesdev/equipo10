@@ -1197,7 +1197,7 @@ class _PanelControlViewState extends State<PanelControlView> {
       return Marker(
         point: LatLng(evidencia.lat!, evidencia.lng!),
         width: 80,
-        height: 70,
+        height: 92,
         alignment: Alignment.center,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -1558,14 +1558,49 @@ class _PanelControlViewState extends State<PanelControlView> {
     if (vm.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (vm.galeria.isEmpty) {
+
+    // Construir galería combinando datos locales (ya cargados) + los del API
+    // Esto garantiza que siempre se muestre la foto principal aunque el API falle
+    final evVm = context.read<EvidenciaViewModel>();
+    final List<Map<String, dynamic>> todasLasImagenes = [];
+
+    // 1. Foto principal del reporte
+    final fotoPrincipal = vm.ficha?.fotoUrl;
+    if (fotoPrincipal != null && fotoPrincipal.isNotEmpty) {
+      todasLasImagenes.add({
+        'url': fotoPrincipal,
+        'tipo': 'original',
+        'autor': 'Reporte original',
+      });
+    }
+
+    // 2. Evidencias aprobadas con foto (desde el ViewModel local)
+    for (final e in evVm.evidencias) {
+      if (e.estado == 'approved' && e.fotoUrl != null && e.fotoUrl!.isNotEmpty) {
+        todasLasImagenes.add({
+          'url': e.fotoUrl!,
+          'tipo': 'evidencia',
+          'autor': e.nombreUsuario ?? 'Voluntario',
+        });
+      }
+    }
+
+    // 3. Complementar con las del API (si hay extras que no estén ya)
+    final urlsLocales = todasLasImagenes.map((m) => m['url']).toSet();
+    for (final img in vm.galeria) {
+      if (!urlsLocales.contains(img['url'])) {
+        todasLasImagenes.add(img);
+      }
+    }
+
+    if (todasLasImagenes.isEmpty) {
       return const Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.photo_library_outlined, size: 64, color: Colors.grey),
             SizedBox(height: 16),
-            Text('No hay imágenes en la galería aún.',
+            Text('No hay imagenes en la galeria aun.',
                 style: TextStyle(color: Colors.grey)),
           ],
         ),
@@ -1579,9 +1614,9 @@ class _PanelControlViewState extends State<PanelControlView> {
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
       ),
-      itemCount: vm.galeria.length,
+      itemCount: todasLasImagenes.length,
       itemBuilder: (context, index) {
-        final img = vm.galeria[index];
+        final img = todasLasImagenes[index];
         return GestureDetector(
           onTap: () {
             Navigator.push(

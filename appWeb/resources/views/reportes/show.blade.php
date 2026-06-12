@@ -154,28 +154,39 @@
             <p class="mb-0 opacity-75">ID de Reporte: #{{ $reporte->id }}</p>
         </div>
         <div class="d-flex gap-2">
+            {{-- Formulario oculto para pausar --}}
+            <form action="{{ route('reportes.pausar', $reporte->id) }}" method="POST" class="d-none" id="form-pausar-{{ $reporte->id }}">
+                @csrf
+                @method('PUT')
+            </form>
+
             @if(auth()->check() && (auth()->id() == $reporte->usuario_id || auth()->user()->hasRole('administrador')))
-                @if($reporte->estado === 'cerrado')
+                @if(in_array($reporte->estado, ['cerrado', 'pausado']))
                     <form action="{{ route('reportes.reanudar', $reporte->id) }}" method="POST" class="d-inline" id="form-reanudar-{{ $reporte->id }}">
                         @csrf
                         @method('PUT')
                         <button type="button" class="btn btn-success fw-semibold shadow-sm border-0" onclick="confirmarReanudar('{{ $reporte->id }}')">
-                            <i class="bi bi-play-circle me-1"></i> Reanudar BÃºsqueda
+                            <i class="bi bi-play-circle me-1"></i> Reanudar Búsqueda
                         </button>
                     </form>
                 @else
+                    {{-- Pausar (solo activo/en progreso) --}}
+                    <button type="button" class="btn btn-info fw-semibold shadow-sm border-0 text-white" onclick="confirmarPausa('{{ $reporte->id }}')">
+                        <i class="bi bi-pause-circle me-1"></i> Pausar Búsqueda
+                    </button>
+                    {{-- Cerrar definitivamente --}}
                     <button type="button" class="btn btn-warning fw-semibold shadow-sm border-0 text-dark" onclick="confirmarCierre('{{ $reporte->id }}')">
-                        <i class="bi bi-x-circle me-1"></i> Cerrar BÃºsqueda
+                        <i class="bi bi-x-circle me-1"></i> Cerrar Búsqueda
                     </button>
                 @endif
             @else
-                @if($reporte->estado === 'cerrado')
-                    <button type="button" class="btn btn-secondary fw-semibold shadow-sm border-0" disabled title="Solo el creador o un admin puede reanudar la bÃºsqueda">
-                        <i class="bi bi-play-circle me-1"></i> Reanudar BÃºsqueda
+                @if(in_array($reporte->estado, ['cerrado', 'pausado']))
+                    <button type="button" class="btn btn-secondary fw-semibold shadow-sm border-0" disabled title="Solo el creador o un admin puede reanudar la búsqueda">
+                        <i class="bi bi-play-circle me-1"></i> Reanudar Búsqueda
                     </button>
                 @else
-                    <button type="button" class="btn btn-secondary fw-semibold shadow-sm border-0" disabled title="Solo el creador o un admin puede cerrar la bÃºsqueda">
-                        <i class="bi bi-x-circle me-1"></i> Cerrar BÃºsqueda
+                    <button type="button" class="btn btn-secondary fw-semibold shadow-sm border-0" disabled title="Solo el creador o un admin puede gestionar la búsqueda">
+                        <i class="bi bi-pause-circle me-1"></i> Pausar Búsqueda
                     </button>
                 @endif
             @endif
@@ -387,7 +398,7 @@
                     @if(!in_array($foco->tipo_respuesta, ['avistamiento', 'encontrado']))
                     <div class="bg-light p-3 rounded-4 mb-3">
                         <h6 class="fw-bold text-muted mb-2 text-uppercase" style="font-size: 0.75rem;">Título y Categoría</h6>
-                        <p class="fs-5 fw-bold mb-1 text-dark" style="line-height: 1.2;">{{ $foco->título }}</p>
+                        <p class="fs-5 fw-bold mb-1 text-dark" style="line-height: 1.2;">{{ $foco->titulo }}</p>
                         <span class="badge bg-secondary">{{ $foco->categoria_informacion }}</span>
                     </div>
                     @endif
@@ -647,7 +658,7 @@
                     <table class="table table-hover align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th scope="col" class="border-0 rounded-stítulo / Categoria</th>
+                                <th scope="col" class="border-0 rounded-start">Título / Categoría</th>
                                 <th scope="col" class="border-0">Descripción</th>
                                 <th scope="col" class="border-0">Autor</th>
                                 <th scope="col" class="border-0">Fecha</th>
@@ -658,7 +669,7 @@
                             @foreach($pistasAdmin as $pista)
                                 <tr>
                                     <td>
-                                        <p class="mb-0 fw-bold text-dark">{{ Stítulo, 50) }}</p>
+                                        <p class="mb-0 fw-bold text-dark">{{ Str::limit($pista->titulo, 50) }}</p>
                                         <small class="text-muted text-uppercase" style="font-size: 0.7rem;">{{ $pista->categoria_informacion ?? 'Información' }}</small>
                                     </td>
                                     <td>
@@ -1210,6 +1221,7 @@ function editarInformacion(reporteId, pistaId, tituloActual, mensajeActual) {
         }
     });
 }
+</script>
 
 <style>
 .leaflet-tooltip-pista {
@@ -1233,6 +1245,23 @@ function editarInformacion(reporteId, pistaId, tituloActual, mensajeActual) {
 </form>
 
 <script>
+function confirmarPausa(id) {
+    Swal.fire({
+        title: 'Pausar Búsqueda',
+        text: 'La búsqueda quedará suspendida temporalmente. Los voluntarios recibirán una notificación. Puedes reanudarla cuando quieras.',
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonColor: '#0dcaf0',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="bi bi-pause-circle"></i> Sí, pausar búsqueda',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('form-pausar-' + id).submit();
+        }
+    });
+}
+
 function confirmarReanudar(id) {
     Swal.fire({
         title: 'Reanudar BÃºsqueda',
@@ -1278,8 +1307,10 @@ function confirmarCierre(id) {
         }
     });
 }
+</script>
 
-function confirmarEliminacion(id) {
+@endsection
+inacion(id) {
     Swal.fire({
         title: 'Â¿Eliminar permanentemente?',
         text: "Esta acción no se puede deshacer y eliminarÃ¡ todos los registros asociados. Se notificarÃ¡ a los participantes.",

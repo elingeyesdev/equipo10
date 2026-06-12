@@ -91,7 +91,9 @@ Route::get('/', function () {
     Route::resource('reportes', ReporteWebController::class);
     // Cerrar búsqueda con motivo
     Route::put('/reportes/{reporte}/cerrar', [ReporteWebController::class, 'cerrar'])->name('reportes.cerrar');
-    // Reanudar búsqueda
+    // Pausar búsqueda (suspensión temporal)
+    Route::put('/reportes/{reporte}/pausar', [ReporteWebController::class, 'pausar'])->name('reportes.pausar');
+    // Reanudar búsqueda (desde cerrada o pausada)
     Route::put('/reportes/{reporte}/reanudar', [ReporteWebController::class, 'reanudar'])->name('reportes.reanudar');
     // Guardar pista de búsqueda en un reporte (solo admin o creador, validado en controller)
     Route::post('/reportes/{reporte}/informacion', [ReporteWebController::class, 'guardarInformacion'])->name('reportes.informacion.store');

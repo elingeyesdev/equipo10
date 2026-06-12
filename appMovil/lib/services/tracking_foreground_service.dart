@@ -22,8 +22,11 @@ class _TrackingTaskHandler extends TaskHandler {
   Future<void> onDestroy(DateTime timestamp) async {}
 
   /// Reenvía los taps de botones de notificación al isolate principal.
+  /// wakeUpScreen() asegura que el engine de Flutter procese el evento
+  /// aunque la app esté suspendida en segundo plano.
   @override
   void onNotificationButtonPressed(String id) {
+    FlutterForegroundTask.wakeUpScreen();
     FlutterForegroundTask.sendDataToMain(id);
   }
 }

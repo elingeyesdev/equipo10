@@ -18,6 +18,7 @@ use App\Models\ImagenAlmacenada;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use App\Services\FcmService;
 use Carbon\Carbon;
 use App\Services\FcmService;
 use App\Services\NotificacionPlantillas;
@@ -703,6 +704,29 @@ class ReporteController extends Controller
             }
 
             DB::commit();
+
+            // Enviar push FCM a los voluntarios con token registrado
+            $fcm = new FcmService();
+            if ($fcm->estaConfigurado()) {
+                $tokens = \App\Models\ReporteVoluntario::where('reporte_id', $reporte->id)
+                    ->whereIn('estado', ['buscando', 'esperando'])
+                    ->with('usuario')
+                    ->get()
+                    ->filter(fn($v) => $v->usuario_id !== $reporte->usuario_id)
+                    ->map(fn($v) => $v->usuario?->fcm_token)
+                    ->filter()
+                    ->values()
+                    ->toArray();
+
+                if (!empty($tokens)) {
+                    $fcm->enviarMasivo(
+                        $tokens,
+                        'Alerta del Coordinador',
+                        $request->mensaje,
+                        ['reporte_id' => $reporte->id, 'tipo' => 'alerta_operativo']
+                    );
+                }
+            }
 
             return response()->json([
                 'success' => true,

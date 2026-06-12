@@ -339,17 +339,102 @@ class ReporteWebController extends Controller
             ->with('success', 'Búsqueda cerrada exitosamente.');
     }
 
+    public function pausar(Request $request, string $id)
+    {
+        $reporte = Reporte::findOrFail($id);
+
+        if (!in_array($reporte->estado, ['activo', 'en_progreso'])) {
+            return redirect()->route('reportes.show', $reporte->id)
+                ->with('error', 'Solo se puede pausar una búsqueda activa.');
+        }
+
+        $reporte->update(['estado' => 'pausado']);
+
+        // Notificar a voluntarios y creador
+        $usuariosANotificar = \App\Models\ReporteVoluntario::where('reporte_id', $reporte->id)
+            ->pluck('usuario_id')->toArray();
+        if (!in_array($reporte->usuario_id, $usuariosANotificar)) {
+            $usuariosANotificar[] = $reporte->usuario_id;
+        }
+
+        $titulo  = 'Búsqueda Pausada';
+        $mensaje = 'La búsqueda "' . $reporte->titulo . '" ha sido pausada temporalmente. Te avisaremos cuando se reanude.';
+        $fcm     = new FcmService();
+
+        foreach (array_unique($usuariosANotificar) as $userId) {
+            $notif = \App\Models\Notificacion::create([
+                'usuario_id'   => $userId,
+                'tipo'         => 'alerta_operativo',
+                'titulo'       => $titulo,
+                'mensaje'      => $mensaje,
+                'leida'        => false,
+                'enviada_push' => false,
+            ]);
+
+            $usuario = \App\Models\Usuario::find($userId);
+            if ($usuario && !empty($usuario->fcm_token) && $fcm->estaConfigurado()) {
+                $enviado = $fcm->enviarAToken(
+                    $usuario->fcm_token,
+                    $titulo,
+                    $mensaje,
+                    ['reporte_id' => $reporte->id, 'tipo' => 'alerta_operativo']
+                );
+                if ($enviado) {
+                    $notif->update(['enviada_push' => true]);
+                }
+            }
+        }
+
+        return redirect()->route('reportes.show', $reporte->id)
+            ->with('success', 'Búsqueda pausada. Los voluntarios serán notificados.');
+    }
+
     public function reanudar(Request $request, string $id)
     {
         $reporte = Reporte::findOrFail($id);
 
-        if ($reporte->estado !== 'cerrado') {
+        if (!in_array($reporte->estado, ['cerrado', 'pausado'])) {
             return redirect()->route('reportes.show', $reporte->id)
-                ->with('error', 'Solo se puede reanudar una búsqueda que está cerrada.');
+                ->with('error', 'Solo se puede reanudar una búsqueda cerrada o pausada.');
         }
 
         $reporte->estado = 'activo';
         $reporte->save();
+
+        // Notificar a voluntarios que la búsqueda se reanudó
+        $usuariosANotificar = \App\Models\ReporteVoluntario::where('reporte_id', $reporte->id)
+            ->pluck('usuario_id')->toArray();
+        if (!in_array($reporte->usuario_id, $usuariosANotificar)) {
+            $usuariosANotificar[] = $reporte->usuario_id;
+        }
+
+        $titulo  = 'Búsqueda Reanudada';
+        $mensaje = 'La búsqueda "' . $reporte->titulo . '" ha sido reanudada. ¡Volvemos a buscar!';
+        $fcm     = new FcmService();
+
+        foreach (array_unique($usuariosANotificar) as $userId) {
+            $notif = \App\Models\Notificacion::create([
+                'usuario_id'   => $userId,
+                'tipo'         => 'alerta_operativo',
+                'titulo'       => $titulo,
+                'mensaje'      => $mensaje,
+                'leida'        => false,
+                'enviada_push' => false,
+            ]);
+
+            $usuario = \App\Models\Usuario::find($userId);
+            if ($usuario && !empty($usuario->fcm_token) && $fcm->estaConfigurado()) {
+                $enviado = $fcm->enviarAToken(
+                    $usuario->fcm_token,
+                    $titulo,
+                    $mensaje,
+                    ['reporte_id' => $reporte->id, 'tipo' => 'alerta_operativo']
+                );
+                if ($enviado) {
+                    $notif->update(['enviada_push' => true]);
+                }
+            }
+        }
 
         return redirect()->route('reportes.show', $reporte->id)
             ->with('success', 'Búsqueda reanudada exitosamente.');

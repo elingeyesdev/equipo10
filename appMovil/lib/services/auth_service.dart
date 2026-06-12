@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../models/perfil_model.dart';
 import 'api_service.dart';
+import 'firebase_service.dart';
 
 class AuthService {
   final ApiService _api = ApiService();
@@ -71,6 +72,10 @@ class AuthService {
         final token = response.data['data']['token'];
         final user = response.data['data']['usuario'];
         await _api.saveSession(token, user['id']);
+        // Registrar el token FCM ahora que ya hay sesión activa.
+        // (FCMService.init() corre al arrancar la app antes del login,
+        //  por eso puede fallar. Aquí lo reintentamos con sesión válida.)
+        FCMService().sendTokenToBackend(user['id'].toString()).ignore();
       } else {
         throw Exception(response.data['message'] ?? 'Credenciales incorrectas');
       }
