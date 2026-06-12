@@ -495,8 +495,9 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
           return {
             'id': p['id']?.toString(),
             'cuadrante_id': p['cuadrante_id']?.toString(),
-            'etiqueta': p['mensaje']?.toString() ?? 'Pista',
-            'descripcion': p['direccion_referencia']?.toString(),
+            'titulo': p['titulo']?.toString(),
+            'etiqueta': p['categoria_informacion']?.toString() ?? 'Nueva pista',
+            'descripcion': p['mensaje']?.toString(),
             'lat': lat,
             'lng': lng,
             'fecha': fullDate.length >= 10 ? fullDate.substring(0, 10) : '',
@@ -804,12 +805,14 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
 
       if ((response.statusCode == 200 || response.statusCode == 201) &&
           response.data['success'] == true) {
+        final wasEditing = _editandoPista;
         setState(() {
           _pinTemporal = null;
           _cuadranteTemporal = null;
           _modoPista = false;
           _editandoPista = false;
           _pistaEnEdicion = null;
+          _pistaTooltip = null;
           _tituloPistaCtrl.clear();
           _descripcionPistaCtrl.clear();
         });
@@ -822,7 +825,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               const Icon(Icons.check_circle, color: Colors.white),
               const SizedBox(width: 10),
               Expanded(
-                  child: Text(_editandoPista
+                  child: Text(wasEditing
                       ? 'Cambios guardados'
                       : 'Nueva pista guardada')),
             ]),
@@ -1135,7 +1138,16 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                         child: OutlinedButton(
                           onPressed: () {
                             Navigator.pop(ctx);
-                            // Permanece en modoPista para poder mover el pin si quiere
+                            setState(() {
+                              _modoPista = false;
+                              _editandoPista = false;
+                              _pistaEnEdicion = null;
+                              _pinTemporal = null;
+                              _cuadranteTemporal = null;
+                              _pistaTooltip = null;
+                              _tituloPistaCtrl.clear();
+                              _descripcionPistaCtrl.clear();
+                            });
                           },
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Colors.grey),

@@ -150,7 +150,7 @@
                     <i class="bi bi-clock me-1"></i> Publicado {{ $reporte->created_at ? $reporte->created_at->diffForHumans() : 'Fecha desconocida' }}
                 </span>
             </div>
-            <h1 class="fw-bold mb-1">{{ $reportítulo }}</h1>
+            <h1 class="fw-bold mb-1">{{ $reporte->titulo }}</h1>
             <p class="mb-0 opacity-75">ID de Reporte: #{{ $reporte->id }}</p>
         </div>
         <div class="d-flex gap-2">
