@@ -318,18 +318,29 @@ class _LPPPickerViewState extends State<LPPPickerView> {
       appBar: AppBar(
         backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
-        title: const Text('Indicar LPP', style: TextStyle(color: Colors.white)),
+        centerTitle: false,
+        titleSpacing: 0,
+        title: const Text('Lugar del incidente',
+            style: TextStyle(color: Colors.white)),
         actions: [
           if (_selectedLPP != null) ...[
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.white70),
+              icon: Image.asset(
+                'assets/icons/icon_basura_redondo.png',
+                color: Colors.white,
+                width: 22,
+                height: 22,
+              ),
               onPressed: _limpiarUbicacion,
               tooltip: 'Quitar marcador',
             ),
-            IconButton(
-              icon: const Icon(Icons.check, color: Colors.white),
-              onPressed: _confirmarUbicacion,
-              tooltip: 'Confirmar Zona',
+            Padding(
+              padding: const EdgeInsets.only(right: 12.0),
+              child: IconButton(
+                icon: const Icon(Icons.check, color: Colors.white),
+                onPressed: _confirmarUbicacion,
+                tooltip: 'Confirmar Zona',
+              ),
             ),
           ]
         ],
@@ -357,7 +368,7 @@ class _LPPPickerViewState extends State<LPPPickerView> {
                       height: 44,
                       child: const Icon(
                         Icons.location_on,
-                        color: Colors.red,
+                        color: Colors.redAccent,
                         size: 44,
                         shadows: [Shadow(blurRadius: 8, color: Colors.black45)],
                       ),
@@ -367,28 +378,69 @@ class _LPPPickerViewState extends State<LPPPickerView> {
             ],
           ),
 
-          // Toggle de capas (satelital / callejero) y Mi ubicación
+          // Botón GPS — esquina inferior derecha
           Positioned(
-            bottom: 16,
+            bottom: 24,
             right: 16,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FloatingActionButton(
-                  heroTag: 'my_location',
-                  mini: true,
-                  backgroundColor: Colors.white,
-                  onPressed: _irAUbicacionActual,
-                  child: const Icon(Icons.my_location, color: AppTheme.primary),
-                ),
-                const SizedBox(height: 8),
-                MapLayerToggleButton(
-                  heroTag: null,
-                  useSatellite: _useSatellite,
-                  onToggle: () =>
-                      setState(() => _useSatellite = !_useSatellite),
-                ),
-              ],
+            child: ElevatedButton(
+              onPressed: _irAUbicacionActual,
+              style: ButtonStyle(
+                backgroundColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.pressed)
+                        ? AppTheme.primary
+                        : Colors.white),
+                foregroundColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.pressed)
+                        ? Colors.white
+                        : AppTheme.primary),
+                elevation: WidgetStateProperty.all(4),
+                shape: WidgetStateProperty.all(const CircleBorder()),
+                padding: WidgetStateProperty.all(
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 16)),
+                minimumSize: WidgetStateProperty.all(const Size(0, 52)),
+              ),
+              child: const Icon(Icons.my_location, size: 22),
+            ),
+          ),
+
+          // Botón capa mapa — esquina inferior izquierda
+          Positioned(
+            bottom: 24,
+            left: 16,
+            child: ElevatedButton(
+              onPressed: () => setState(() => _useSatellite = !_useSatellite),
+              style: ButtonStyle(
+                backgroundColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.pressed)
+                        ? AppTheme.primary
+                        : Colors.white),
+                foregroundColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.pressed)
+                        ? Colors.white
+                        : AppTheme.primary),
+                elevation: WidgetStateProperty.all(4),
+                shape: WidgetStateProperty.all(RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(50))),
+                padding: WidgetStateProperty.all(
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
+                minimumSize: WidgetStateProperty.all(const Size(0, 52)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _useSatellite
+                        ? Icons.map_outlined
+                        : Icons.satellite_outlined,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    _useSatellite ? 'Callejero' : 'Satélite',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -400,52 +452,55 @@ class _LPPPickerViewState extends State<LPPPickerView> {
             child: Column(
               children: [
                 // Campo de búsqueda
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: const [
-                      BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 6,
-                          offset: Offset(0, 2))
-                    ],
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: _onBusquedaCambiada,
-                    decoration: InputDecoration(
-                      hintText: 'Buscar lugar en Santa Cruz...',
-                      hintStyle: const TextStyle(color: Colors.grey),
-                      prefixIcon:
-                          const Icon(Icons.search, color: AppTheme.primary),
-                      suffixIcon: _buscando
-                          ? const Padding(
-                              padding: EdgeInsets.all(12),
-                              child: SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppTheme.primary,
-                                ),
+                TextField(
+                  controller: _searchController,
+                  onChanged: _onBusquedaCambiada,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar lugar en Santa Cruz...',
+                    hintStyle: const TextStyle(color: Colors.grey),
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    suffixIcon: _buscando
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                color: AppTheme.primary,
                               ),
-                            )
-                          : _searchController.text.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.close,
-                                      color: Colors.grey),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() {
-                                      _sugerencias = [];
-                                      _mostrarSugerencias = false;
-                                    });
-                                  },
-                                )
-                              : null,
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                          )
+                        : _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.close,
+                                    color: Colors.grey),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() {
+                                    _sugerencias = [];
+                                    _mostrarSugerencias = false;
+                                  });
+                                },
+                              )
+                            : null,
+                    filled: true,
+                    fillColor: Colors.white,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                        vertical: 10, horizontal: 16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(50),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(50),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(50),
+                      borderSide: const BorderSide(
+                          color: AppTheme.primary, width: 1.5),
                     ),
                   ),
                 ),
@@ -498,24 +553,16 @@ class _LPPPickerViewState extends State<LPPPickerView> {
                   Container(
                     margin: const EdgeInsets.only(top: 8),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
+                        horizontal: 22, vertical: 8),
+                    width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.92),
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: const [
-                        BoxShadow(color: Colors.black12, blurRadius: 4)
-                      ],
+                      color: AppTheme.primary,
+                      borderRadius: BorderRadius.circular(50),
                     ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.touch_app, size: 16, color: Colors.grey),
-                        SizedBox(width: 6),
-                        Text(
-                          'Busca un lugar o toca el mapa para fijar el LPP',
-                          style: TextStyle(fontSize: 12, color: Colors.black54),
-                        ),
-                      ],
+                    child: const Text(
+                      'Busca un lugar o toca el mapa para fijar el lugar del incidente',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, color: Colors.white),
                     ),
                   ),
 
@@ -524,25 +571,26 @@ class _LPPPickerViewState extends State<LPPPickerView> {
                   Container(
                     margin: const EdgeInsets.only(top: 8),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
+                        horizontal: 16, vertical: 8),
+                    width: double.infinity,
                     decoration: BoxDecoration(
-                      color: AppTheme.primary.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(10),
+                      color: AppTheme.primary,
+                      borderRadius: BorderRadius.circular(50),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(Icons.check_circle,
-                            size: 16, color: Colors.white),
+                            size: 14, color: Colors.white),
                         const SizedBox(width: 6),
-                        Text(
-                          _cuadranteSeleccionado != null
-                              ? 'Ubicado en: ${_cuadranteSeleccionado!.nombre}. Toca el check para confirmar.'
-                              : 'LPP y cuadrantes trazados. Toca el check para confirmar.',
-                          style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold),
+                        Flexible(
+                          child: Text(
+                            _cuadranteSeleccionado != null
+                                ? 'Ubicado en: ${_cuadranteSeleccionado!.nombre}. Toca el check para confirmar.'
+                                : 'Ubicación marcada. Toca el check para confirmar.',
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.white),
+                          ),
                         ),
                       ],
                     ),

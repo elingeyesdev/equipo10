@@ -231,14 +231,16 @@ class DetalleFichaViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> enviarComentario(String reporteId, String texto) async {
-    final ok = await _reporteService.enviarComentario(reporteId, texto);
-    if (ok) {
-      // Refresca desde página 1 para que el nuevo comentario aparezca al final
-      await refrescarComentarios();
-    } else {
-      _errorMessage = 'Error al enviar el comentario.';
+  /// Envía un comentario. Retorna true si tuvo éxito, false si falló.
+  Future<bool> enviarComentario(String reporteId, String texto) async {
+    final comentario = await _reporteService.enviarComentario(reporteId, texto);
+    if (comentario != null) {
+      // Update optimista: agregar al final de la lista local sin esperar red
+      _comentarios = [..._comentarios, comentario];
       notifyListeners();
+      return true;
+    } else {
+      return false;
     }
   }
 

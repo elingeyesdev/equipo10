@@ -19,7 +19,7 @@ class CrearFichaViewModel extends ChangeNotifier {
   double? _latitudLPP;
   double? _longitudLPP;
   List<dynamic>?
-      _cuadrantes; // Mantenido temporalmente para compatibilidad LPP, pero ya no se envía
+  _cuadrantes; // Mantenido temporalmente para compatibilidad LPP, pero ya no se envía
 
   List<CategoriaModel> categorias = [];
   String? categoriaSeleccionadaId;
@@ -38,10 +38,23 @@ class CrearFichaViewModel extends ChangeNotifier {
     _cargarCategorias();
   }
 
+  static const _ordenCategorias = [
+    'Personas', 'Mascotas', 'Documentos', 'Electrónicos',
+    'Llaves', 'Ropa/Accesorios', 'Vehículos', 'Otros',
+  ];
+
   Future<void> _cargarCategorias() async {
     _setLoading(true);
     try {
-      categorias = await _categoriaService.obtenerCategorias();
+      final raw = await _categoriaService.obtenerCategorias();
+      raw.sort((a, b) {
+        final ia = _ordenCategorias.indexOf(a.nombre);
+        final ib = _ordenCategorias.indexOf(b.nombre);
+        final ra = ia == -1 ? _ordenCategorias.length : ia;
+        final rb = ib == -1 ? _ordenCategorias.length : ib;
+        return ra.compareTo(rb);
+      });
+      categorias = raw;
       if (categorias.isNotEmpty) {
         categoriaSeleccionadaId = categorias.first.id;
       }

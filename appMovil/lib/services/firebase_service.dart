@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'api_service.dart';
@@ -9,12 +10,13 @@ class FCMService {
   factory FCMService() => _instance;
   FCMService._internal();
 
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final ApiService _apiService = ApiService();
 
   Future<void> init() async {
+    if (Firebase.apps.isEmpty) return;
+
     // 1. Pedir permisos al usuario
-    NotificationSettings settings = await _messaging.requestPermission(
+    NotificationSettings settings = await FirebaseMessaging.instance.requestPermission(
       alert: true,
       badge: true,
       sound: true,
@@ -24,14 +26,14 @@ class FCMService {
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
       // 2. Obtener el token FCM del dispositivo
-      String? token = await _messaging.getToken();
+      String? token = await FirebaseMessaging.instance.getToken();
       if (token != null) {
         debugPrint('FCM Token: $token');
         await sendTokenToBackend(token);
       }
 
       // 3. Escuchar si el token cambia (ej. al restaurar datos)
-      _messaging.onTokenRefresh.listen((newToken) {
+      FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
         sendTokenToBackend(newToken);
       });
 
@@ -57,11 +59,16 @@ class FCMService {
   /// tiene el ID pero aún no está guardado en SharedPreferences).
   Future<void> sendTokenToBackend([String? explicitUserId]) async {
     try {
+      if (Firebase.apps.isEmpty) {
+        debugPrint('Firebase no está inicializado. Omitiendo envío de Token FCM.');
+        return;
+      }
+
       final userId = explicitUserId ?? await _apiService.getCurrentUserId();
       if (userId == null) return;
 
       // Obtener el token FCM actual del dispositivo
-      final fcmToken = await _messaging.getToken();
+      final fcmToken = await FirebaseMessaging.instance.getToken();
       if (fcmToken == null) return;
 
       await _apiService.client.put('/auth/fcm-token/$userId', data: {

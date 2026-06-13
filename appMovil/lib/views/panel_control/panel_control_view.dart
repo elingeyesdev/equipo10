@@ -1,21 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import '../../theme/app_theme.dart';
 import '../../viewmodels/panel_control_viewmodel.dart';
 import '../../viewmodels/evidencia_viewmodel.dart';
-import '../../widgets/map_tile_layer.dart';
-import '../../widgets/lpp_marker.dart';
-import '../../widgets/evidencia_marker.dart';
-import '../../models/cuadrante_model.dart';
-import '../../services/cuadrante_service.dart';
 import '../../services/auth_service.dart';
-import 'revision_evidencias_view.dart';
-import '../widgets/full_screen_image_view.dart';
-import '../widgets/encuesta_dialog.dart';
 import '../../services/pdf_reporte_service.dart';
 import '../../services/reporte_service.dart';
+import 'revision_evidencias_view.dart';
+import 'pdf_progreso_dialog.dart';
+import 'tab_mapa_panel.dart';
+import 'tab_galeria_panel.dart';
+import '../widgets/encuesta_dialog.dart';
 import '../reporte_pdf/reporte_pdf_preview.dart';
 
 class PanelControlView extends StatefulWidget {
@@ -27,16 +23,15 @@ class PanelControlView extends StatefulWidget {
   State<PanelControlView> createState() => _PanelControlViewState();
 }
 
-class _PanelControlViewState extends State<PanelControlView> {
-  final MapController _mapController = MapController();
-  final CuadranteService _cuadranteService = CuadranteService();
-  bool _useSatellite = true;
-
-  List<Polygon> _cuadrantesPolygons = [];
+class _PanelControlViewState extends State<PanelControlView>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() => setState(() {}));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final vm = context.read<PanelControlViewModel>();
       vm.cargarDatos(widget.fichaId);
@@ -45,72 +40,11 @@ class _PanelControlViewState extends State<PanelControlView> {
           .read<EvidenciaViewModel>()
           .cargarEvidencias(widget.fichaId, esCreador: true);
     });
-    _cargarCuadrantes();
-  }
-
-  Future<void> _cargarCuadrantes() async {
-    try {
-      final cuadrantes = await _cuadranteService.getCuadrantes();
-      if (!mounted) return;
-      final polygons = <Polygon>[];
-      for (final c in cuadrantes) {
-        List<LatLng>? pts;
-        if (c.geometria != null) {
-          try {
-            final geo = c.geometria!['type'] == 'Feature'
-                ? c.geometria!['geometry']
-                : c.geometria;
-            if (geo['type'] == 'Polygon') {
-              final coords = geo['coordinates'][0] as List;
-              pts = coords
-                  .map((coord) => LatLng(double.parse(coord[1].toString()),
-                      double.parse(coord[0].toString())))
-                  .toList();
-            }
-          } catch (_) {}
-        }
-        if (pts == null && c.latMin != null) {
-          pts = [
-            LatLng(c.latMax!, c.lngMin!),
-            LatLng(c.latMax!, c.lngMax!),
-            LatLng(c.latMin!, c.lngMax!),
-            LatLng(c.latMin!, c.lngMin!),
-          ];
-        }
-        if (pts != null) {
-          polygons.add(Polygon(
-            points: pts,
-            color: Colors.transparent,
-            borderColor: Colors.blue.withOpacity(0.4),
-            borderStrokeWidth: 1.5,
-          ));
-        }
-      }
-      if (mounted) setState(() => _cuadrantesPolygons = polygons);
-    } catch (_) {}
-  }
-
-  int _calcularNivel(String? fechaStr) {
-    if (fechaStr == null || fechaStr.isEmpty) return 1;
-    final fecha = DateTime.tryParse(fechaStr.replaceAll(' ', 'T'));
-    if (fecha == null) return 1;
-    final diffMin = DateTime.now().difference(fecha).inMinutes;
-    if (diffMin >= 5760) return 10;
-    if (diffMin >= 4320) return 9;
-    if (diffMin >= 2880) return 8;
-    if (diffMin >= 1440) return 7;
-    if (diffMin >= 720) return 6;
-    if (diffMin >= 360) return 5;
-    if (diffMin >= 180) return 4;
-    if (diffMin >= 60) return 3;
-    if (diffMin >= 30) return 2;
-    return 1;
   }
 
   @override
   void dispose() {
-    _mapController.dispose();
-    // Detener polling si la vista se destruye
+    _tabController.dispose();
     context.read<PanelControlViewModel>().detenerPolling();
     super.dispose();
   }
@@ -121,23 +55,45 @@ class _PanelControlViewState extends State<PanelControlView> {
 
     if (nuevoEstado == 'pausado' || nuevoEstado == 'cerrado') {
       justificacion = await _mostrarDialogoJustificacion(context, nuevoEstado);
-      if (justificacion == null) return; // Canceló el diálogo
+      if (justificacion == null) return;
     } else {
       final confirmar = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Confirmar Reanudación'),
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          title: const Text('Confirmar reanudación',
+              style: TextStyle(fontWeight: FontWeight.bold)),
           content: const Text(
               '¿Deseas volver a poner la búsqueda en estado Activa? Los voluntarios podrán unirse nuevamente.'),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancelar')),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1B5E20)),
-              child: const Text('Reanudar'),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('Reanudar'),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.darkDark,
+                    overlayColor: Colors.grey.shade200,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('Cancelar'),
+                ),
+              ],
             ),
           ],
         ),
@@ -153,10 +109,9 @@ class _PanelControlViewState extends State<PanelControlView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Búsqueda cambiada a $nuevoEstado exitosamente.'),
-          backgroundColor: const Color(0xFF1B5E20),
+          backgroundColor: AppTheme.primary,
         ),
       );
-      // Mostrar encuesta de satisfacción al finalizar la búsqueda
       if ((nuevoEstado == 'cerrado' || nuevoEstado == 'resuelto') &&
           mounted &&
           vm.ficha != null) {
@@ -180,9 +135,13 @@ class _PanelControlViewState extends State<PanelControlView> {
     return showDialog<String>(
       context: context,
       builder: (ctx) {
-        String actionTitle = nuevoEstado == 'cerrado' ? 'Finalizar' : 'Pausar';
+        final actionTitle = nuevoEstado == 'cerrado' ? 'Finalizar' : 'Pausar';
+        final isCerrado = nuevoEstado == 'cerrado';
         return AlertDialog(
-          title: Text('$actionTitle Búsqueda'),
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          title: Text('$actionTitle búsqueda',
+              style: const TextStyle(fontWeight: FontWeight.bold)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -195,32 +154,60 @@ class _PanelControlViewState extends State<PanelControlView> {
                 decoration: InputDecoration(
                   hintText: 'Escribe la justificación aquí...',
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  focusedBorder: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(8)),
+                    borderSide: BorderSide(color: AppTheme.primary),
+                  ),
                 ),
               ),
             ],
           ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx, null),
-                child: const Text('Cancelar')),
-            ElevatedButton(
-              onPressed: () {
-                if (ctrl.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(
-                    const SnackBar(
-                        content: Text('La justificación es obligatoria.')),
-                  );
-                } else {
-                  Navigator.pop(ctx, ctrl.text.trim());
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: nuevoEstado == 'cerrado'
-                    ? Colors.red
-                    : const Color(0xFFFF9800),
-              ),
-              child: Text(actionTitle),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    if (ctrl.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        const SnackBar(
+                            content: Text('La justificación es obligatoria.')),
+                      );
+                    } else {
+                      Navigator.pop(ctx, ctrl.text.trim());
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        isCerrado ? AppTheme.accent : AppTheme.primary,
+                    foregroundColor:
+                        isCerrado ? AppTheme.darkDark : Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: Text(actionTitle),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, null),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.darkDark,
+                    overlayColor: Colors.grey.shade200,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('Cancelar'),
+                ),
+              ],
             ),
           ],
         );
@@ -235,19 +222,22 @@ class _PanelControlViewState extends State<PanelControlView> {
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.campaign, color: Color(0xFF1B5E20)),
-            SizedBox(width: 8),
-            Text('Alerta Masiva'),
-          ],
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        title: const Text(
+          'Alerta masiva',
+          style: TextStyle(
+              color: AppTheme.primary, fontWeight: FontWeight.bold),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
               'Este mensaje será enviado a todos los voluntarios que estén buscando o esperando en este momento.',
-              style: TextStyle(fontSize: 13, color: Colors.black54),
+              style: TextStyle(
+                  fontSize: 13,
+                  color: AppTheme.textPrimary,
+                  fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -257,44 +247,72 @@ class _PanelControlViewState extends State<PanelControlView> {
               decoration: InputDecoration(
                 hintText:
                     'Ej: Atención equipo, concentremos la búsqueda en la zona norte del cuadrante...',
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                  borderSide: BorderSide(color: AppTheme.primary),
+                ),
               ),
             ),
           ],
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancelar')),
-          ElevatedButton(
-            onPressed: () async {
-              if (ctrl.text.trim().isEmpty) return;
-              Navigator.pop(ctx); // Cerrar diálogo
-
-              final success =
-                  await vm.enviarAlertaMasiva(widget.fichaId, ctrl.text.trim());
-              if (!mounted) return;
-
-              if (success) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('¡Alerta masiva enviada con éxito!'),
-                    backgroundColor: Color(0xFF1B5E20),
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(vm.errorMessage ?? 'Error al enviar alerta.'),
-                    backgroundColor: Colors.red.shade700,
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1B5E20)),
-            child: const Text('Enviar Alerta'),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton(
+                onPressed: () async {
+                  if (ctrl.text.trim().isEmpty) return;
+                  Navigator.pop(ctx);
+                  final success = await vm.enviarAlertaMasiva(
+                      widget.fichaId, ctrl.text.trim());
+                  if (!mounted) return;
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('¡Alerta masiva enviada con éxito!'),
+                        backgroundColor: Color(0xFF1B5E20),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content:
+                            Text(vm.errorMessage ?? 'Error al enviar alerta.'),
+                        backgroundColor: Colors.red.shade700,
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Enviar alerta'),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.darkDark,
+                  overlayColor: Colors.grey.shade200,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Cancelar'),
+              ),
+            ],
           ),
         ],
       ),
@@ -328,11 +346,11 @@ class _PanelControlViewState extends State<PanelControlView> {
       builder: (ctx) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.message, color: Color(0xFF1B5E20)),
+            Icon(Icons.message, color: AppTheme.primary),
             SizedBox(width: 8),
             Expanded(
                 child:
-                    Text('Mensaje Directo', overflow: TextOverflow.ellipsis)),
+                    Text('Mensaje directo', overflow: TextOverflow.ellipsis)),
           ],
         ),
         content: SingleChildScrollView(
@@ -394,11 +412,9 @@ class _PanelControlViewState extends State<PanelControlView> {
             onPressed: () async {
               if (ctrl.text.trim().isEmpty) return;
               Navigator.pop(ctx);
-
               final success = await vm.enviarMensajeDirecto(
                   widget.fichaId, usuarioId, ctrl.text.trim());
               if (!mounted) return;
-
               if (success) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -417,7 +433,7 @@ class _PanelControlViewState extends State<PanelControlView> {
               }
             },
             style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1B5E20)),
+                backgroundColor: AppTheme.primary),
             child: const Text('Enviar'),
           ),
         ],
@@ -435,7 +451,7 @@ class _PanelControlViewState extends State<PanelControlView> {
 
     if (vm.ficha == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Panel de Control')),
+        appBar: AppBar(title: const Text('Panel de control')),
         body: const Center(child: Text('Búsqueda no encontrada.')),
       );
     }
@@ -445,42 +461,52 @@ class _PanelControlViewState extends State<PanelControlView> {
     final bool isClosed =
         ficha.estado == 'cerrado' || ficha.estado == 'resuelto';
 
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Panel de Comando'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(icon: Icon(Icons.dashboard), text: 'General'),
-              Tab(icon: Icon(Icons.map), text: 'Mapa de Cobertura'),
-              Tab(icon: Icon(Icons.photo_library), text: 'Galería'),
-            ],
-            indicatorColor: Colors.white,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white70,
-          ),
+    final bool ocultarFab = isClosed || _tabController.index == 1;
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: AppTheme.primary,
+        foregroundColor: Colors.white,
+        centerTitle: false,
+        titleSpacing: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Panel de control',
+          style: TextStyle(color: Colors.white),
         ),
-        body: TabBarView(
-          physics:
-              const NeverScrollableScrollPhysics(), // Evita conflicto con gestos del mapa
-          children: [
-            _buildTabGeneral(context, vm, ficha, isActive),
-            _buildTabMapa(vm, ficha),
-            _buildTabGaleria(vm, widget.fichaId),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(icon: Icon(Icons.dashboard), text: 'General'),
+            Tab(icon: Icon(Icons.map), text: 'Mapa de cobertura'),
+            Tab(icon: Icon(Icons.photo_library), text: 'Galería'),
           ],
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
         ),
-        floatingActionButton: isClosed
-            ? null
-            : FloatingActionButton.extended(
-                onPressed: () => _mostrarDialogoAlertaMasiva(context),
-                backgroundColor: const Color(0xFF0277BD),
-                icon: const Icon(Icons.campaign, color: Colors.white),
-                label: const Text('Alerta Masiva',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
       ),
+      body: TabBarView(
+        controller: _tabController,
+        physics: const NeverScrollableScrollPhysics(),
+        children: [
+          _buildTabGeneral(context, vm, ficha, isActive),
+          TabMapaPanel(
+            onMensajeDirecto: (usuarioId, nombre, estado) =>
+                _mostrarDialogoMensajeDirecto(context, usuarioId, nombre, estado),
+          ),
+          const TabGaleriaPanel(),
+        ],
+      ),
+      floatingActionButton: ocultarFab
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => _mostrarDialogoAlertaMasiva(context),
+              backgroundColor: AppTheme.primary,
+              label: const Text('Alerta masiva',
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
     );
   }
 
@@ -491,115 +517,116 @@ class _PanelControlViewState extends State<PanelControlView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Resumen de la Ficha
           Text(
             ficha.titulo,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.primary),
           ),
           const SizedBox(height: 8),
           _EstadoBadge(estado: ficha.estado),
-          if (ficha.justificacion != null &&
-              ficha.justificacion!.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                border: Border.all(color: const Color(0xFFBDBDBD)),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+          const SizedBox(height: 16),
+          // ─── Tarjeta: Justificación + Acciones rápidas ───
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (ficha.justificacion != null &&
+                    ficha.justificacion!.isNotEmpty) ...[
                   const Text('Justificación / Resolución:',
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF5F6368))),
+                          color: AppTheme.darkLight,
+                          fontSize: 12)),
                   const SizedBox(height: 4),
-                  Text(ficha.justificacion!),
+                  Text(ficha.justificacion!,
+                      style: const TextStyle(color: AppTheme.darkDark)),
+                  const SizedBox(height: 16),
                 ],
-              ),
+                const Text(
+                  'Acciones rápidas',
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.darkLight),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    if (!isActive)
+                      Expanded(
+                          child: _buildActionButton(
+                        label: 'Reanudar',
+                        icon: Icons.play_arrow_rounded,
+                        color: AppTheme.primary,
+                        textColor: Colors.white,
+                        shadowColor: AppTheme.primary.withValues(alpha: 0.3),
+                        onPressed: vm.isChangingState
+                            ? null
+                            : () => _cambiarEstado(context, 'activo'),
+                        isLoading: vm.isChangingState,
+                      ))
+                    else
+                      Expanded(
+                          child: _buildActionButton(
+                        label: 'Pausar',
+                        icon: Icons.pause_rounded,
+                        color: const Color(0xFF92400E),
+                        textColor: Colors.white,
+                        shadowColor: const Color(0x3392400E),
+                        onPressed: vm.isChangingState
+                            ? null
+                            : () => _cambiarEstado(context, 'pausado'),
+                        isLoading: vm.isChangingState,
+                      )),
+                    const SizedBox(width: 12),
+                    Expanded(
+                        child: _buildActionButton(
+                      label: 'Finalizar',
+                      icon: Icons.flag_rounded,
+                      color: AppTheme.accent,
+                      textColor: AppTheme.darkDark,
+                      shadowColor: AppTheme.accent.withValues(alpha: 0.3),
+                      onPressed: vm.isChangingState ||
+                              ficha.estado == 'cerrado' ||
+                              ficha.estado == 'resuelto'
+                          ? null
+                          : () => _cambiarEstado(context, 'cerrado'),
+                      isLoading: vm.isChangingState,
+                    )),
+                  ],
+                ),
+              ],
             ),
-          ],
-          const SizedBox(height: 24),
-          const Text(
-            'Acciones Rápidas',
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF374151)),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
+          // ─── Botones cuadrados en grid 2 columnas ───
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (!isActive)
-                Expanded(
-                    child: _buildActionButton(
-                  label: 'Reanudar',
-                  icon: Icons.play_arrow_rounded,
-                  color: const Color(0xFF166534),
-                  shadowColor: const Color(0x3316653A),
-                  onPressed: vm.isChangingState
-                      ? null
-                      : () => _cambiarEstado(context, 'activo'),
-                  isLoading: vm.isChangingState,
-                ))
-              else
-                Expanded(
-                    child: _buildActionButton(
-                  label: 'Pausar',
-                  icon: Icons.pause_rounded,
-                  color: const Color(0xFF92400E),
-                  shadowColor: const Color(0x3392400E),
-                  onPressed: vm.isChangingState
-                      ? null
-                      : () => _cambiarEstado(context, 'pausado'),
-                  isLoading: vm.isChangingState,
-                )),
+              Expanded(child: _buildBotonRevisionEvidencias(context, vm)),
               const SizedBox(width: 12),
-              Expanded(
-                  child: _buildActionButton(
-                label: 'Finalizar',
-                icon: Icons.flag_rounded,
-                color: const Color(0xFF7F1D1D),
-                shadowColor: const Color(0x337F1D1D),
-                onPressed: vm.isChangingState ||
-                        ficha.estado == 'cerrado' ||
-                        ficha.estado == 'resuelto'
-                    ? null
-                    : () => _cambiarEstado(context, 'cerrado'),
-                isLoading: vm.isChangingState,
-              )),
+              Expanded(child: _buildBotonGenerarPDF(context, vm)),
             ],
           ),
-          const SizedBox(height: 32),
-          const Divider(),
-          const SizedBox(height: 16),
-
-          // Boton de revision de evidencias
-          _buildBotonRevisionEvidencias(context, vm),
-
-          const SizedBox(height: 16),
-
-          // Botón de generar reporte PDF
-          _buildBotonGenerarPDF(context, vm),
-
           const SizedBox(height: 24),
-          const Divider(),
-          const SizedBox(height: 16),
-
-          // Lista de voluntarios
-          Row(
-            children: [
-              const Icon(Icons.people, color: Color(0xFF1B5E20)),
-              const SizedBox(width: 8),
-              Text(
-                'Voluntarios (${vm.voluntarios.length})',
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ],
+          Text(
+            'Voluntarios (${vm.voluntarios.length})',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           if (vm.voluntarios.isEmpty)
@@ -618,13 +645,14 @@ class _PanelControlViewState extends State<PanelControlView> {
               itemBuilder: (context, index) {
                 final v = vm.voluntarios[index];
                 return ListTile(
+                  contentPadding: EdgeInsets.zero,
                   leading: CircleAvatar(
-                    backgroundColor: const Color(0xFFE8F5E9),
+                    backgroundColor: AppTheme.primaryLight.withValues(alpha: 0.2),
                     child: Text(
                       v.nombreCompleto.isNotEmpty
                           ? v.nombreCompleto[0].toUpperCase()
                           : '?',
-                      style: const TextStyle(color: Color(0xFF1B5E20)),
+                      style: const TextStyle(color: AppTheme.primary),
                     ),
                   ),
                   title: Text(v.nombreCompleto.isNotEmpty
@@ -633,9 +661,8 @@ class _PanelControlViewState extends State<PanelControlView> {
                   subtitle:
                       Text(v.telefono.isNotEmpty ? v.telefono : 'Sin teléfono'),
                   trailing: IconButton(
-                    icon: const Icon(Icons.message, color: Color(0xFF1B5E20)),
+                    icon: const Icon(Icons.message, color: AppTheme.primary),
                     onPressed: () {
-                      // Buscar el estado de este voluntario en las rutas
                       final ruta = vm.rutasVoluntarios
                           .where((r) => r.usuarioId == v.id)
                           .firstOrNull;
@@ -652,20 +679,22 @@ class _PanelControlViewState extends State<PanelControlView> {
     );
   }
 
-  /// Botón de acción primaria con color sólido oscuro y sombra suave.
   Widget _buildActionButton({
     required String label,
     required IconData icon,
     required Color color,
     required Color shadowColor,
     required VoidCallback? onPressed,
+    Color textColor = Colors.white,
     bool isLoading = false,
   }) {
     final isDisabled = onPressed == null;
+    final resolvedText =
+        isDisabled ? const Color(0xFF6B7280) : textColor;
     return Container(
       height: 46,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(50),
         boxShadow: isDisabled
             ? null
             : [
@@ -678,10 +707,10 @@ class _PanelControlViewState extends State<PanelControlView> {
       ),
       child: Material(
         color: isDisabled ? const Color(0xFFD1D5DB) : color,
-        borderRadius: BorderRadius.circular(12),
+        shape: const StadiumBorder(),
         child: InkWell(
           onTap: onPressed,
-          borderRadius: BorderRadius.circular(12),
+          customBorder: const StadiumBorder(),
           splashColor: Colors.white24,
           highlightColor: Colors.white10,
           child: Padding(
@@ -690,19 +719,19 @@ class _PanelControlViewState extends State<PanelControlView> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (isLoading)
-                  const SizedBox(
+                  SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2),
+                        color: resolvedText, strokeWidth: 2),
                   )
                 else
-                  Icon(icon, color: Colors.white, size: 18),
+                  Icon(icon, color: resolvedText, size: 18),
                 const SizedBox(width: 6),
                 Text(
                   label,
                   style: TextStyle(
-                    color: isDisabled ? const Color(0xFF6B7280) : Colors.white,
+                    color: resolvedText,
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
@@ -721,185 +750,143 @@ class _PanelControlViewState extends State<PanelControlView> {
     final pendingCount =
         evVm.evidencias.where((e) => e.estado == 'pending').length;
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE0E0E0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => RevisionEvidenciasView(
-                  reporteId: widget.fichaId,
-                  reporteTitulo: vm.ficha?.titulo ?? 'Búsqueda',
-                ),
+    return AspectRatio(
+      aspectRatio: 1,
+      child: ElevatedButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => RevisionEvidenciasView(
+                reporteId: widget.fichaId,
+                reporteTitulo: vm.ficha?.titulo ?? 'Búsqueda',
               ),
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
+            ),
+          );
+        },
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed)) return AppTheme.accent;
+            return Colors.transparent;
+          }),
+          foregroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed)) return Colors.white;
+            return AppTheme.accent;
+          }),
+          overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+          shadowColor: const WidgetStatePropertyAll(Colors.transparent),
+          elevation: const WidgetStatePropertyAll(0),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: AppTheme.accent, width: 2),
+            ),
+          ),
+          padding: const WidgetStatePropertyAll(EdgeInsets.all(16)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF3CD),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.rate_review_outlined,
-                    color: Color(0xFFB8860B),
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Revisión de Evidencias',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF202124),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        pendingCount > 0
-                            ? '$pendingCount evidencia(s) esperando revisión'
-                            : 'Ver todas las evidencias enviadas',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: pendingCount > 0
-                              ? const Color(0xFFD32F2F)
-                              : const Color(0xFF5F6368),
-                          fontWeight: pendingCount > 0
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                const Icon(Icons.rate_review_outlined, size: 34),
                 if (pendingCount > 0)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD32F2F),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '$pendingCount',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                  Positioned(
+                    top: -6,
+                    right: -6,
+                    child: Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: const BoxDecoration(
+                        color: AppTheme.accentDark,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '$pendingCount',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold),
                       ),
                     ),
-                  )
-                else
-                  const Icon(
-                    Icons.chevron_right,
-                    color: Color(0xFF5F6368),
                   ),
               ],
             ),
-          ),
+            const SizedBox(height: 10),
+            const Text(
+              'Revisión de\nevidencias',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // ── Botón Generar Reporte PDF ────────────────────────────────────────────
   Widget _buildBotonGenerarPDF(BuildContext context, PanelControlViewModel vm) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF3F7AC5), Color(0xFF2D5A9A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF3F7AC5).withValues(alpha: 0.35),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => _generarReportePDF(context, vm),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-            child: Row(
-              children: [
-                Icon(Icons.picture_as_pdf_rounded,
-                    color: Colors.white, size: 28),
-                SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Generar Reporte PDF',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Requiere conexión a internet para renderizar los mapas satelitales',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.white70,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(Icons.chevron_right, color: Colors.white70),
-              ],
+    return AspectRatio(
+      aspectRatio: 1,
+      child: ElevatedButton(
+        onPressed: () => _generarReportePDF(context, vm),
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed)) return AppTheme.primary;
+            return Colors.transparent;
+          }),
+          foregroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed)) return Colors.white;
+            return AppTheme.primary;
+          }),
+          overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+          shadowColor: const WidgetStatePropertyAll(Colors.transparent),
+          elevation: const WidgetStatePropertyAll(0),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: AppTheme.primary, width: 2),
             ),
           ),
+          padding: const WidgetStatePropertyAll(EdgeInsets.all(16)),
+        ),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(Icons.picture_as_pdf_rounded, size: 34),
+            SizedBox(height: 10),
+            Text(
+              'Generar\nreporte PDF',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 4),
+            Text(
+              'Requiere conexión a internet para renderizar los mapas satelitales',
+              textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 9),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  /// Genera el reporte PDF mostrando un diálogo de progreso con porcentaje real.
   Future<void> _generarReportePDF(
       BuildContext context, PanelControlViewModel vm) async {
     if (vm.ficha == null) return;
     final ficha = vm.ficha!;
 
-    // Notificador de progreso con estado enriquecido
-    final progressNotifier = ValueNotifier<_PdfProgreso>(const _PdfProgreso(
+    final progressNotifier = ValueNotifier<PdfProgreso>(const PdfProgreso(
       icono: Icons.map_rounded,
       titulo: 'Capturando mapa',
       mensaje: 'Generando snapshot del mapa de ruta...',
@@ -911,10 +898,9 @@ class _PanelControlViewState extends State<PanelControlView> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => _DialogoProgresoPDF(progresoNotifier: progressNotifier),
+      builder: (ctx) => PdfProgresoDialog(progresoNotifier: progressNotifier),
     );
 
-    // Helper para actualizar el notificador con estado predefinido
     void actualizarPaso(String paso, String mensaje, double porcentaje) {
       final (icono, titulo, color) = switch (paso) {
         'mapa' => (
@@ -948,7 +934,7 @@ class _PanelControlViewState extends State<PanelControlView> {
             const Color(0xFF3F7AC5)
           ),
       };
-      progressNotifier.value = _PdfProgreso(
+      progressNotifier.value = PdfProgreso(
         icono: icono,
         titulo: titulo,
         mensaje: mensaje,
@@ -959,10 +945,8 @@ class _PanelControlViewState extends State<PanelControlView> {
     }
 
     try {
-      // Paso 1: Capturar snapshot del mapa (3%)
       final evVm = context.read<EvidenciaViewModel>();
 
-      // Construir listas de coordenadas para los mapas estáticos
       final List<LatLng> cuadranteCoords = ficha.cuadranteLatMin != null
           ? [
               LatLng(ficha.cuadranteLatMax!, ficha.cuadranteLngMin!),
@@ -1035,15 +1019,12 @@ class _PanelControlViewState extends State<PanelControlView> {
         };
       }
 
-      // Inyectar las coordenadas en los datos para que el servicio PDF genere los mapas estáticos
-
-      // Inyectar datos simulados de recorridos (zigzag y espiral) si no hay rutas reales
+      // Rutas simuladas si no hay datos reales
       if (rutasCoords.isEmpty &&
           ficha.latitud != null &&
           ficha.longitud != null) {
         final lLat = ficha.latitud!;
         final lLng = ficha.longitud!;
-        // Ruta 1: Zigzag
         rutasCoords.add([
           LatLng(lLat, lLng),
           LatLng(lLat + 0.001, lLng + 0.001),
@@ -1051,7 +1032,6 @@ class _PanelControlViewState extends State<PanelControlView> {
           LatLng(lLat + 0.003, lLng + 0.002),
           LatLng(lLat + 0.004, lLng - 0.002),
         ]);
-        // Ruta 2: Espiral
         rutasCoords.add([
           LatLng(lLat, lLng),
           LatLng(lLat - 0.001, lLng),
@@ -1066,9 +1046,7 @@ class _PanelControlViewState extends State<PanelControlView> {
       datos['mapa_rutas'] = rutasCoords;
       datos['mapa_cuadrante'] = cuadranteCoords;
 
-      // Paso 3: Generar el PDF con callback de progreso en tiempo real (15% - 95%)
-      actualizarPaso(
-          'imagenes', 'Descargando evidencias fotográficas...', 0.15);
+      actualizarPaso('imagenes', 'Descargando evidencias fotográficas...', 0.15);
       final pdfBytes = await PdfReporteService().generarReportePDF(
         datos: datos,
         onProgress: (paso, mensaje, porcentaje) {
@@ -1077,14 +1055,11 @@ class _PanelControlViewState extends State<PanelControlView> {
         },
       );
 
-      // Completado (100%)
       actualizarPaso('ensamblando', '¡Reporte generado exitosamente!', 1.0);
       await Future.delayed(const Duration(milliseconds: 400));
 
-      // Cerrar diálogo de progreso
       if (context.mounted) Navigator.of(context).pop();
 
-      // Navegar al preview del PDF
       if (context.mounted) {
         await Navigator.of(context).push(
           MaterialPageRoute(
@@ -1112,561 +1087,6 @@ class _PanelControlViewState extends State<PanelControlView> {
       progressNotifier.dispose();
     }
   }
-
-  Widget _buildTabMapa(PanelControlViewModel vm, dynamic ficha) {
-    LatLng? center;
-
-    // Calcular el centro del mapa (Prioridad: LPP > Cuadrante > Recorridos)
-    if (ficha.latitud != null && ficha.longitud != null) {
-      center = LatLng(ficha.latitud!, ficha.longitud!);
-    } else if (ficha.cuadranteLatMin != null &&
-        ficha.cuadranteLatMax != null &&
-        ficha.cuadranteLngMin != null &&
-        ficha.cuadranteLngMax != null) {
-      center = LatLng(
-        (ficha.cuadranteLatMin! + ficha.cuadranteLatMax!) / 2,
-        (ficha.cuadranteLngMin! + ficha.cuadranteLngMax!) / 2,
-      );
-    } else if (vm.recorridosMap.isNotEmpty) {
-      center = vm.recorridosMap.first.first;
-    }
-
-    if (center == null) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.map_outlined, size: 64, color: Colors.grey),
-              SizedBox(height: 16),
-              Text(
-                'No hay datos de ubicación.',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Asegúrese de que el reporte tenga una ubicación inicial o cuadrante asignado.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // Colores para diferenciar voluntarios (heat map simple)
-    final List<Color> pathColors = [
-      Colors.blue,
-      Colors.red,
-      Colors.green,
-      Colors.orange,
-      Colors.purple,
-      Colors.teal
-    ];
-
-    // Combinar el LPP original con las pistas adicionales
-    final List<Marker> markersPistas = [];
-
-    // 1. Agregar el punto original (LPP)
-    if (ficha.latitud != null && ficha.longitud != null) {
-      markersPistas.add(Marker(
-        point: LatLng(ficha.latitud!, ficha.longitud!),
-        width: 80,
-        height: 70,
-        alignment: Alignment.center,
-        child: LppMarker(
-          fotoUrl: ficha.fotoUrl,
-          nombre: 'Visto por última vez',
-          color: const Color(0xFFD32F2F), // Rojo para el LPP
-        ),
-      ));
-    }
-
-    // 2. Agregar las evidencias fotograficas capturadas (solo approved)
-    final evVm = context.read<EvidenciaViewModel>();
-    final evidenciasAprobadas =
-        evVm.evidencias.where((e) => e.estado == 'approved').toList();
-    markersPistas.addAll(evidenciasAprobadas
-        .where((e) => e.lat != null && e.lng != null)
-        .map((evidencia) {
-      return Marker(
-        point: LatLng(evidencia.lat!, evidencia.lng!),
-        width: 80,
-        height: 92,
-        alignment: Alignment.center,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () {
-            Future.delayed(const Duration(milliseconds: 150), () {
-              if (!mounted) return;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) return;
-                showDialog(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('Evidencia'),
-                    content: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (evidencia.fotoUrl != null &&
-                              evidencia.fotoUrl!.isNotEmpty)
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => FullScreenImageView(
-                                      imageUrl: evidencia.fotoUrl!,
-                                      tag: 'panel-ev-${evidencia.id}',
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: Hero(
-                                tag: 'panel-ev-${evidencia.id}',
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: CachedNetworkImage(
-                                    imageUrl: evidencia.fotoUrl!,
-                                    height: 150,
-                                    width: 300,
-                                    fit: BoxFit.cover,
-                                    errorWidget: (_, __, ___) => const Icon(
-                                        Icons.broken_image,
-                                        size: 50),
-                                    placeholder: (_, __) => Container(
-                                      height: 150,
-                                      width: 300,
-                                      color: const Color(0xFFF5F5F5),
-                                      child: const Center(
-                                          child: CircularProgressIndicator()),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          const SizedBox(height: 12),
-                          Text(evidencia.descripcion),
-                        ],
-                      ),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Cerrar'),
-                      ),
-                    ],
-                  ),
-                );
-              });
-            });
-          },
-          child: EvidenciaMarker(
-            fotoUrl: evidencia.fotoUrl,
-            nombreVoluntario: evidencia.nombreUsuario ?? 'Evidencia',
-          ),
-        ),
-      );
-    }));
-
-    // 2. Agregar el resto de pistas — puntos ámbar simples
-    markersPistas.addAll(vm.pistas.map((pista) {
-      return Marker(
-        point: pista.punto,
-        width: 28,
-        height: 28,
-        alignment: Alignment.center,
-        child: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFF59E0B),
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2.5),
-            boxShadow: const [
-              BoxShadow(
-                  color: Colors.black38, blurRadius: 4, offset: Offset(0, 2))
-            ],
-          ),
-          child: const Icon(Icons.location_on, color: Colors.white, size: 14),
-        ),
-      );
-    }));
-
-    return Stack(
-      children: [
-        FlutterMap(
-          mapController: _mapController,
-          options: MapOptions(
-            initialCenter: center,
-            initialZoom: 15.0,
-          ),
-          children: [
-            MapTileLayer(useSatellite: _useSatellite),
-            // Cuadrícula completa de cuadrantes + zona verde del LPP
-            if (_cuadrantesPolygons.isNotEmpty)
-              PolygonLayer(polygons: _cuadrantesPolygons),
-            // Zona de expansión verde del LPP (nivel dinámico)
-            if (ficha.latitud != null && ficha.longitud != null)
-              PolygonLayer(polygons: () {
-                const double radioBase = 0.0007;
-                final nivel =
-                    _calcularNivel(ficha.createdAt?.toIso8601String());
-                final r = radioBase * nivel;
-                final lat = ficha.latitud!;
-                final lng = ficha.longitud!;
-                return [
-                  Polygon(
-                    points: [
-                      LatLng(lat - r, lng - r),
-                      LatLng(lat - r, lng + r),
-                      LatLng(lat + r, lng + r),
-                      LatLng(lat + r, lng - r),
-                    ],
-                    color: const Color(0xFF10B981).withOpacity(0.22),
-                    borderColor: const Color(0xFF059669),
-                    borderStrokeWidth: 2.5,
-                  ),
-                  // Zonas de expansión de pistas del vm
-                  ...vm.pistas.map((p) {
-                    final rp = radioBase *
-                        _calcularNivel(p.createdAt?.toIso8601String());
-                    return Polygon(
-                      points: [
-                        LatLng(p.punto.latitude - rp, p.punto.longitude - rp),
-                        LatLng(p.punto.latitude - rp, p.punto.longitude + rp),
-                        LatLng(p.punto.latitude + rp, p.punto.longitude + rp),
-                        LatLng(p.punto.latitude + rp, p.punto.longitude - rp),
-                      ],
-                      color: const Color(0xFF10B981).withOpacity(0.18),
-                      borderColor: const Color(0xFF059669),
-                      borderStrokeWidth: 1.5,
-                    );
-                  }),
-                ];
-              }()),
-            // Recorridos de voluntarios
-            PolylineLayer(
-              polylines: List.generate(vm.rutasVoluntarios.length, (index) {
-                final ruta = vm.rutasVoluntarios[index];
-                final originalIndex = vm.todasLasRutas.indexOf(ruta);
-                return Polyline(
-                  points: ruta.puntos,
-                  color: pathColors[originalIndex % pathColors.length]
-                      .withOpacity(0.7),
-                  strokeWidth: 4.0,
-                );
-              }),
-            ),
-            // Marcadores de posición actual de voluntarios
-            MarkerLayer(
-              markers: List.generate(vm.rutasVoluntarios.length, (index) {
-                final ruta = vm.rutasVoluntarios[index];
-                if (ruta.puntos.isEmpty) return null;
-                final lastPoint = ruta.puntos.last;
-                final originalIndex = vm.todasLasRutas.indexOf(ruta);
-                final markerColor =
-                    pathColors[originalIndex % pathColors.length];
-
-                return Marker(
-                  point: lastPoint,
-                  width: 100,
-                  height: 60,
-                  alignment: Alignment.topCenter,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      if (ruta.usuarioId != null) {
-                        _mostrarDialogoMensajeDirecto(context, ruta.usuarioId!,
-                            ruta.nombre, ruta.estadoBusqueda);
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text(
-                                  'No se puede enviar mensaje a este voluntario.')),
-                        );
-                      }
-                    },
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                              color: ruta.estadoBusqueda == 'buscando'
-                                  ? Colors.green
-                                  : Colors.grey.shade300,
-                              width: 1.5,
-                            ),
-                            boxShadow: const [
-                              BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 3,
-                                  offset: Offset(0, 1))
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (ruta.estadoBusqueda == 'buscando')
-                                Container(
-                                  margin: const EdgeInsets.only(right: 4),
-                                  width: 6,
-                                  height: 6,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.green,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              Flexible(
-                                child: Text(
-                                  ruta.nombre,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: markerColor,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(
-                          Icons.person_pin_circle,
-                          color: markerColor,
-                          size: 32,
-                          shadows: const [
-                            Shadow(color: Colors.white, blurRadius: 2)
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).whereType<Marker>().toList(),
-            ),
-            // Marcadores de pistas y LPP
-            MarkerLayer(
-              markers: markersPistas,
-            ),
-          ],
-        ),
-        // Filtro de Voluntarios en la parte superior
-        if (vm.todasLasRutas.isNotEmpty)
-          Positioned(
-            top: 16,
-            left: 16,
-            right: 16,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: ChoiceChip(
-                      label: const Text('Todos'),
-                      selected: vm.filtroNombreVoluntario == null,
-                      onSelected: (selected) {
-                        if (selected) vm.setFiltroVoluntario(null);
-                      },
-                      selectedColor: const Color(0xFF1B5E20).withOpacity(0.2),
-                      checkmarkColor: const Color(0xFF1B5E20),
-                    ),
-                  ),
-                  ...vm.todasLasRutas.map((ruta) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: ChoiceChip(
-                        label: Text(ruta.nombre),
-                        selected: vm.filtroNombreVoluntario == ruta.nombre,
-                        onSelected: (selected) {
-                          if (selected) {
-                            vm.setFiltroVoluntario(ruta.nombre);
-                            // Opcional: Centrar la cámara en el último punto del voluntario seleccionado
-                            if (ruta.puntos.isNotEmpty) {
-                              _mapController.move(ruta.puntos.last, 16.0);
-                            }
-                          } else {
-                            vm.setFiltroVoluntario(null);
-                          }
-                        },
-                        selectedColor: const Color(0xFF1B5E20).withOpacity(0.2),
-                        checkmarkColor: const Color(0xFF1B5E20),
-                      ),
-                    );
-                  }),
-                ],
-              ),
-            ),
-          ),
-        // Toggle de capas (satelital / callejero)
-        Positioned(
-          bottom: 56,
-          right: 60,
-          child: MapLayerToggleButton(
-            heroTag: null,
-            useSatellite: _useSatellite,
-            onToggle: () => setState(() => _useSatellite = !_useSatellite),
-          ),
-        ),
-        // Botón de centrado dinámico en LPP
-        Positioned(
-          bottom: 16,
-          right: 16,
-          child: FloatingActionButton(
-            heroTag: 'btn_centrar_panel',
-            mini: true,
-            backgroundColor: Colors.white,
-            foregroundColor: const Color(0xFF1B5E20),
-            onPressed: () {
-              _mapController.move(center!, 15.0);
-            },
-            child: const Icon(Icons.my_location),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLeyendaItem(String label, Color color) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-          const SizedBox(width: 8),
-          Text(label, style: const TextStyle(fontSize: 12)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTabGaleria(PanelControlViewModel vm, String fichaId) {
-    if (vm.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    // Construir galería combinando datos locales (ya cargados) + los del API
-    // Esto garantiza que siempre se muestre la foto principal aunque el API falle
-    final evVm = context.read<EvidenciaViewModel>();
-    final List<Map<String, dynamic>> todasLasImagenes = [];
-
-    // 1. Foto principal del reporte
-    final fotoPrincipal = vm.ficha?.fotoUrl;
-    if (fotoPrincipal != null && fotoPrincipal.isNotEmpty) {
-      todasLasImagenes.add({
-        'url': fotoPrincipal,
-        'tipo': 'original',
-        'autor': 'Reporte original',
-      });
-    }
-
-    // 2. Evidencias aprobadas con foto (desde el ViewModel local)
-    for (final e in evVm.evidencias) {
-      if (e.estado == 'approved' && e.fotoUrl != null && e.fotoUrl!.isNotEmpty) {
-        todasLasImagenes.add({
-          'url': e.fotoUrl!,
-          'tipo': 'evidencia',
-          'autor': e.nombreUsuario ?? 'Voluntario',
-        });
-      }
-    }
-
-    // 3. Complementar con las del API (si hay extras que no estén ya)
-    final urlsLocales = todasLasImagenes.map((m) => m['url']).toSet();
-    for (final img in vm.galeria) {
-      if (!urlsLocales.contains(img['url'])) {
-        todasLasImagenes.add(img);
-      }
-    }
-
-    if (todasLasImagenes.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.photo_library_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('No hay imagenes en la galeria aun.',
-                style: TextStyle(color: Colors.grey)),
-          ],
-        ),
-      );
-    }
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(8),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-      ),
-      itemCount: todasLasImagenes.length,
-      itemBuilder: (context, index) {
-        final img = todasLasImagenes[index];
-        return GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => FullScreenImageView(
-                  imageUrl: img['url'],
-                  title: img['tipo'] == 'original'
-                      ? 'Imagen del Reporte'
-                      : 'Evidencia Aprobada',
-                  subtitle: '${img['autor'] ?? ''}',
-                ),
-              ),
-            );
-          },
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: CachedNetworkImage(
-                  imageUrl: img['url'],
-                  fit: BoxFit.cover,
-                  errorWidget: (context, url, error) => Container(
-                      color: Colors.grey[300],
-                      child:
-                          const Icon(Icons.broken_image, color: Colors.grey)),
-                  placeholder: (context, url) => Container(
-                      color: Colors.grey[200],
-                      child: const Center(child: CircularProgressIndicator())),
-                ),
-              ),
-              if (img['tipo'] == 'original')
-                Positioned(
-                  top: 4,
-                  right: 4,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: const BoxDecoration(
-                        color: Colors.black54, shape: BoxShape.circle),
-                    child:
-                        const Icon(Icons.star, color: Colors.amber, size: 12),
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 }
 
 class _EstadoBadge extends StatelessWidget {
@@ -1675,220 +1095,37 @@ class _EstadoBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color bg;
-    Color border;
+    Color dotColor;
+    String label;
 
     if (estado == 'activo') {
-      bg = const Color(0xFFE8F5E9);
-      border = const Color(0xFF4CAF50);
+      dotColor = AppTheme.accent;
+      label = 'Activo';
     } else if (estado == 'pausado') {
-      bg = const Color(0xFFFFF3E0);
-      border = const Color(0xFFFF9800);
+      dotColor = AppTheme.accent;
+      label = 'Pausado';
     } else {
-      bg = const Color(0xFFFFEBEE);
-      border = const Color(0xFFF44336);
+      dotColor = const Color(0xFFF44336);
+      label = estado == 'resuelto' ? 'Resuelto' : 'Finalizado';
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        border: Border.all(color: border),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        estado.toUpperCase(),
-        style:
-            TextStyle(color: border, fontWeight: FontWeight.bold, fontSize: 12),
-      ),
-    );
-  }
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// Enum de pasos de generación del PDF
-// ────────────────────────────────────────────────────────────────────────────
-
-// ────────────────────────────────────────────────────────────────────────────
-// Estado de progreso del PDF (E13.3 – reemplaza enum _PdfStep)
-// ────────────────────────────────────────────────────────────────────────────
-
-/// Estado inmutable que describe el progreso actual de la generación del PDF.
-class _PdfProgreso {
-  final IconData icono;
-  final String titulo;
-  final String mensaje;
-
-  /// Porcentaje de avance (0.0 – 1.0)
-  final double porcentaje;
-  final Color color;
-  final bool esError;
-
-  const _PdfProgreso({
-    required this.icono,
-    required this.titulo,
-    required this.mensaje,
-    required this.porcentaje,
-    required this.color,
-    required this.esError,
-  });
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// Diálogo de progreso animado con barra de porcentaje real (E13.3)
-// ────────────────────────────────────────────────────────────────────────────
-
-class _DialogoProgresoPDF extends StatelessWidget {
-  final ValueNotifier<_PdfProgreso> progresoNotifier;
-
-  const _DialogoProgresoPDF({required this.progresoNotifier});
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<_PdfProgreso>(
-      valueListenable: progresoNotifier,
-      builder: (context, progreso, _) {
-        return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          elevation: 8,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(28, 32, 28, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Ícono animado con indicador circular
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 350),
-                  switchInCurve: Curves.easeOut,
-                  switchOutCurve: Curves.easeIn,
-                  child: progreso.esError
-                      ? Icon(
-                          Icons.error_outline_rounded,
-                          size: 56,
-                          color: const Color(0xFFEF4444),
-                          key: const ValueKey('error_icon'),
-                        )
-                      : progreso.porcentaje >= 1.0
-                          ? Icon(
-                              Icons.check_circle_rounded,
-                              size: 56,
-                              color: const Color(0xFF16A34A),
-                              key: const ValueKey('done_icon'),
-                            )
-                          : SizedBox(
-                              width: 56,
-                              height: 56,
-                              key: ValueKey(progreso.titulo),
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  CircularProgressIndicator(
-                                    value: progreso.porcentaje < 0.05
-                                        ? null // indeterminado al inicio
-                                        : progreso.porcentaje,
-                                    color: progreso.color,
-                                    strokeWidth: 3.5,
-                                    backgroundColor:
-                                        progreso.color.withValues(alpha: 0.15),
-                                  ),
-                                  Icon(progreso.icono,
-                                      size: 26, color: progreso.color),
-                                ],
-                              ),
-                            ),
-                ),
-                const SizedBox(height: 20),
-
-                // Título del paso
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  child: Text(
-                    progreso.esError ? 'Error al generar' : progreso.titulo,
-                    key: ValueKey(progreso.titulo),
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF353F4C),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Mensaje descriptivo
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: Text(
-                    progreso.mensaje,
-                    key: ValueKey(progreso.mensaje),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      color: Color(0xFF3F4B5B),
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Barra de progreso con porcentaje
-                if (!progreso.esError) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: TweenAnimationBuilder<double>(
-                      tween: Tween<double>(begin: 0, end: progreso.porcentaje),
-                      duration: const Duration(milliseconds: 400),
-                      curve: Curves.easeOut,
-                      builder: (ctx, value, _) => LinearProgressIndicator(
-                        value: value < 0.03 ? null : value,
-                        minHeight: 8,
-                        backgroundColor: const Color(0xFFE8EFF8),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          progreso.porcentaje >= 1.0
-                              ? const Color(0xFF16A34A)
-                              : progreso.color,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        progreso.porcentaje >= 1.0
-                            ? '¡Listo!'
-                            : 'Procesando...',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: progreso.porcentaje >= 1.0
-                              ? const Color(0xFF16A34A)
-                              : const Color(0xFF6B7280),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      TweenAnimationBuilder<double>(
-                        tween:
-                            Tween<double>(begin: 0, end: progreso.porcentaje),
-                        duration: const Duration(milliseconds: 400),
-                        builder: (ctx, value, _) => Text(
-                          '${(value * 100).toInt()}%',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: progreso.color,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-        );
-      },
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(
+              color: AppTheme.textPrimary,
+              fontWeight: FontWeight.w600,
+              fontSize: 13),
+        ),
+      ],
     );
   }
 }

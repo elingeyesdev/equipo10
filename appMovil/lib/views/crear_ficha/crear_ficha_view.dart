@@ -121,7 +121,7 @@ class _CrearFichaViewState extends State<CrearFichaView> {
           ? null
           : double.tryParse(_recompensaCtrl.text),
       direccionReferencia:
-          _direccionCtrl.text.isEmpty ? null : _direccionCtrl.text,
+      _direccionCtrl.text.isEmpty ? null : _direccionCtrl.text,
       fechaPerdida: _fechaPerdida?.toIso8601String(),
     );
 
@@ -164,15 +164,26 @@ class _CrearFichaViewState extends State<CrearFichaView> {
     final catActual = vm.categorias.isEmpty
         ? null
         : vm.categorias.firstWhere(
-            (c) => c.id == vm.categoriaSeleccionadaId,
-            orElse: () => vm.categorias.first,
-          );
+          (c) => c.id == vm.categoriaSeleccionadaId,
+      orElse: () => vm.categorias.first,
+    );
     final camposDinamicos = catActual == null
         ? <CampoCategoria>[]
         : CamposCategoria.paraNombre(catActual.nombre);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Reportar Desaparecido')),
+      appBar: AppBar(
+        backgroundColor: AppTheme.surface,
+        centerTitle: false,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        titleSpacing: 0,
+        iconTheme: const IconThemeData(color: AppTheme.darkDark),
+        title: const Text(
+          'Reportar desaparecido',
+          style: TextStyle(color: AppTheme.darkDark),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -189,16 +200,14 @@ class _CrearFichaViewState extends State<CrearFichaView> {
 
               Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ─── Sección: Datos generales ───
-                      _SectionHeader(
-                          label: 'Datos de la búsqueda',
-                          icon: Icons.info_outline),
+                      const _SectionHeader(label: 'Datos del reporte'),
                       const SizedBox(height: 16),
 
                       // Dropdown de Categoría
@@ -207,7 +216,7 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                           value: vm.categoriaSeleccionadaId,
                           decoration: const InputDecoration(
                             labelText: 'Categoría',
-                            prefixIcon: Icon(Icons.category),
+                            prefixIcon: Icon(Icons.category, size: 18),
                           ),
                           items: vm.categorias.map((cat) {
                             return DropdownMenuItem(
@@ -219,13 +228,13 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                                 .firstWhere((c) => c.id == val)
                                 .nombre;
                             final nuevasCampos =
-                                CamposCategoria.paraNombre(nombreNueva);
+                            CamposCategoria.paraNombre(nombreNueva);
                             setState(
-                                () => _reiniciarCamposDinamicos(nuevasCampos));
+                                    () => _reiniciarCamposDinamicos(nuevasCampos));
                             vm.seleccionarCategoria(val);
                           },
                           validator: (val) =>
-                              val == null ? 'Seleccione una categoría' : null,
+                          val == null ? 'Seleccione una categoría' : null,
                         ),
                         const SizedBox(height: 16),
                       ] else ...[
@@ -247,8 +256,9 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                               child: InputDecorator(
                                 decoration: InputDecoration(
                                   labelText: 'Fecha del incidente *',
-                                  prefixIcon: const Icon(Icons.calendar_today),
+                                  prefixIcon: const Icon(Icons.calendar_today, size: 18),
                                   errorText: state.errorText,
+                                  errorStyle: const TextStyle(color: AppTheme.accentDark),
                                 ),
                                 child: Text(
                                   _fechaPerdida == null
@@ -275,8 +285,8 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                         decoration: const InputDecoration(
                           labelText: 'Título de la búsqueda',
                           hintText:
-                              'Ej: Búsqueda de persona mayor en zona norte',
-                          prefixIcon: Icon(Icons.title),
+                          'Ej: Búsqueda de persona mayor en zona norte',
+                          prefixIcon: Icon(Icons.title, size: 18),
                           counterText: '',
                         ),
                         validator: (v) {
@@ -298,10 +308,31 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                         decoration: const InputDecoration(
                           labelText: 'Descripción detallada',
                           hintText:
-                              'Descripción física, última vez visto, ropa, etc.',
-                          prefixIcon: Icon(Icons.description_outlined),
+                          'Descripción física, última vez visto, ropa, etc.',
+                          prefixIcon: Icon(Icons.description_outlined, size: 18),
                           alignLabelWithHint: true,
                           counterText: '',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(24)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(24)),
+                            borderSide: BorderSide(color: AppTheme.border),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(24)),
+                            borderSide: BorderSide(color: AppTheme.primaryBase, width: 2),
+                          ),
+                          errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(24)),
+                            borderSide: BorderSide(color: AppTheme.accentDark),
+                          ),
+                          focusedErrorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(24)),
+                            borderSide: BorderSide(color: AppTheme.accentDark, width: 2),
+                          ),
+                          errorStyle: const TextStyle(color: AppTheme.accentDark),
+                          floatingLabelStyle: const TextStyle(color: AppTheme.darkLight),
                         ),
                         validator: (v) {
                           if (v == null || v.trim().isEmpty)
@@ -315,45 +346,40 @@ class _CrearFichaViewState extends State<CrearFichaView> {
 
                       // ─── Sección: Campos específicos de la categoría ───
                       if (camposDinamicos.isNotEmpty) ...[
-                        _SectionHeader(
-                          label:
-                              'Detalles de ${catActual?.nombre ?? 'Categoría'}',
-                          icon: Icons.list_alt_outlined,
-                        ),
+                        const _SectionHeader(label: 'Detalles de documentos'),
                         const SizedBox(height: 4),
                         const Text(
                           'Estos campos ayudan a identificar mejor lo reportado.',
                           style:
-                              TextStyle(fontSize: 12, color: Color(0xFF757575)),
+                          TextStyle(fontSize: 12, color: Color(0xFF757575)),
                         ),
                         const SizedBox(height: 16),
                         ...camposDinamicos.map((campo) => _CampoDinamico(
-                              campo: campo,
-                              ctrl: _ctrlsDinamicos[campo.clave],
-                              switchValue: _switchDinamicos[campo.clave],
-                              opcionValue: _opcionDinamica[campo.clave],
-                              onTextChanged: (v) =>
-                                  _ctrlsDinamicos[campo.clave]?.text = v,
-                              onSwitchChanged: (v) => setState(
+                          campo: campo,
+                          ctrl: _ctrlsDinamicos[campo.clave],
+                          switchValue: _switchDinamicos[campo.clave],
+                          opcionValue: _opcionDinamica[campo.clave],
+                          onTextChanged: (v) =>
+                          _ctrlsDinamicos[campo.clave]?.text = v,
+                          onSwitchChanged: (v) => setState(
                                   () => _switchDinamicos[campo.clave] = v),
-                              onOpcionChanged: (v) => setState(
+                          onOpcionChanged: (v) => setState(
                                   () => _opcionDinamica[campo.clave] = v),
-                            )),
+                        )),
                         const SizedBox(height: 8),
                       ],
 
                       // ─── Sección: Datos opcionales ───
-                      _SectionHeader(
-                          label: 'Datos Opcionales', icon: Icons.tune),
+                      const _SectionHeader(label: 'Datos opcionales'),
                       const SizedBox(height: 16),
 
                       TextFormField(
                         controller: _direccionCtrl,
                         textCapitalization: TextCapitalization.sentences,
                         decoration: const InputDecoration(
-                          labelText: 'Dirección o Referencia',
-                          hintText: 'Ej: Cerca del parque X',
-                          prefixIcon: Icon(Icons.place),
+                          labelText: 'Dirección o referencia',
+                          hintText: 'Dirección o referencia',
+                          prefixIcon: Icon(Icons.place, size: 18),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -369,7 +395,7 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                         decoration: const InputDecoration(
                           labelText: 'Teléfono de contacto',
                           hintText: 'Ej: +591 71234567',
-                          prefixIcon: Icon(Icons.phone),
+                          prefixIcon: Icon(Icons.phone, size: 18),
                         ),
                         validator: (v) {
                           if (v == null || v.trim().isEmpty)
@@ -395,7 +421,7 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                         decoration: const InputDecoration(
                           labelText: 'Recompensa en Bs.',
                           hintText: 'Ej: 500',
-                          prefixIcon: Icon(Icons.attach_money),
+                          prefixIcon: Icon(Icons.attach_money, size: 18),
                         ),
                         validator: (v) {
                           if (v == null || v.trim().isEmpty) return null;
@@ -408,77 +434,65 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                         },
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(Icons.warning_amber_rounded,
-                              size: 16, color: Colors.deepOrange),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              'Atención: El monto de la recompensa no podrá ser modificado posteriormente.',
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.deepOrange.shade700,
-                                  fontStyle: FontStyle.italic),
-                            ),
-                          ),
-                        ],
+                      const Text(
+                        'Atención: El monto de la recompensa no podrá ser modificado posteriormente.',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.accentDark,
+                            fontStyle: FontStyle.normal),
                       ),
                       const SizedBox(height: 24),
 
                       // ─── Sección: Ubicación ───
-                      _SectionHeader(
-                          label: 'Ubicación del incidente',
-                          icon: Icons.map_outlined),
+                      const _SectionHeader(label: 'Ubicación del incidente'),
                       const SizedBox(height: 8),
-                      InkWell(
-                        onTap: () {
-                          Navigator.push(
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (_) => const LPPPickerView()),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: vm.latitudLPP != null
-                                ? AppTheme.primary.withValues(alpha: 0.06)
-                                : const Color(0xFFE3F2FD),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: vm.latitudLPP != null
-                                  ? AppTheme.success
-                                  : AppTheme.info,
+                          ),
+                          style: ButtonStyle(
+                            backgroundColor:
+                                WidgetStateProperty.resolveWith((states) =>
+                                    states.contains(WidgetState.pressed)
+                                        ? AppTheme.primary
+                                        : Colors.transparent),
+                            foregroundColor:
+                                WidgetStateProperty.resolveWith((states) =>
+                                    states.contains(WidgetState.pressed)
+                                        ? Colors.white
+                                        : AppTheme.primary),
+                            side: WidgetStateProperty.all(
+                                const BorderSide(color: AppTheme.primary)),
+                            shape: WidgetStateProperty.all(
+                              RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(50)),
                             ),
+                            padding: WidgetStateProperty.all(
+                                const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 14)),
+                            overlayColor:
+                                WidgetStateProperty.all(Colors.transparent),
                           ),
                           child: Row(
                             children: [
-                              Icon(
-                                Icons.map_outlined,
-                                color: vm.latitudLPP != null
-                                    ? AppTheme.primary
-                                    : AppTheme.info,
-                              ),
+                              const Icon(Icons.map_outlined, size: 20),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   vm.latitudLPP != null
                                       ? 'Ubicación marcada: ${vm.latitudLPP!.toStringAsFixed(4)}, ${vm.longitudLPP!.toStringAsFixed(4)}'
                                       : 'Toca aquí para marcar la ubicación en el mapa',
-                                  style: TextStyle(
-                                    color: vm.latitudLPP != null
-                                        ? AppTheme.primary
-                                        : AppTheme.primaryLight,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                  style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600),
                                 ),
                               ),
                               if (vm.latitudLPP != null)
-                                const Icon(Icons.check_circle,
-                                    color: AppTheme.success),
+                                const Icon(Icons.check_circle, size: 20),
                             ],
                           ),
                         ),
@@ -488,34 +502,32 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                       // Botón publicar
                       vm.isLoading
                           ? const Center(
-                              child: Column(
-                                children: [
-                                  CircularProgressIndicator(),
-                                  SizedBox(height: 8),
-                                  Text('Publicando reporte...'),
-                                ],
-                              ),
-                            )
+                        child: Column(
+                          children: [
+                            CircularProgressIndicator(),
+                            SizedBox(height: 8),
+                            Text('Publicando reporte...'),
+                          ],
+                        ),
+                      )
                           : SizedBox(
-                              width: double.infinity,
-                              height: 52,
-                              child: ElevatedButton.icon(
-                                onPressed: _onCrear,
-                                icon: const Icon(Icons.send),
-                                label: const Text(
-                                  'Publicar Reporte',
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.primary,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                ),
-                              ),
-                            ),
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: _onCrear,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            foregroundColor: Colors.white,
+                            shape: const StadiumBorder(),
+                          ),
+                          child: const Text(
+                            'Publicar reporte',
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 16),
                     ],
                   ),
@@ -534,24 +546,17 @@ class _CrearFichaViewState extends State<CrearFichaView> {
 // ──────────────────────────────────────────────────────────
 class _SectionHeader extends StatelessWidget {
   final String label;
-  final IconData icon;
-  const _SectionHeader({required this.label, required this.icon});
+  const _SectionHeader({required this.label});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, color: AppTheme.primary, size: 20),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.primary,
-          ),
-        ),
-      ],
+    return Text(
+      label,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: AppTheme.primary,
+      ),
     );
   }
 }
@@ -590,12 +595,12 @@ class _CampoDinamico extends StatelessWidget {
             decoration: InputDecoration(
               labelText: campo.etiqueta,
               hintText: campo.hint,
-              prefixIcon: campo.icono != null ? Icon(campo.icono) : null,
+              prefixIcon: campo.icono != null ? Icon(campo.icono, size: 18) : null,
             ),
             validator: campo.requerido
                 ? (v) => (v == null || v.trim().isEmpty)
-                    ? '${campo.etiqueta} es requerido'
-                    : null
+                ? '${campo.etiqueta} es requerido'
+                : null
                 : null,
           ),
         );
@@ -610,12 +615,12 @@ class _CampoDinamico extends StatelessWidget {
             decoration: InputDecoration(
               labelText: campo.etiqueta,
               hintText: campo.hint,
-              prefixIcon: campo.icono != null ? Icon(campo.icono) : null,
+              prefixIcon: campo.icono != null ? Icon(campo.icono, size: 18) : null,
             ),
             validator: campo.requerido
                 ? (v) => (v == null || v.trim().isEmpty)
-                    ? '${campo.etiqueta} es requerido'
-                    : null
+                ? '${campo.etiqueta} es requerido'
+                : null
                 : null,
           ),
         );
@@ -627,7 +632,7 @@ class _CampoDinamico extends StatelessWidget {
             value: opcionValue,
             decoration: InputDecoration(
               labelText: campo.etiqueta,
-              prefixIcon: campo.icono != null ? Icon(campo.icono) : null,
+              prefixIcon: campo.icono != null ? Icon(campo.icono, size: 18) : null,
             ),
             hint: const Text('Seleccionar'),
             items: campo.opciones!
@@ -694,47 +699,40 @@ class _ImagePickerSection extends StatelessWidget {
             duration: const Duration(milliseconds: 300),
             height: tieneImagen ? 280 : 200,
             width: double.infinity,
-            decoration:
-                BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.06)),
+            decoration: const BoxDecoration(color: AppTheme.background),
             child: tieneImagen && imageBytes != null
                 ? Image.memory(
-                    imageBytes! as dynamic,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    gaplessPlayback: true,
-                  )
+              imageBytes! as dynamic,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              gaplessPlayback: true,
+            )
                 : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: const BoxDecoration(
-                          color: Color(0xCCFFFFFF),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.add_photo_alternate_outlined,
-                          size: 48,
-                          color: AppTheme.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Toca para agregar una foto',
-                        style: TextStyle(
-                          color: AppTheme.primary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'JPG, PNG — recomendado',
-                        style:
-                            TextStyle(color: Color(0xFF9E9E9E), fontSize: 12),
-                      ),
-                    ],
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: Color(0xCCFFFFFF),
+                    shape: BoxShape.circle,
                   ),
+                  child: const Icon(
+                    Icons.add,
+                    size: 48,
+                    color: AppTheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Toca para agregar una foto',
+                  style: TextStyle(
+                    color: AppTheme.primary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         if (tieneImagen)
@@ -754,18 +752,21 @@ class _ImagePickerSection extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  TextButton.icon(
+                  TextButton(
                     onPressed: isLoading ? null : onTap,
-                    icon: const Icon(Icons.edit, size: 18, color: Colors.white),
-                    label: const Text('Cambiar foto',
-                        style: TextStyle(color: Colors.white)),
+                    style: TextButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Cambiar foto'),
                   ),
-                  TextButton.icon(
+                  TextButton(
                     onPressed: isLoading ? null : onClear,
-                    icon: const Icon(Icons.delete_outline,
-                        size: 18, color: Color(0xFFEF9A9A)),
-                    label: const Text('Quitar',
-                        style: TextStyle(color: Color(0xFFEF9A9A))),
+                    style: TextButton.styleFrom(
+                      backgroundColor: AppTheme.accent,
+                      foregroundColor: AppTheme.darkDark,
+                    ),
+                    child: const Text('Quitar'),
                   ),
                 ],
               ),

@@ -97,16 +97,21 @@ class ReporteService {
     }
   }
 
-  /// Envía un comentario público a un reporte (el usuario lo infiere el backend desde el token)
-  Future<bool> enviarComentario(String reporteId, String texto) async {
+  /// Envía un comentario público. Devuelve el mapa del comentario creado, o null si falla.
+  Future<Map<String, dynamic>?> enviarComentario(
+      String reporteId, String texto) async {
     try {
       final response =
           await _api.client.post('/reportes/$reporteId/comentarios', data: {
         'texto': texto,
       });
-      return response.statusCode == 201 && response.data['success'] == true;
+      if (response.statusCode == 201 && response.data['success'] == true) {
+        return Map<String, dynamic>.from(response.data['data'] as Map);
+      }
+      return null;
     } catch (e) {
-      return false;
+      debugPrint('[ReporteService] enviarComentario error: $e');
+      return null;
     }
   }
 

@@ -1052,7 +1052,7 @@ class ReporteController extends Controller
         try {
             $comentario = \App\Models\Comentario::create([
                 'reporte_id' => $reporteId,
-                'usuario_id' => auth()->id(),
+                'usuario_id' => auth()->user()->id,
                 'texto'      => $request->texto
             ]);
 
@@ -1076,7 +1076,7 @@ class ReporteController extends Controller
                 ->firstOrFail();
 
             $reporte = \App\Models\Reporte::findOrFail($reporteId);
-            $userId  = auth()->id();
+            $userId  = auth()->user()->id;
 
             if ($comentario->usuario_id !== $userId && $reporte->usuario_id !== $userId) {
                 return response()->json([

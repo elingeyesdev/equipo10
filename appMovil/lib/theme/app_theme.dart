@@ -117,6 +117,17 @@ class AppTheme {
       contentPadding:
       const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       hintStyle: const TextStyle(color: darkLight),
+      labelStyle: const TextStyle(color: darkLight),
+      floatingLabelStyle: const TextStyle(color: darkLight),
+      errorStyle: const TextStyle(color: accentDark),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(100),
+        borderSide: const BorderSide(color: accentDark),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(100),
+        borderSide: const BorderSide(color: accentDark, width: 2),
+      ),
     ),
 
     // Tarjetas: blancas con sombra derivada de darkBase

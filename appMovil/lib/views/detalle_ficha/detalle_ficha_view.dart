@@ -12,7 +12,7 @@ import '../../viewmodels/editar_ficha_viewmodel.dart';
 import '../../viewmodels/tracking_viewmodel.dart';
 import '../../viewmodels/evidencia_viewmodel.dart';
 import '../editar_ficha/editar_ficha_view.dart';
-import '../mapa/mapa_operativo_view.dart';
+import 'mapa_operativo_view.dart';
 import '../panel_control/panel_control_view.dart';
 import '../tracking/tracking_view.dart';
 import '../widgets/full_screen_image_view.dart';

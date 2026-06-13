@@ -9,7 +9,7 @@ class ComentariosSection extends StatefulWidget {
   final bool puedeComentar;
   final bool esCreadorDelReporte;
   final bool hasMore;
-  final Future<void> Function(String texto) onEnviar;
+  final Future<bool> Function(String texto) onEnviar;
   final Future<void> Function(String comentarioId) onEliminar;
   final Future<void> Function() onCargarMas;
   final Future<void> Function() onRefresh;
@@ -147,7 +147,15 @@ class _ComentariosSectionState extends State<ComentariosSection> {
                       final texto = _ctrl.text.trim();
                       if (texto.isEmpty) return;
                       _ctrl.clear();
-                      await widget.onEnviar(texto);
+                      final ok = await widget.onEnviar(texto);
+                      if (!ok && mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('No se pudo enviar el comentario. Intenta de nuevo.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
                     },
                   ),
                 ),

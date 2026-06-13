@@ -80,7 +80,6 @@ class _EditarFichaViewState extends State<EditarFichaView> {
           break;
         case TipoCampo.opciones:
           _opcionDinamica[campo.clave] = valorActual?.toString();
-          // Validar que la opción existe en la lista para evitar errores del Dropdown
           if (_opcionDinamica[campo.clave] != null &&
               !campo.opciones!.contains(_opcionDinamica[campo.clave])) {
             _opcionDinamica[campo.clave] = null;
@@ -173,7 +172,18 @@ class _EditarFichaViewState extends State<EditarFichaView> {
     final vm = context.watch<EditarFichaViewModel>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Editar búsqueda')),
+      appBar: AppBar(
+        backgroundColor: AppTheme.surface,
+        centerTitle: false,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        titleSpacing: 0,
+        iconTheme: const IconThemeData(color: AppTheme.darkDark),
+        title: const Text(
+          'Editar reporte',
+          style: TextStyle(color: AppTheme.darkDark),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -199,9 +209,7 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ─── Sección: Datos generales ───
-                      _SectionHeader(
-                          label: 'Datos de la búsqueda',
-                          icon: Icons.info_outline),
+                      const _SectionHeader(label: 'Datos del reporte'),
                       const SizedBox(height: 16),
 
                       // Fecha del incidente (OBLIGATORIA)
@@ -218,8 +226,14 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                               child: InputDecorator(
                                 decoration: InputDecoration(
                                   labelText: 'Fecha del incidente *',
-                                  prefixIcon: const Icon(Icons.calendar_today),
+                                  prefixIcon: const Icon(
+                                      Icons.calendar_today,
+                                      size: 18),
                                   errorText: state.errorText,
+                                  errorStyle: const TextStyle(
+                                      color: AppTheme.accentDark),
+                                  floatingLabelStyle: const TextStyle(
+                                      color: AppTheme.darkLight),
                                 ),
                                 child: Text(
                                   _fechaPerdida == null
@@ -238,14 +252,18 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                       ),
                       const SizedBox(height: 16),
 
+                      // Título
                       TextFormField(
                         controller: _tituloCtrl,
                         textCapitalization: TextCapitalization.sentences,
                         maxLength: 200,
                         decoration: const InputDecoration(
                           labelText: 'Título de la búsqueda',
-                          prefixIcon: Icon(Icons.title),
+                          hintText: 'Ej: Búsqueda de persona mayor en zona norte',
+                          prefixIcon: Icon(Icons.title, size: 18),
                           counterText: '',
+                          floatingLabelStyle:
+                              TextStyle(color: AppTheme.darkLight),
                         ),
                         validator: (v) {
                           if (v == null || v.trim().isEmpty)
@@ -257,6 +275,7 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                       ),
                       const SizedBox(height: 16),
 
+                      // Descripción
                       TextFormField(
                         controller: _descripcionCtrl,
                         maxLines: 4,
@@ -264,9 +283,43 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                         textCapitalization: TextCapitalization.sentences,
                         decoration: const InputDecoration(
                           labelText: 'Descripción detallada',
-                          prefixIcon: Icon(Icons.description_outlined),
+                          hintText:
+                              'Descripción física, última vez visto, ropa, etc.',
+                          prefixIcon:
+                              Icon(Icons.description_outlined, size: 18),
                           alignLabelWithHint: true,
                           counterText: '',
+                          border: OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(24)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(24)),
+                            borderSide: BorderSide(color: AppTheme.border),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(24)),
+                            borderSide: BorderSide(
+                                color: AppTheme.primaryBase, width: 2),
+                          ),
+                          errorBorder: OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(24)),
+                            borderSide:
+                                BorderSide(color: AppTheme.accentDark),
+                          ),
+                          focusedErrorBorder: OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(24)),
+                            borderSide: BorderSide(
+                                color: AppTheme.accentDark, width: 2),
+                          ),
+                          errorStyle:
+                              TextStyle(color: AppTheme.accentDark),
+                          floatingLabelStyle:
+                              TextStyle(color: AppTheme.darkLight),
                         ),
                         validator: (v) {
                           if (v == null || v.trim().isEmpty)
@@ -280,9 +333,12 @@ class _EditarFichaViewState extends State<EditarFichaView> {
 
                       // ─── Sección: Campos específicos de la categoría ───
                       if (_camposDinamicos.isNotEmpty) ...[
-                        _SectionHeader(
-                          label: 'Detalles de ${widget.ficha.nombreCategoria}',
-                          icon: Icons.list_alt_outlined,
+                        const _SectionHeader(label: 'Detalles de documentos'),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Estos campos ayudan a identificar mejor lo reportado.',
+                          style: TextStyle(
+                              fontSize: 12, color: Color(0xFF757575)),
                         ),
                         const SizedBox(height: 16),
                         ..._camposDinamicos.map((campo) => _CampoDinamico(
@@ -300,17 +356,19 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                         const SizedBox(height: 8),
                       ],
 
-                      // ─── Sección: Datos opcionales y adicionales ───
-                      _SectionHeader(
-                          label: 'Datos Adicionales', icon: Icons.tune),
+                      // ─── Sección: Datos opcionales ───
+                      const _SectionHeader(label: 'Datos opcionales'),
                       const SizedBox(height: 16),
 
                       TextFormField(
                         controller: _direccionCtrl,
                         textCapitalization: TextCapitalization.sentences,
                         decoration: const InputDecoration(
-                          labelText: 'Dirección o Referencia',
-                          prefixIcon: Icon(Icons.place),
+                          labelText: 'Dirección o referencia',
+                          hintText: 'Dirección o referencia',
+                          prefixIcon: Icon(Icons.place, size: 18),
+                          floatingLabelStyle:
+                              TextStyle(color: AppTheme.darkLight),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -324,7 +382,10 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                         ],
                         decoration: const InputDecoration(
                           labelText: 'Teléfono de contacto',
-                          prefixIcon: Icon(Icons.phone),
+                          hintText: 'Ej: +591 71234567',
+                          prefixIcon: Icon(Icons.phone, size: 18),
+                          floatingLabelStyle:
+                              TextStyle(color: AppTheme.darkLight),
                         ),
                         validator: (v) {
                           if (v == null || v.trim().isEmpty)
@@ -338,15 +399,18 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                       ),
                       const SizedBox(height: 16),
 
+                      // Recompensa (solo lectura)
                       TextFormField(
                         controller: _recompensaCtrl,
                         readOnly: true,
                         enabled: false,
                         decoration: const InputDecoration(
                           labelText: 'Recompensa en Bs.',
-                          prefixIcon: Icon(Icons.attach_money),
+                          prefixIcon: Icon(Icons.attach_money, size: 18),
                           filled: true,
                           fillColor: Color(0xFFF5F5F5),
+                          floatingLabelStyle:
+                              TextStyle(color: AppTheme.darkLight),
                         ),
                       ),
                       const SizedBox(height: 28),
@@ -364,20 +428,18 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                           : SizedBox(
                               width: double.infinity,
                               height: 52,
-                              child: ElevatedButton.icon(
+                              child: ElevatedButton(
                                 onPressed: _onGuardar,
-                                icon: const Icon(Icons.save_outlined),
-                                label: const Text(
-                                  'Guardar Cambios',
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppTheme.primary,
                                   foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
+                                  shape: const StadiumBorder(),
+                                ),
+                                child: const Text(
+                                  'Guardar cambios',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ),
@@ -399,24 +461,17 @@ class _EditarFichaViewState extends State<EditarFichaView> {
 // ──────────────────────────────────────────────────────────
 class _SectionHeader extends StatelessWidget {
   final String label;
-  final IconData icon;
-  const _SectionHeader({required this.label, required this.icon});
+  const _SectionHeader({required this.label});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, color: AppTheme.primary, size: 20),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.primary,
-          ),
-        ),
-      ],
+    return Text(
+      label,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: AppTheme.primary,
+      ),
     );
   }
 }
@@ -455,7 +510,10 @@ class _CampoDinamico extends StatelessWidget {
             decoration: InputDecoration(
               labelText: campo.etiqueta,
               hintText: campo.hint,
-              prefixIcon: campo.icono != null ? Icon(campo.icono) : null,
+              prefixIcon:
+                  campo.icono != null ? Icon(campo.icono, size: 18) : null,
+              floatingLabelStyle:
+                  const TextStyle(color: AppTheme.darkLight),
             ),
             validator: campo.requerido
                 ? (v) => (v == null || v.trim().isEmpty)
@@ -475,7 +533,10 @@ class _CampoDinamico extends StatelessWidget {
             decoration: InputDecoration(
               labelText: campo.etiqueta,
               hintText: campo.hint,
-              prefixIcon: campo.icono != null ? Icon(campo.icono) : null,
+              prefixIcon:
+                  campo.icono != null ? Icon(campo.icono, size: 18) : null,
+              floatingLabelStyle:
+                  const TextStyle(color: AppTheme.darkLight),
             ),
             validator: campo.requerido
                 ? (v) => (v == null || v.trim().isEmpty)
@@ -492,7 +553,10 @@ class _CampoDinamico extends StatelessWidget {
             value: opcionValue,
             decoration: InputDecoration(
               labelText: campo.etiqueta,
-              prefixIcon: campo.icono != null ? Icon(campo.icono) : null,
+              prefixIcon:
+                  campo.icono != null ? Icon(campo.icono, size: 18) : null,
+              floatingLabelStyle:
+                  const TextStyle(color: AppTheme.darkLight),
             ),
             hint: const Text('Seleccionar'),
             items: campo.opciones!
@@ -531,6 +595,9 @@ class _CampoDinamico extends StatelessWidget {
   }
 }
 
+// ──────────────────────────────────────────────────────────
+// Widget: Selector y preview de imagen
+// ──────────────────────────────────────────────────────────
 class _ImagePickerSection extends StatelessWidget {
   final List<int>? imageBytes;
   final String? fotoUrlExistente;
@@ -576,17 +643,21 @@ class _ImagePickerSection extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: const Color(0xCCFFFFFF),
+            decoration: const BoxDecoration(
+              color: Color(0xCCFFFFFF),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.add_photo_alternate_outlined,
-                size: 48, color: AppTheme.primary),
+            child: const Icon(Icons.add, size: 48, color: AppTheme.primary),
           ),
           const SizedBox(height: 12),
-          const Text('Toca para agregar una foto',
-              style: TextStyle(
-                  color: AppTheme.primary, fontWeight: FontWeight.w600)),
+          const Text(
+            'Toca para agregar una foto',
+            style: TextStyle(
+              color: AppTheme.primary,
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
+          ),
         ],
       );
     }
@@ -599,7 +670,8 @@ class _ImagePickerSection extends StatelessWidget {
             duration: const Duration(milliseconds: 300),
             height: tieneImagen ? 280 : 200,
             width: double.infinity,
-            color: AppTheme.primary.withValues(alpha: 0.06),
+            decoration:
+                const BoxDecoration(color: AppTheme.background),
             child: imageContent,
           ),
         ),
@@ -616,22 +688,26 @@ class _ImagePickerSection extends StatelessWidget {
                   colors: [Colors.transparent, Color(0xA6000000)],
                 ),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  TextButton.icon(
+                  TextButton(
                     onPressed: isLoading ? null : onTap,
-                    icon: const Icon(Icons.edit, size: 18, color: Colors.white),
-                    label: const Text('Cambiar foto',
-                        style: TextStyle(color: Colors.white)),
+                    style: TextButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Cambiar foto'),
                   ),
-                  TextButton.icon(
+                  TextButton(
                     onPressed: isLoading ? null : onClear,
-                    icon: const Icon(Icons.delete_outline,
-                        size: 18, color: Color(0xFFEF9A9A)),
-                    label: const Text('Quitar',
-                        style: TextStyle(color: Color(0xFFEF9A9A))),
+                    style: TextButton.styleFrom(
+                      backgroundColor: AppTheme.accent,
+                      foregroundColor: AppTheme.darkDark,
+                    ),
+                    child: const Text('Quitar'),
                   ),
                 ],
               ),
