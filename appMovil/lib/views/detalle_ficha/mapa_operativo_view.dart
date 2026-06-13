@@ -34,7 +34,7 @@ const List<Color> _coloresVoluntarios = [
 // esa etiqueta es exclusiva del punto original LPP y no se puede reasignar)
 const List<Map<String, String>> _etiquetasPista = [
   {'emoji': '[P]', 'label': 'Nueva pista'},
-  {'emoji': '[S]', 'label': 'Ultima senal'},
+  {'emoji': '[S]', 'label': 'Ultima señal'},
   {'emoji': '[!]', 'label': 'Zona de interes'},
 ];
 
@@ -105,6 +105,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   _PistaInfo? _pistaTooltip; // pista que está mostrando tooltip
   _PistaInfo? _pistaEnEdicion; // Pista que se está moviendo/editando
   bool _editandoPista = false; // Indica si estamos en modo edición
+  bool _cargandoEvidencia = false;
+  String? _voluntarioFiltro; // null = todos
 
   // Polling
   Timer? _pollingTimer;
@@ -1200,21 +1202,20 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
         child: const Icon(Icons.person, color: Colors.grey),
       );
 
-  void _mostrarLeyendaVoluntarios() {
+  void _mostrarFiltroRecorridos() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) {
-        return Container(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Container(
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
-          padding: const EdgeInsets.all(20),
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.7,
-          ),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          constraints:
+              BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.6),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1225,64 +1226,69 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2)),
                 ),
               ),
-              const Row(
-                children: [
-                  Icon(Icons.people_alt, color: AppTheme.primary),
-                  SizedBox(width: 10),
-                  Text(
-                    'Voluntarios Activos',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: AppTheme.primary),
-                  ),
-                ],
+              const Text(
+                'Filtrar recorridos',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: AppTheme.primary),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               Flexible(
-                child: ListView.separated(
+                child: ListView(
                   shrinkWrap: true,
-                  itemCount: _recorridos.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (ctx, i) {
-                    final r = _recorridos[i];
-                    return ListTile(
+                  children: [
+                    ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: Container(
-                        width: 16,
-                        height: 16,
-                        decoration: BoxDecoration(
-                          color: r.color,
-                          shape: BoxShape.circle,
+                      leading: const Icon(Icons.people_alt,
+                          color: AppTheme.primary, size: 20),
+                      title: const Text('Todos',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      selected: _voluntarioFiltro == null,
+                      selectedColor: AppTheme.primary,
+                      onTap: () {
+                        setState(() => _voluntarioFiltro = null);
+                        Navigator.pop(ctx);
+                      },
+                    ),
+                    const Divider(height: 1),
+                    ..._recorridos.asMap().entries.map((e) {
+                      final r = e.value;
+                      final isSelected = _voluntarioFiltro == r.nombre;
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                              color: r.color, shape: BoxShape.circle),
                         ),
-                      ),
-                      title: Text(r.nombre,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 14)),
-                      trailing: r.terminado
-                          ? const Icon(Icons.check_circle,
-                              color: AppTheme.success, size: 20)
-                          : const Icon(Icons.radio_button_checked,
-                              color: Colors.orange, size: 20),
-                      subtitle: Text(
-                        r.terminado
-                            ? 'Búsqueda finalizada'
-                            : 'Buscando en vivo',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                    );
-                  },
+                        title: Text(r.nombre,
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: isSelected ? AppTheme.primary : null)),
+                        trailing: isSelected
+                            ? const Icon(Icons.check,
+                                color: AppTheme.primary, size: 20)
+                            : null,
+                        onTap: () {
+                          setState(() => _voluntarioFiltro = r.nombre);
+                          Navigator.pop(ctx);
+                        },
+                      );
+                    }),
+                    const SizedBox(height: 16),
+                  ],
                 ),
               ),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -1290,29 +1296,13 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        titlePadding: EdgeInsets.zero,
-        title: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: const BoxDecoration(
-            color: Color(0xFFFF6F00),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.photo_camera, color: Colors.white, size: 20),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'Evidencia Fotográfica',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
+        title: const Text(
+          'Evidencia',
+          style: TextStyle(
+              color: AppTheme.primary, fontWeight: FontWeight.bold),
         ),
         content: SingleChildScrollView(
           child: Column(
@@ -1360,12 +1350,11 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                   ),
                 ),
               const SizedBox(height: 12),
-              // Info del voluntario
               if (evidencia.nombreUsuario != null)
                 Row(
                   children: [
                     const Icon(Icons.person,
-                        size: 16, color: Color(0xFFFF6F00)),
+                        size: 16, color: AppTheme.primary),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -1395,10 +1384,10 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                 const SizedBox(height: 10),
                 Text(
                   evidencia.descripcion,
+                  textAlign: TextAlign.left,
                   style: const TextStyle(fontSize: 13, height: 1.4),
                 ),
               ],
-              // Coordenadas GPS
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -1416,9 +1405,17 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             ],
           ),
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 44),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
             child: const Text('Cerrar'),
           ),
         ],
@@ -1435,6 +1432,13 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             child: Text('La ficha no tiene un punto LPP establecido.')),
       );
     }
+
+    // Recorridos filtrados por voluntario seleccionado
+    final recorridosFiltrados = _voluntarioFiltro == null
+        ? _recorridos
+        : _recorridos
+            .where((r) => r.nombre == _voluntarioFiltro)
+            .toList();
 
     // Unificamos todos los marcadores en una sola lista para evitar que se tapen
     final List<Marker> todosLosMarkers = [];
@@ -1530,7 +1534,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     }
 
     // 4. Marcadores de posición actual de voluntarios
-    for (var r in _recorridos) {
+    for (var r in recorridosFiltrados) {
       if (r.puntos.isNotEmpty) {
         todosLosMarkers.add(
           Marker(
@@ -1586,15 +1590,18 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
         key: ValueKey('evidencia_${evidencia.id}'),
         point: LatLng(evidencia.lat!, evidencia.lng!),
         width: 60,
-        height: 68,
+        height: 60,
         alignment: Alignment.center,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () {
+            if (_cargandoEvidencia) return;
+            setState(() => _cargandoEvidencia = true);
             Future.delayed(const Duration(milliseconds: 100), () {
               if (!mounted) return;
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (!mounted) return;
+                setState(() => _cargandoEvidencia = false);
                 _mostrarDetallesEvidencia(evidencia);
               });
             });
@@ -1869,9 +1876,9 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
               MapTileLayer(useSatellite: _useSatellite),
               if (_cachedPolygons != null)
                 PolygonLayer(polygons: _cachedPolygons!),
-              if (_recorridos.isNotEmpty)
+              if (recorridosFiltrados.isNotEmpty)
                 PolylineLayer(
-                  polylines: _recorridos
+                  polylines: recorridosFiltrados
                       .map((r) => Polyline(
                             points: r.puntos,
                             color: r.color.withOpacity(r.terminado ? 0.8 : 0.4),
@@ -1922,48 +1929,76 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
           if (_recorridos.isNotEmpty)
             Positioned(
               top: _modoPista ? 70 : 12,
-              right: 12,
-              child: FloatingActionButton.extended(
-                heroTag: 'btn_leyenda_voluntarios',
-                backgroundColor: Colors.white,
-                foregroundColor: AppTheme.primary,
-                icon: const Icon(Icons.people_alt, size: 20),
-                label: Text('Voluntarios (${_recorridos.length})',
+              left: 0,
+              right: 0,
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: FloatingActionButton.extended(
+                  heroTag: 'btn_filtrar_recorridos',
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppTheme.primary,
+                  elevation: 4,
+                  icon: const Icon(Icons.filter_list, size: 20),
+                  label: Text(
+                    _voluntarioFiltro ?? 'Filtrar recorridos',
                     style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 13)),
-                onPressed: _mostrarLeyendaVoluntarios,
+                        fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  onPressed: _mostrarFiltroRecorridos,
+                ),
               ),
             ),
 
-          // Botón toggle satélite/callejero — columna izquierda baja
-          Positioned(
-            bottom: _modoPista ? 20 : 72,
-            left: 12,
-            child: IntrinsicWidth(
-              child: SizedBox(
-                height: 36,
-                child: ElevatedButton.icon(
-                  onPressed: () =>
-                      setState(() => _useSatellite = !_useSatellite),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppTheme.primary,
-                    elevation: 4,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18)),
-                    shadowColor: Colors.black26,
-                  ),
-                  icon: Icon(
-                      _useSatellite ? Icons.map_outlined : Icons.satellite_alt,
-                      size: 16),
-                  label: Text(
-                    _useSatellite ? 'Callejero' : 'Satélite',
-                    style: const TextStyle(
-                        fontSize: 11, fontWeight: FontWeight.bold),
+          if (_cargandoEvidencia)
+            Positioned.fill(
+              child: AbsorbPointer(
+                child: Container(
+                  color: Colors.black26,
+                  child: const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
                   ),
                 ),
+              ),
+            ),
+
+          // Botón toggle satélite/callejero — esquina inferior izquierda
+          Positioned(
+            bottom: 16,
+            left: 16,
+            child: ElevatedButton(
+              onPressed: () => setState(() => _useSatellite = !_useSatellite),
+              style: ButtonStyle(
+                backgroundColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.pressed)
+                        ? AppTheme.primary
+                        : Colors.white),
+                foregroundColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.pressed)
+                        ? Colors.white
+                        : AppTheme.primary),
+                elevation: WidgetStateProperty.all(4),
+                shape: WidgetStateProperty.all(RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(50))),
+                padding: WidgetStateProperty.all(
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
+                minimumSize: WidgetStateProperty.all(const Size(0, 52)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _useSatellite
+                        ? Icons.map_outlined
+                        : Icons.satellite_outlined,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    _useSatellite ? 'Callejero' : 'Satélite',
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
             ),
           ),
@@ -1971,57 +2006,30 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
           // E9.2 — Indicador de estado del caché de tiles
           // Descarga de tiles en segundo plano — sin UI visible
 
+          // Botón ir a ubicación LPP — esquina inferior derecha
           Positioned(
-            bottom: (_modoPista && _pinTemporal != null) ? 130 : 72,
-            right: 12,
-            child: FloatingActionButton(
-              heroTag: 'btn_centrar_operativo',
-              mini: true,
-              backgroundColor: Colors.white,
-              foregroundColor: AppTheme.primary,
+            bottom: 16,
+            right: 16,
+            child: ElevatedButton(
               onPressed: () => _mapController.move(_lpp!, 15.0),
-              child: const Icon(Icons.my_location),
+              style: ButtonStyle(
+                backgroundColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.pressed)
+                        ? AppTheme.primary
+                        : Colors.white),
+                foregroundColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.pressed)
+                        ? Colors.white
+                        : AppTheme.primary),
+                elevation: WidgetStateProperty.all(4),
+                shape: WidgetStateProperty.all(const CircleBorder()),
+                padding: WidgetStateProperty.all(
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 16)),
+                minimumSize: WidgetStateProperty.all(const Size(0, 52)),
+              ),
+              child: const Icon(Icons.my_location, size: 22),
             ),
           ),
-
-          if (!_modoPista)
-            Positioned(
-              bottom: 20,
-              left: 20,
-              right: 20,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.92),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [
-                    BoxShadow(blurRadius: 4, color: Colors.black26)
-                  ],
-                ),
-                child: _cargandoRecorridos
-                    ? const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2)),
-                          SizedBox(width: 10),
-                          Text('Cargando recorridos...'),
-                        ],
-                      )
-                    : Text(
-                        _recorridos.isEmpty
-                            ? 'Aún no hay recorridos registrados en este operativo.'
-                            : '${_recorridos.length} recorrido(s) de voluntarios registrado(s).',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.primary),
-                      ),
-              ),
-            ),
 
           // ── Tarjeta de detalle de Pista — posicionada en la parte inferior ──
           if (_pistaTooltip != null)
