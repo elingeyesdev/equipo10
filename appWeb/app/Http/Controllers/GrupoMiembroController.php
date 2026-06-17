@@ -53,9 +53,6 @@ class GrupoMiembroController extends Controller
 
         $miembro = GrupoMiembro::create($request->all());
 
-        
-        Grupo::find($request->grupo_id)->increment('miembros_count');
-        
         return response()->json($miembro->load(['grupo', 'usuario']), 201);
     }
 
@@ -89,9 +86,6 @@ class GrupoMiembroController extends Controller
         $grupoId = $miembro->grupo_id;
         $miembro->delete();
 
-        
-        Grupo::find($grupoId)->decrement('miembros_count');
-        
         return response()->json(['message' => 'Miembro eliminado del grupo'], 200);
     }
 

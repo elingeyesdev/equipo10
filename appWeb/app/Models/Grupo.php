@@ -59,14 +59,14 @@ class Grupo extends Model
     public function miembros()
     {
         return $this->belongsToMany(Usuario::class, 'grupo_miembros', 'grupo_id', 'usuario_id')
-            ->withPivot('rol', 'notificaciones_activas', 'joined_at');
+            ->withPivot('rol', 'notificaciones_activas', 'joined_at')
+            ->using(GrupoMiembro::class);
     }
 
+    // Alias mantenido por compatibilidad con código existente
     public function usuarios()
     {
-        return $this->belongsToMany(Usuario::class, 'grupo_miembros', 'grupo_id', 'usuario_id')
-            ->withPivot('rol', 'notificaciones_activas', 'joined_at')
-            ->using(GrupoMiembro::class);  // ← Esto le dice que use el modelo pivot
+        return $this->miembros();
     }
 
     
@@ -137,10 +137,13 @@ class Grupo extends Model
     
     public function scopeMasActivos($query)
     {
-        return $query->orderBy('reportes_activos_count', 'desc');
+        return $query->orderByRaw('(
+            SELECT COUNT(*) FROM reportes
+            WHERE reportes.cuadrante_id = grupos.cuadrante_id
+            AND reportes.estado = \'activo\'
+        ) DESC');
     }
 
-    
     public function scopeMasPopulares($query)
     {
         return $query->orderBy('miembros_count', 'desc');
@@ -207,18 +210,15 @@ class Grupo extends Model
                 'rol' => $rol,
                 'joined_at' => now()
             ]);
-            $this->increment('miembros_count');
             return true;
         }
         return false;
     }
 
-    
     public function eliminarMiembro($usuarioId)
     {
         if ($this->esMiembro($usuarioId)) {
             $this->miembros()->detach($usuarioId);
-            $this->decrement('miembros_count');
             return true;
         }
         return false;

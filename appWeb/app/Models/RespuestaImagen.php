@@ -29,4 +29,11 @@ class RespuestaImagen extends Model
     {
         return $this->belongsTo(Respuesta::class, 'respuesta_id');
     }
+
+    // Las imágenes heredan la moderación de su respuesta padre.
+    // Usar este scope para mostrar solo imágenes de evidencias aprobadas.
+    public function scopeAprobadas($query)
+    {
+        return $query->whereHas('respuesta', fn($q) => $q->where('estado_evidencia', 'approved'));
+    }
 }

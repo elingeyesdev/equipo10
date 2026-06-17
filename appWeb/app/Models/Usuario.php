@@ -12,6 +12,7 @@ use Illuminate\Notifications\Notifiable;
 
 
 use Laravel\Sanctum\HasApiTokens;
+use App\Models\ImagenAlmacenada;
 
 class Usuario extends Authenticatable
 {
@@ -115,17 +116,21 @@ class Usuario extends Authenticatable
         return $this->hasMany(Notificacion::class, 'usuario_id');
     }
 
+    public function fcmTokens()
+    {
+        return $this->hasMany(UsuarioFcmToken::class, 'usuario_id');
+    }
+
     
     protected static function boot()
     {
         parent::boot();
 
-        
         static::deleting(function ($usuario) {
-            
-            // DB::table('configuracion_notificaciones_usuario')
-            //     ->where('usuario_id', $usuario->id)
-            //     ->delete();
+            // Limpiar imagen de avatar almacenada en BD si la URL apunta a /api/img/{id}
+            if ($usuario->avatar_url && preg_match('/\/api\/img\/([a-f0-9\-]{36})$/i', $usuario->avatar_url, $m)) {
+                ImagenAlmacenada::where('id', $m[1])->delete();
+            }
         });
     }
 

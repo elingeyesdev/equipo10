@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use App\Models\ImagenAlmacenada;
+use App\Models\UsuarioFcmToken;
 
 class AuthController extends Controller
 {
@@ -469,8 +470,15 @@ class AuthController extends Controller
 
         try {
             $usuario = Usuario::findOrFail($usuarioId);
-            $usuario->fcm_token = $request->fcm_token;
-            $usuario->save();
+
+            // Guardar el token en la tabla de dispositivos (upsert por token único)
+            UsuarioFcmToken::updateOrCreate(
+                ['fcm_token' => $request->fcm_token],
+                [
+                    'usuario_id'  => $usuario->id,
+                    'dispositivo' => $request->input('dispositivo'),
+                ]
+            );
 
             return response()->json([
                 'success' => true,

@@ -707,23 +707,25 @@ class ReporteController extends Controller
             // Enviar push FCM a los voluntarios con token registrado
             $fcm = new FcmService();
             if ($fcm->estaConfigurado()) {
-                $tokens = \App\Models\ReporteVoluntario::where('reporte_id', $reporte->id)
+                $usuarioIds = \App\Models\ReporteVoluntario::where('reporte_id', $reporte->id)
                     ->whereIn('estado', ['buscando', 'esperando'])
-                    ->with('usuario')
-                    ->get()
-                    ->filter(fn($v) => $v->usuario_id !== $reporte->usuario_id)
-                    ->map(fn($v) => $v->usuario?->fcm_token)
-                    ->filter()
-                    ->values()
+                    ->where('usuario_id', '!=', $reporte->usuario_id)
+                    ->pluck('usuario_id')
                     ->toArray();
 
-                if (!empty($tokens)) {
-                    $fcm->enviarMasivo(
-                        $tokens,
-                        'Alerta del Coordinador',
-                        $request->mensaje,
-                        ['reporte_id' => $reporte->id, 'tipo' => 'alerta_operativo']
-                    );
+                if (!empty($usuarioIds)) {
+                    $tokens = \App\Models\UsuarioFcmToken::whereIn('usuario_id', $usuarioIds)
+                        ->pluck('fcm_token')
+                        ->toArray();
+
+                    if (!empty($tokens)) {
+                        $fcm->enviarMasivo(
+                            $tokens,
+                            'Alerta del Coordinador',
+                            $request->mensaje,
+                            ['reporte_id' => $reporte->id, 'tipo' => 'alerta_operativo']
+                        );
+                    }
                 }
             }
 
@@ -1369,29 +1371,27 @@ class ReporteController extends Controller
                     'valor' => $reporte->id,
                 ]);
 
-                // Recopilar token FCM si el usuario lo tiene registrado
-                if (!empty($usuario->fcm_token)) {
-                    $tokensParaPush[] = [
-                        'token' => $usuario->fcm_token,
-                        'notif_id' => $notif->id,
-                    ];
-                }
+                // Registrar usuario y notif para envío push
+                $tokensParaPush[] = [
+                    'usuario_id' => $usuario->id,
+                    'notif_id'   => $notif->id,
+                ];
             }
 
-            // Enviar push masivo via FCM
+            // Enviar push a todos los dispositivos de cada usuario via FCM
             if ($fcm->estaConfigurado() && !empty($tokensParaPush)) {
                 $enviados = 0;
                 $fallidos = 0;
                 foreach ($tokensParaPush as $item) {
-                    $enviado = $fcm->enviarAToken(
-                        $item['token'],
+                    $resultado = $fcm->enviarAUsuario(
+                        $item['usuario_id'],
                         $plantilla['titulo'],
                         $plantilla['cuerpo'],
                         ['reporte_id' => $reporte->id, 'tipo' => $plantilla['tipo']]
                     );
 
-                    // Marcar como enviada_push en la BD
-                    if ($enviado) {
+                    // Marcar como enviada_push si al menos un dispositivo recibió el push
+                    if ($resultado['enviados'] > 0) {
                         Notificacion::where('id', $item['notif_id'])->update(['enviada_push' => true]);
                         $enviados++;
                     } else {

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\ImagenAlmacenada;
 
 class Reporte extends Model
 {
@@ -69,6 +70,18 @@ class Reporte extends Model
     // Incluir primera_imagen en el JSON de todos los endpoints
     protected $appends = ['primera_imagen'];
     
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Reporte $reporte) {
+            // Limpiar imágenes almacenadas en BD al eliminar el reporte
+            $reporte->imagenes()->each(function ($img) {
+                if (preg_match('/\/api\/img\/([a-f0-9\-]{36})$/i', $img->url, $m)) {
+                    ImagenAlmacenada::where('id', $m[1])->delete();
+                }
+            });
+        });
+    }
 
     public function usuario()
     {

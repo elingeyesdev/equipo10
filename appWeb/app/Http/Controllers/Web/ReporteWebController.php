@@ -403,16 +403,15 @@ class ReporteWebController extends Controller
                 'enviada_push' => false,
             ]);
 
-            // Enviar FCM si el usuario tiene token
-            $usuario = \App\Models\Usuario::find($userId);
-            if ($usuario && !empty($usuario->fcm_token) && $fcm->estaConfigurado()) {
-                $enviado = $fcm->enviarAToken(
-                    $usuario->fcm_token,
+            // Enviar FCM a todos los dispositivos del usuario
+            if ($fcm->estaConfigurado()) {
+                $resultado = $fcm->enviarAUsuario(
+                    $userId,
                     $tituloNotif,
                     $mensajeNotif,
                     ['tipo' => 'alerta_operativo']
                 );
-                if ($enviado) {
+                if ($resultado['enviados'] > 0) {
                     $notif->update(['enviada_push' => true]);
                 }
             }
@@ -594,7 +593,7 @@ class ReporteWebController extends Controller
         }
 
         $fcm = new FcmService();
-        $tokenEnviados = [];
+        $usuariosNotificados = [];
 
         foreach (array_unique($usuariosIds) as $userId) {
             try {
@@ -607,20 +606,15 @@ class ReporteWebController extends Controller
                     'enviada_push' => false,
                 ]);
 
-                $usuario = \App\Models\Usuario::find($userId);
-                if ($usuario && !empty($usuario->fcm_token) && $fcm->estaConfigurado()) {
-                    if (in_array($usuario->fcm_token, $tokenEnviados)) {
-                        continue;
-                    }
-                    $tokenEnviados[] = $usuario->fcm_token;
-
-                    $enviado = $fcm->enviarAToken(
-                        $usuario->fcm_token,
+                if ($fcm->estaConfigurado() && !in_array($userId, $usuariosNotificados)) {
+                    $usuariosNotificados[] = $userId;
+                    $resultado = $fcm->enviarAUsuario(
+                        $userId,
                         $titulo,
                         $mensaje,
                         ['reporte_id' => $reporte->id, 'tipo' => 'alerta_operativo']
                     );
-                    if ($enviado) {
+                    if ($resultado['enviados'] > 0) {
                         $notif->update(['enviada_push' => true]);
                     }
                 }

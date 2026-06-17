@@ -85,7 +85,6 @@ class GrupoController extends Controller
                 'rol' => 'admin',
                 'joined_at' => now()
             ]);
-            $grupo->increment('miembros_count');
         }
         
         return response()->json($grupo->load('miembros', 'cuadrante'), 201);
@@ -152,9 +151,6 @@ class GrupoController extends Controller
             'joined_at' => now(),
             'notificaciones_activas' => true
         ]);
-        
-        
-        $grupo->increment('miembros_count');
 
         return redirect()->route('grupos.show', $id)
             ->with('success', 'Te has unido al grupo exitosamente');
@@ -189,9 +185,6 @@ class GrupoController extends Controller
         }
         
         $grupo->miembros()->detach($usuario->id);
-        
-        
-        $grupo->decrement('miembros_count');
 
         return redirect()->route('grupos.index')
             ->with('success', 'Has salido del grupo');
@@ -251,7 +244,6 @@ class GrupoController extends Controller
         }
 
         $grupo->miembros()->detach($usuarioId);
-        $grupo->decrement('miembros_count');
 
         return response()->json(['message' => 'Miembro removido correctamente']);
     }

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\UsuarioFcmToken;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
@@ -132,6 +133,23 @@ class FcmService
             Log::channel('fcm')->error('[FcmService] Excepcion al enviar notificacion: ' . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Enviar notificacion push a todos los dispositivos de un usuario.
+     * Usa la tabla usuario_fcm_tokens para obtener todos sus tokens activos.
+     */
+    public function enviarAUsuario(string $usuarioId, string $titulo, string $cuerpo, array $datos = []): array
+    {
+        $tokens = UsuarioFcmToken::where('usuario_id', $usuarioId)
+            ->pluck('fcm_token')
+            ->toArray();
+
+        if (empty($tokens)) {
+            return ['enviados' => 0, 'fallidos' => 0, 'tokens_invalidos' => []];
+        }
+
+        return $this->enviarMasivo($tokens, $titulo, $cuerpo, $datos);
     }
 
     /**
