@@ -620,10 +620,12 @@ class _TrackingViewState extends State<TrackingView> {
                     )
                   ]),
 
-                if (pts.isNotEmpty)
+                if (pts.isNotEmpty || vm.posicionActual != null)
                   MarkerLayer(markers: [
                     Marker(
-                      point: LatLng(pts.last.lat, pts.last.lng),
+                      point: pts.isNotEmpty 
+                          ? LatLng(pts.last.lat, pts.last.lng) 
+                          : LatLng(vm.posicionActual!.latitude, vm.posicionActual!.longitude),
                       width: 36,
                       height: 36,
                       child: Container(
@@ -751,8 +753,8 @@ class _TrackingViewState extends State<TrackingView> {
 
             // ── Toggle satelital / callejero ─────────────────────────────
             Positioned(
-              bottom: 210,
-              right: 80,
+              bottom: 235,
+              right: 20,
               child: MapLayerToggleButton(
                 heroTag: null,
                 useSatellite: _useSatellite,
@@ -821,12 +823,6 @@ class _TrackingViewState extends State<TrackingView> {
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${vm.totalPuntos} puntos GPS registrados',
-                      style: const TextStyle(
-                          color: Color(0xFF5F6368), fontSize: 13),
                     ),
                     const SizedBox(height: 16),
                     // Boton principal — "Terminar Recorrido"

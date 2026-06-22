@@ -1,6 +1,4 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io' show Platform;
+﻿import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import 'api_service.dart';
 
@@ -34,14 +32,19 @@ class TrackingService {
   StreamSubscription<Position>? _positionSub;
   Timer? _burstTimer;
   bool _isSyncing = false;
-  Position? _lastValidPosition;
+
+  // Configuraci├│n del stream de GPS
+  static const LocationSettings _locationSettings = LocationSettings(
+    accuracy: LocationAccuracy.high,
+    distanceFilter: 5, // Solo registra si se movi├│ m├ís de 5 metros
+  );
 
   bool get isTracking => _isTracking;
   bool get isPaused => _isPaused;
   List<PuntoRecorrido> get puntos => List.unmodifiable(_puntos);
   int get totalPuntos => _puntos.length;
 
-  /// Solicita permisos de ubicación. Retorna true si fueron concedidos.
+  /// Solicita permisos de ubicaci├│n. Retorna true si fueron concedidos.
   Future<bool> solicitarPermisos() async {
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
@@ -51,7 +54,7 @@ class TrackingService {
         permission == LocationPermission.whileInUse;
   }
 
-  /// Obtiene la posición actual una sola vez.
+  /// Obtiene la posici├│n actual una sola vez.
   Future<Position?> obtenerPosicionActual() async {
     try {
       final permitted = await solicitarPermisos();
@@ -65,7 +68,7 @@ class TrackingService {
     }
   }
 
-  /// Inicia la grabación del recorrido localmente Y notifica al backend.
+  /// Inicia la grabaci├│n del recorrido localmente Y notifica al backend.
   Future<bool> iniciarTracking({
     required String reporteId,
     required String usuarioId,
@@ -80,70 +83,30 @@ class TrackingService {
       await _api.client
           .put('/reportes/$reporteId/voluntarios/iniciar/$usuarioId');
     } catch (_) {
-      // Continuar de todas formas — modo offline-first
+      // Continuar de todas formas ÔÇö modo offline-first
     }
 
     _puntos.clear();
     _puntosPendientes.clear();
-    _lastValidPosition = null;
     _isTracking = true;
     _isPaused = false;
 
-    LocationSettings settings;
-    if (Platform.isAndroid) {
-      settings = AndroidSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 0,
-        intervalDuration: const Duration(seconds: 1),
-      );
-    } else if (Platform.isIOS) {
-      settings = AppleSettings(
-        accuracy: LocationAccuracy.high,
-        activityType: ActivityType.fitness,
-        distanceFilter: 0,
-      );
-    } else {
-      settings = const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 0,
-      );
-    }
-
-    // Iniciar stream de posición
-    _positionSub = Geolocator.getPositionStream(locationSettings: settings)
-        .listen((pos) {
-      if (_isPaused) return;
-
-      if (_lastValidPosition != null) {
-        final dist = Geolocator.distanceBetween(
-          _lastValidPosition!.latitude,
-          _lastValidPosition!.longitude,
-          pos.latitude,
-          pos.longitude,
+    // Iniciar stream de posici├│n
+    _positionSub =
+        Geolocator.getPositionStream(locationSettings: _locationSettings)
+            .listen((pos) {
+      if (!_isPaused) {
+        final nuevoPunto = PuntoRecorrido(
+          lat: pos.latitude,
+          lng: pos.longitude,
+          ts: pos.timestamp.millisecondsSinceEpoch,
         );
-
-        // Filtro 1: Ignorar microsaltos estáticos menores a 3.5 metros (elimina temblor)
-        if (dist < 3.5) return;
-
-        // Filtro 2: Ignorar rebotes locos de señal en interiores
-        // Si salta más de 10 metros pero la precisión es dudosa (> 20m), es una telaraña.
-        if (dist > 10.0 && pos.accuracy > 20.0) return;
+        _puntos.add(nuevoPunto);
+        _puntosPendientes.add(nuevoPunto);
       }
-
-      _lastValidPosition = pos;
-
-      final nuevoPunto = PuntoRecorrido(
-        lat: pos.latitude,
-        lng: pos.longitude,
-        ts: pos.timestamp.millisecondsSinceEpoch,
-      );
-      _puntos.add(nuevoPunto);
-      _puntosPendientes.add(nuevoPunto);
-    }, onError: (e) {
-      // Ignorar errores del stream de ubicación silenciosamente
     });
 
-    // Iniciar Timer para Ráfagas (cada 15 segundos)
+    // Iniciar Timer para R├ífagas (cada 15 segundos)
     _burstTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       _sincronizarRafaga(reporteId, usuarioId);
     });
@@ -151,7 +114,7 @@ class TrackingService {
     return true;
   }
 
-  /// Pausa temporalmente la grabación (no detiene el stream, solo ignora puntos).
+  /// Pausa temporalmente la grabaci├│n (no detiene el stream, solo ignora puntos).
   Future<void> pausarTracking({
     required String reporteId,
     required String usuarioId,
@@ -164,12 +127,12 @@ class TrackingService {
     } catch (_) {}
   }
 
-  /// Reanuda la grabación si estaba pausada.
+  /// Reanuda la grabaci├│n si estaba pausada.
   void reanudarTracking() {
     _isPaused = false;
   }
 
-  /// Detiene la grabación, sube el recorrido al backend y limpia el estado.
+  /// Detiene la grabaci├│n, sube el recorrido al backend y limpia el estado.
   Future<bool> terminarTracking({
     required String reporteId,
     required String usuarioId,
@@ -203,14 +166,14 @@ class TrackingService {
     }
   }
 
-  /// Envía los puntos pendientes al servidor en una ráfaga.
+  /// Env├¡a los puntos pendientes al servidor en una r├ífaga.
   Future<void> _sincronizarRafaga(String reporteId, String usuarioId) async {
     if (_isSyncing || _puntosPendientes.isEmpty) return;
 
     _isSyncing = true;
 
     // Hacemos una copia de los pendientes para enviarlos, de modo que
-    // si llegan nuevos puntos durante la petición, no se pierdan al borrar.
+    // si llegan nuevos puntos durante la petici├│n, no se pierdan al borrar.
     final puntosAEnviar = List<PuntoRecorrido>.from(_puntosPendientes);
 
     try {
@@ -221,12 +184,12 @@ class TrackingService {
       );
 
       if (response.statusCode == 200) {
-        // Borramos solo los puntos que acabamos de enviar con éxito
+        // Borramos solo los puntos que acabamos de enviar con ├®xito
         _puntosPendientes.removeWhere((p) => puntosAEnviar.contains(p));
       }
     } catch (_) {
-      // Si falla, los puntos siguen en _puntosPendientes y se reintentarán
-      // en el próximo ciclo del timer.
+      // Si falla, los puntos siguen en _puntosPendientes y se reintentar├ín
+      // en el pr├│ximo ciclo del timer.
     } finally {
       _isSyncing = false;
     }
@@ -243,6 +206,5 @@ class TrackingService {
     _isSyncing = false;
     _puntos.clear();
     _puntosPendientes.clear();
-    _lastValidPosition = null;
   }
 }

@@ -1034,23 +1034,27 @@ class _InfoSection extends StatelessWidget {
           children: [
             if (ficha.nombreUsuario != null &&
                 (ficha.nombreUsuario as String).isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Row(
-                  children: [
-                    const Text('Reportado por: ',
-                        style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-                    NombreConInsignia(
-                      nombre: ficha.nombreUsuario!,
-                      oro: ficha.usuarioOro,
-                      plataBronce: ficha.usuarioPlataBronce,
-                      baseStyle: const TextStyle(
-                        color: AppTheme.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    children: [
+                      const Text('Reportado por: ',
+                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                      Expanded(
+                        child: NombreConInsignia(
+                          nombre: ficha.nombreUsuario!,
+                          oro: ficha.usuarioOro,
+                          plataBronce: ficha.usuarioPlataBronce,
+                          baseStyle: const TextStyle(
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             if (ficha.vistas != null)

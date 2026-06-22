@@ -77,7 +77,19 @@ class _GeofencingBloqueadoSheetState extends State<GeofencingBloqueadoSheet> {
     final pos = widget.posicionActual;
     final distancia = _calcularDistanciaAlCuadrante();
 
-    // Centro del mapa: priorizar centro del cuadrante, luego posición actual
+    // Ajustar cámara para que se vean tanto el cuadrante como la posición actual
+    CameraFit? cameraFit;
+    if (ficha.cuadranteLatMin != null && pos != null) {
+      cameraFit = CameraFit.bounds(
+        bounds: LatLngBounds.fromPoints([
+          LatLng(ficha.cuadranteLatMin!, ficha.cuadranteLngMin!),
+          LatLng(ficha.cuadranteLatMax!, ficha.cuadranteLngMax!),
+          LatLng(pos.latitude, pos.longitude),
+        ]),
+        padding: const EdgeInsets.all(40),
+      );
+    }
+
     final LatLng centerMapa;
     if (ficha.cuadranteLatMin != null) {
       centerMapa = LatLng(
@@ -198,6 +210,7 @@ class _GeofencingBloqueadoSheetState extends State<GeofencingBloqueadoSheet> {
                       options: MapOptions(
                         initialCenter: centerMapa,
                         initialZoom: 13.5,
+                        initialCameraFit: cameraFit,
                         interactionOptions: const InteractionOptions(
                             flags: InteractiveFlag.none),
                       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/feed_viewmodel.dart';
@@ -547,6 +548,20 @@ class _MiBusquedaTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 14),
+          if (ficha.fotoUrl != null && ficha.fotoUrl!.isNotEmpty) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: CachedNetworkImage(
+                imageUrl: ficha.fotoUrl!,
+                width: 60,
+                height: 60,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+                errorWidget: (_, __, ___) => const SizedBox(width: 60, height: 60),
+              ),
+            ),
+            const SizedBox(width: 14),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

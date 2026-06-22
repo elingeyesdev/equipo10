@@ -256,12 +256,11 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                       TextFormField(
                         controller: _tituloCtrl,
                         textCapitalization: TextCapitalization.sentences,
-                        maxLength: 200,
+                        maxLength: 25,
                         decoration: const InputDecoration(
                           labelText: 'Título de la búsqueda',
                           hintText: 'Ej: Búsqueda de persona mayor en zona norte',
                           prefixIcon: Icon(Icons.title, size: 18),
-                          counterText: '',
                           floatingLabelStyle:
                               TextStyle(color: AppTheme.darkLight),
                         ),
@@ -279,7 +278,7 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                       TextFormField(
                         controller: _descripcionCtrl,
                         maxLines: 4,
-                        maxLength: 1000,
+                        maxLength: 150,
                         textCapitalization: TextCapitalization.sentences,
                         decoration: const InputDecoration(
                           labelText: 'Descripción detallada',
@@ -288,7 +287,6 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                           prefixIcon:
                               Icon(Icons.description_outlined, size: 18),
                           alignLabelWithHint: true,
-                          counterText: '',
                           border: OutlineInputBorder(
                             borderRadius:
                                 BorderRadius.all(Radius.circular(24)),
@@ -363,6 +361,7 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                       TextFormField(
                         controller: _direccionCtrl,
                         textCapitalization: TextCapitalization.sentences,
+                        maxLength: 75,
                         decoration: const InputDecoration(
                           labelText: 'Dirección o referencia',
                           hintText: 'Dirección o referencia',
@@ -380,9 +379,10 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                           FilteringTextInputFormatter.allow(
                               RegExp(r'[\d\+\-\s\(\)]')),
                         ],
+                        maxLength: 8,
                         decoration: const InputDecoration(
                           labelText: 'Teléfono de contacto',
-                          hintText: 'Ej: +591 71234567',
+                          hintText: 'Ej: 71234567',
                           prefixIcon: Icon(Icons.phone, size: 18),
                           floatingLabelStyle:
                               TextStyle(color: AppTheme.darkLight),
@@ -391,8 +391,8 @@ class _EditarFichaViewState extends State<EditarFichaView> {
                           if (v == null || v.trim().isEmpty)
                             return null; // Opcional
                           final digits = v.replaceAll(RegExp(r'\D'), '');
-                          if (digits.length < 7 || digits.length > 15) {
-                            return 'Número inválido (entre 7 y 15 dígitos)';
+                          if (digits.length != 8) {
+                            return 'El teléfono debe tener exactamente 8 dígitos';
                           }
                           return null;
                         },
@@ -498,6 +498,16 @@ class _CampoDinamico extends StatelessWidget {
     required this.onOpcionChanged,
   });
 
+  int _getMaxLength() {
+    final lower = campo.etiqueta.toLowerCase();
+    if (lower.contains('raza') || lower.contains('pelaje') || lower.contains('plumas')) return 25;
+    if (lower.contains('nombre')) return 75;
+    if (lower.contains('tipo')) return 50;
+    if (lower.contains('marca') || lower.contains('modelo') || lower.contains('matrícula') || lower.contains('matricula')) return 30;
+    if (lower.contains('color')) return 30;
+    return 100;
+  }
+
   @override
   Widget build(BuildContext context) {
     switch (campo.tipo) {
@@ -507,6 +517,7 @@ class _CampoDinamico extends StatelessWidget {
           child: TextFormField(
             controller: ctrl,
             textCapitalization: TextCapitalization.sentences,
+            maxLength: _getMaxLength(),
             decoration: InputDecoration(
               labelText: campo.etiqueta,
               hintText: campo.hint,
@@ -530,6 +541,7 @@ class _CampoDinamico extends StatelessWidget {
             controller: ctrl,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            maxLength: 3,
             decoration: InputDecoration(
               labelText: campo.etiqueta,
               hintText: campo.hint,

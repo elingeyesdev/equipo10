@@ -108,6 +108,7 @@ class _RegisterViewState extends State<RegisterView> {
                 TextFormField(
                   controller: _nombreCtrl,
                   textCapitalization: TextCapitalization.words,
+                  maxLength: 50,
                   decoration: const InputDecoration(
                     labelText: 'Nombre completo',
                     prefixIcon: Icon(Icons.person_outline, size: 20),
@@ -121,6 +122,7 @@ class _RegisterViewState extends State<RegisterView> {
                 TextFormField(
                   controller: _telefonoCtrl,
                   keyboardType: TextInputType.phone,
+                  maxLength: 8,
                   decoration: const InputDecoration(
                     labelText: 'Teléfono',
                     prefixIcon: Icon(Icons.phone_outlined, size: 20),
@@ -134,6 +136,7 @@ class _RegisterViewState extends State<RegisterView> {
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
+                  maxLength: 50,
                   decoration: const InputDecoration(
                     labelText: 'Correo electrónico',
                     prefixIcon: Icon(Icons.email_outlined, size: 20),
@@ -150,6 +153,7 @@ class _RegisterViewState extends State<RegisterView> {
                 TextFormField(
                   controller: _passwordCtrl,
                   obscureText: _obscurePassword,
+                  maxLength: 30,
                   decoration: InputDecoration(
                     labelText: 'Contraseña',
                     prefixIcon: const Icon(Icons.lock_outline, size: 20),

@@ -609,6 +609,7 @@ class _AlertaMiniCardState extends State<_AlertaMiniCard> {
                     width: 60,
                     height: 115,
                     fit: BoxFit.cover,
+                    alignment: Alignment.topCenter,
                     errorWidget: (_, __, ___) => const SizedBox(width: 60),
                   ),
                 )
@@ -734,6 +735,7 @@ class _FichaCercanaCardState extends State<_FichaCercanaCard> {
                             child: CachedNetworkImage(
                               imageUrl: ficha.fotoUrl!,
                               fit: BoxFit.cover,
+                              alignment: Alignment.topCenter,
                               memCacheWidth: 400,
                               placeholder: (_, __) => _CategoriaPlaceholder(
                                   categoria: ficha.nombreCategoria),
@@ -786,13 +788,11 @@ class _FichaCercanaCardState extends State<_FichaCercanaCard> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Expanded(
-                  flex: 3,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                         Text(ficha.titulo,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -817,7 +817,6 @@ class _FichaCercanaCardState extends State<_FichaCercanaCard> {
                       ],
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -886,6 +885,7 @@ class _FichaGridCardState extends State<_FichaGridCard> {
                           child: CachedNetworkImage(
                             imageUrl: ficha.fotoUrl!,
                             fit: BoxFit.cover,
+                            alignment: Alignment.topCenter,
                             memCacheWidth: 400,
                             placeholder: (_, __) => _CategoriaPlaceholder(
                                 categoria: ficha.nombreCategoria),
@@ -937,11 +937,9 @@ class _FichaGridCardState extends State<_FichaGridCard> {
 
               // Texto debajo (sin caja)
               const SizedBox(height: 8),
-              Expanded(
-                flex: 4,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                     Text(ficha.titulo,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -966,7 +964,6 @@ class _FichaGridCardState extends State<_FichaGridCard> {
                       ),
                   ],
                 ),
-              ),
             ],
           ),
         ),

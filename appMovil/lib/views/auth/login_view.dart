@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import 'register_view.dart';
@@ -18,6 +19,7 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _obscurePassword = true;
+  bool _recordarme = false;
 
   late final AnimationController _fadeCtrl;
   late final Animation<double> _fadeAnim;
@@ -43,6 +45,21 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
 
     _fadeCtrl.forward();
     _slideCtrl.forward();
+
+    _cargarCredenciales();
+  }
+
+  Future<void> _cargarCredenciales() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString('remember_email');
+    final pass = prefs.getString('remember_password');
+    if (email != null && pass != null) {
+      setState(() {
+        _emailCtrl.text = email;
+        _passwordCtrl.text = pass;
+        _recordarme = true;
+      });
+    }
   }
 
   @override
@@ -58,14 +75,26 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
     if (!_formKey.currentState!.validate()) return;
 
     final vm = context.read<AuthViewModel>();
+    final email = _emailCtrl.text.trim();
+    final password = _passwordCtrl.text;
+    
     final success = await vm.login(
-      email: _emailCtrl.text.trim(),
-      password: _passwordCtrl.text,
+      email: email,
+      password: password,
     );
 
     if (!mounted) return;
 
     if (success) {
+      final prefs = await SharedPreferences.getInstance();
+      if (_recordarme) {
+        await prefs.setString('remember_email', email);
+        await prefs.setString('remember_password', password);
+      } else {
+        await prefs.remove('remember_email');
+        await prefs.remove('remember_password');
+      }
+
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           pageBuilder: (_, animation, __) => const HomeView(),
@@ -244,6 +273,7 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
                           TextFormField(
                             controller: _emailCtrl,
                             keyboardType: TextInputType.emailAddress,
+                            maxLength: 50,
                             decoration: const InputDecoration(
                               labelText: 'Correo electrónico',
                               prefixIcon: Icon(Icons.email_outlined, size: 20),
@@ -262,6 +292,7 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
                           TextFormField(
                             controller: _passwordCtrl,
                             obscureText: _obscurePassword,
+                            maxLength: 30,
                             decoration: InputDecoration(
                               labelText: 'Contraseña',
                               prefixIcon:
@@ -285,7 +316,24 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
                               return null;
                             },
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 8),
+
+                          // Recuérdame
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: _recordarme,
+                                onChanged: (val) {
+                                  setState(() {
+                                    _recordarme = val ?? false;
+                                  });
+                                },
+                                activeColor: AppTheme.primary,
+                              ),
+                              const Text('Recuérdame', style: TextStyle(color: AppTheme.textSecondary)),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
 
                           // Botón de login
                           if (vm.isLoading)
