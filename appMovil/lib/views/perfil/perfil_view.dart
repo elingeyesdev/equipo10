@@ -11,6 +11,7 @@ import '../auth/login_view.dart';
 import '../../theme/app_theme.dart';
 import 'configuracion_view.dart';
 import 'soporte_view.dart';
+import '../widgets/nombre_con_insignia.dart';
 
 class PerfilView extends StatefulWidget {
   const PerfilView({super.key});
@@ -209,11 +210,13 @@ class _PerfilViewState extends State<PerfilView> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  perfil.nombreCompleto.isNotEmpty
+                NombreConInsignia(
+                  nombre: perfil.nombreCompleto.isNotEmpty
                       ? perfil.nombreCompleto
                       : 'Voluntario Sin Nombre',
-                  style: const TextStyle(
+                  oro: perfil.rescatesOro,
+                  plataBronce: perfil.evidenciasPlataBronce,
+                  baseStyle: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: Colors.white),
@@ -222,8 +225,9 @@ class _PerfilViewState extends State<PerfilView> {
                   Text(
                     perfil.email,
                     style: TextStyle(
-                        fontSize: 14, color: Colors.white.withOpacity(0.8)),
+                        fontSize: 14, color: Colors.white.withValues(alpha: 0.8)),
                   ),
+                const SizedBox(height: 16),
               ],
             ),
           ),

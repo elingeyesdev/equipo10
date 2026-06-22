@@ -2,6 +2,8 @@ import 'dart:async' show Timer;
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../theme/app_theme.dart';
+import '../perfil/perfil_publico_view.dart';
+import '../widgets/nombre_con_insignia.dart';
 
 class ComentariosSection extends StatefulWidget {
   final List<Map<String, dynamic>> comentarios;
@@ -255,12 +257,31 @@ class _ComentarioBurbuja extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (!esPropio && autorNombre != null) ...[
-              Text(
-                autorNombre,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primary,
+              GestureDetector(
+                onTap: () {
+                  if (autorId != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PerfilPublicoView(usuarioId: autorId),
+                      ),
+                    );
+                  }
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    NombreConInsignia(
+                      nombre: autorNombre,
+                      oro: comentario['usuario']?['rescates_oro'] ?? 0,
+                      plataBronce: comentario['usuario']?['evidencias_plata_bronce'] ?? 0,
+                      baseStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 3),

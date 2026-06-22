@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../models/reporte_model.dart';
+import '../../models/evidencia_model.dart';
 import '../../services/encuesta_service.dart';
+import '../../services/evidencia_service.dart';
+import '../../services/reporte_service.dart';
 
 class EncuestaDialog extends StatefulWidget {
   final ReporteModel reporte;
@@ -43,6 +46,36 @@ class _EncuestaDialogState extends State<EncuestaDialog> {
   final _comentarioCtrl = TextEditingController();
   bool _isLoading = false;
   final _encuestaService = EncuestaService();
+  final _evidenciaService = EvidenciaService();
+  final _reporteService = ReporteService();
+
+  List<EvidenciaModel> _evidenciasAprobadas = [];
+  String? _heroeSeleccionado;
+  bool _cargandoEvidencias = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isCoordinador) {
+      _cargarEvidencias();
+    }
+  }
+
+  Future<void> _cargarEvidencias() async {
+    setState(() => _cargandoEvidencias = true);
+    try {
+      final evs = await _evidenciaService.obtenerEvidenciasAdmin(widget.reporte.id);
+      if (mounted) {
+        setState(() {
+          _evidenciasAprobadas = evs.where((e) => e.estado == 'approved').toList();
+        });
+      }
+    } catch (e) {
+      debugPrint("Error al cargar evidencias: $e");
+    } finally {
+      if (mounted) setState(() => _cargandoEvidencias = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -61,34 +94,53 @@ class _EncuestaDialogState extends State<EncuestaDialog> {
 
     setState(() => _isLoading = true);
 
-    final exito = await _encuestaService.enviarEncuesta(
-      reporteId: widget.reporte.id,
-      usuarioId: widget.usuarioId,
-      puntuacion: _puntuacion,
-      comentario: _comentarioCtrl.text.trim().isNotEmpty
-          ? _comentarioCtrl.text.trim()
-          : null,
-    );
+    try {
+      if (widget.isCoordinador) {
+        final comentarioTexto = _comentarioCtrl.text.trim();
+        await _reporteService.marcarResuelto(
+          widget.reporte.id,
+          resueltoPor: _heroeSeleccionado == 'nadie' 
+              ? null 
+              : (_heroeSeleccionado == 'admin' ? widget.usuarioId : _heroeSeleccionado),
+          historiaExito: comentarioTexto.isNotEmpty ? comentarioTexto : null,
+          justificacion: comentarioTexto.isNotEmpty ? comentarioTexto : null,
+        );
+      }
 
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-
-    if (exito) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gracias por tus comentarios.')),
+      final exito = await _encuestaService.enviarEncuesta(
+        reporteId: widget.reporte.id,
+        usuarioId: widget.usuarioId,
+        puntuacion: _puntuacion,
+        comentario: _comentarioCtrl.text.trim().isNotEmpty
+            ? _comentarioCtrl.text.trim()
+            : null,
       );
-      Navigator.of(context).pop();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'No se pudo enviar (sin conexión). Tu opinión se guardará y se enviará cuando vuelva la red.',
+
+      if (!mounted) return;
+      
+      if (exito) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gracias por tus comentarios.')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No se pudo enviar la encuesta (sin conexión). Se guardará para después.',
+            ),
+            duration: Duration(seconds: 4),
           ),
-          duration: Duration(seconds: 4),
-        ),
-      );
-      // Cerrar igualmente — la cola offline reintentará
+        );
+      }
       Navigator.of(context).pop();
+
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al enviar: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -98,6 +150,14 @@ class _EncuestaDialogState extends State<EncuestaDialog> {
     final String descripcion = widget.isCoordinador
         ? 'El operativo "$titulo" ha sido cerrado. ¿Qué tal salió la coordinación? Tu evaluación ayuda a mejorar el sistema.'
         : 'Participaste en la búsqueda "$titulo". Cuéntanos tu experiencia como voluntario para seguir mejorando.';
+
+    // Extraer usuarios únicos de evidencias
+    final Map<String, String> usuariosUnicos = {};
+    for (var ev in _evidenciasAprobadas) {
+      if (ev.nombreUsuario != null) {
+        usuariosUnicos[ev.usuarioId] = ev.nombreUsuario!;
+      }
+    }
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -160,10 +220,43 @@ class _EncuestaDialogState extends State<EncuestaDialog> {
                 ),
               ),
             ],
+            
+            if (widget.isCoordinador) ...[
+              const SizedBox(height: 16),
+              const Text(
+                '¿Quién fue el Héroe?',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+              const SizedBox(height: 8),
+              if (_cargandoEvidencias)
+                const Center(child: CircularProgressIndicator())
+              else
+                DropdownButtonFormField<String>(
+                  value: _heroeSeleccionado,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  hint: const Text('Selecciona a un voluntario', overflow: TextOverflow.ellipsis),
+                  items: [
+                    const DropdownMenuItem(
+                      value: 'nadie',
+                      child: Text('Nadie / Volvió a casa / Lo encontré yo', overflow: TextOverflow.ellipsis),
+                    ),
+                    ...usuariosUnicos.entries.map((entry) => DropdownMenuItem(
+                      value: entry.key,
+                      child: Text(entry.value, overflow: TextOverflow.ellipsis),
+                    )).toList(),
+                  ],
+                  onChanged: (val) => setState(() => _heroeSeleccionado = val),
+                ),
+            ],
+
             const SizedBox(height: 16),
-            const Text(
-              'Comentario (opcional):',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            Text(
+              widget.isCoordinador ? 'Historia de Éxito / Comentario:' : 'Comentario (opcional):',
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -171,7 +264,7 @@ class _EncuestaDialogState extends State<EncuestaDialog> {
               maxLines: 3,
               maxLength: 300,
               decoration: InputDecoration(
-                hintText: '¿Algo que mejorar?',
+                hintText: widget.isCoordinador ? 'Cuenta el final feliz...' : '¿Algo que mejorar?',
                 hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -182,10 +275,7 @@ class _EncuestaDialogState extends State<EncuestaDialog> {
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-          child: const Text('Saltar', style: TextStyle(color: Colors.grey)),
-        ),
+
         ElevatedButton(
           onPressed: _isLoading ? null : _enviar,
           style: ElevatedButton.styleFrom(

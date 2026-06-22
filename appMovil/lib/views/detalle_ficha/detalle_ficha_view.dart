@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../models/reporte_model.dart';
+import '../perfil/perfil_publico_view.dart';
+import '../widgets/nombre_con_insignia.dart';
 import '../../models/campos_categoria.dart';
 import '../../models/campo_categoria_model.dart';
 import '../../viewmodels/detalle_ficha_viewmodel.dart';
@@ -501,15 +503,16 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
 
   Widget _buildActionArea(DetalleFichaViewModel vm, bool esCreador,
       bool esBloqueado, String estadoText) {
+    final ficha = vm.ficha;
+    if (ficha == null) return const SizedBox.shrink();
+
     if (esCreador) {
-      return esBloqueado ? _BannerBloqueado(estado: estadoText) : const SizedBox.shrink();
+      return esBloqueado ? _BannerBloqueado(ficha: ficha) : const SizedBox.shrink();
     }
 
     if (esBloqueado) {
-      return _BannerBloqueado(estado: estadoText);
+      return _BannerBloqueado(ficha: ficha);
     }
-
-    final ficha = vm.ficha;
 
     if (vm.yaVinculado) {
       return Column(
@@ -634,13 +637,13 @@ class _DetalleFichaViewState extends State<DetalleFichaView> {
 
 // ─────────────────────────────────────────────────────────────────────────────
 class _BannerBloqueado extends StatelessWidget {
-  final String estado;
+  final ReporteModel ficha;
 
-  const _BannerBloqueado({required this.estado});
+  const _BannerBloqueado({required this.ficha});
 
   @override
   Widget build(BuildContext context) {
-    final e = estado.toLowerCase();
+    final e = ficha.estado.toLowerCase();
     final bool esResuelto =
         e == 'resuelto' || e == 'finalizado' || e == 'cerrado';
 
@@ -649,9 +652,32 @@ class _BannerBloqueado extends StatelessWidget {
     final Color contentColor =
         esResuelto ? AppTheme.textSecondary : AppTheme.darkDark;
     final titulo = esResuelto ? 'Reporte resuelto' : 'Reporte pausado';
-    final subtitulo = esResuelto
-        ? 'Este caso ha sido cerrado exitosamente.'
-        : 'No se admiten nuevos voluntarios.';
+    
+    Widget subtituloWidget;
+    if (esResuelto) {
+      if (ficha.resueltoPorNombre != null && ficha.resueltoPorNombre!.isNotEmpty) {
+        subtituloWidget = Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text('Resuelto por: ', style: TextStyle(color: contentColor, fontSize: 13)),
+            NombreConInsignia(
+              nombre: ficha.resueltoPorNombre!,
+              oro: ficha.resueltoPorOro,
+              plataBronce: ficha.resueltoPorPlataBronce,
+              baseStyle: const TextStyle(
+                color: AppTheme.primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        );
+      } else {
+        subtituloWidget = Text('Volvió a casa', style: TextStyle(color: contentColor, fontSize: 13, fontWeight: FontWeight.w500));
+      }
+    } else {
+      subtituloWidget = Text('No se admiten nuevos voluntarios.', style: TextStyle(color: contentColor, fontSize: 12));
+    }
     final icono =
         esResuelto ? Icons.check_circle_outline : Icons.lock_outline;
 
@@ -678,11 +704,8 @@ class _BannerBloqueado extends StatelessWidget {
                     fontSize: 14,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitulo,
-                  style: TextStyle(color: contentColor, fontSize: 12),
-                ),
+                const SizedBox(height: 4),
+                subtituloWidget,
               ],
             ),
           ),
@@ -1011,10 +1034,24 @@ class _InfoSection extends StatelessWidget {
           children: [
             if (ficha.nombreUsuario != null &&
                 (ficha.nombreUsuario as String).isNotEmpty)
-              Expanded(
-                child: Text('Reportado por: ${ficha.nombreUsuario}',
-                    style: const TextStyle(
-                        fontSize: 12, color: AppTheme.textSecondary)),
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  children: [
+                    const Text('Reportado por: ',
+                        style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                    NombreConInsignia(
+                      nombre: ficha.nombreUsuario!,
+                      oro: ficha.usuarioOro,
+                      plataBronce: ficha.usuarioPlataBronce,
+                      baseStyle: const TextStyle(
+                        color: AppTheme.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             if (ficha.vistas != null)
               Row(

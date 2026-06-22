@@ -36,7 +36,7 @@ class TrackingService {
   // Configuración del stream de GPS
   static const LocationSettings _locationSettings = LocationSettings(
     accuracy: LocationAccuracy.high,
-    distanceFilter: 5, // Solo registra si se movió más de 5 metros
+    distanceFilter: 3, // Solo registra si se movió más de 3 metros
   );
 
   bool get isTracking => _isTracking;
@@ -95,6 +95,9 @@ class TrackingService {
     _positionSub =
         Geolocator.getPositionStream(locationSettings: _locationSettings)
             .listen((pos) {
+      // Ignorar puntos de mala precisión
+      if (pos.accuracy > 20) return;
+
       if (!_isPaused) {
         final nuevoPunto = PuntoRecorrido(
           lat: pos.latitude,

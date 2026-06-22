@@ -41,6 +41,8 @@ class Reporte extends Model
         'vistas',
         'motivo_cierre',
         'motivo_eliminacion',
+        'resuelto_por',
+        'historia_exito',
     ];
 
     protected $casts = [
@@ -86,6 +88,11 @@ class Reporte extends Model
     public function usuario()
     {
         return $this->belongsTo(Usuario::class, 'usuario_id');
+    }
+
+    public function heroe()
+    {
+        return $this->belongsTo(Usuario::class, 'resuelto_por');
     }
 
 

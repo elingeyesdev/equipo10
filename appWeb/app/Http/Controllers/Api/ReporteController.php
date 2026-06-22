@@ -1052,17 +1052,26 @@ class ReporteController extends Controller
         ]);
 
         try {
+            // Check if the UUIDs are passed correctly
+            $usuarioId = auth()->user()->id;
+
             $comentario = \App\Models\Comentario::create([
                 'reporte_id' => $reporteId,
-                'usuario_id' => auth()->user()->id,
+                'usuario_id' => $usuarioId,
                 'texto'      => $request->texto
             ]);
 
+            // Explicitly reload the user to avoid relationship N+1 or serialization errors
+            $comentario->load(['usuario' => function($query) {
+                $query->select('id', 'nombre', 'avatar_url');
+            }]);
+
             return response()->json([
                 'success' => true,
-                'data'    => $comentario->load('usuario')
+                'data'    => $comentario
             ], 201);
         } catch (\Exception $e) {
+            \Log::error('[ReporteController] Error en agregarComentario: ' . $e->getMessage() . ' - ' . $e->getLine());
             return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
     }
@@ -1104,6 +1113,7 @@ class ReporteController extends Controller
             $reporte = Reporte::with([
                 'categoria',
                 'usuario',
+                'heroe',
                 'cuadrante',
                 'caracteristicas',
                 'imagenes',
@@ -1140,16 +1150,33 @@ class ReporteController extends Controller
             $reporte = Reporte::findOrFail($reporteId);
 
             $justificacion = $request->input('justificacion', null);
+            $resueltoPor = $request->input('resuelto_por', null);
+            $historiaExito = $request->input('historia_exito', null);
 
             $reporte->estado = 'resuelto';
-            try {
-                if (!empty($justificacion)) {
-                    $reporte->justificacion = $justificacion;
-                }
-                $reporte->save();
-            } catch (\Exception $saveEx) {
-                unset($reporte->justificacion);
-                $reporte->save();
+            
+            if (!empty($justificacion)) {
+                $reporte->justificacion = $justificacion;
+            }
+            if (!empty($resueltoPor)) {
+                $reporte->resuelto_por = $resueltoPor;
+            }
+            if (!empty($historiaExito)) {
+                $reporte->historia_exito = $historiaExito;
+            }
+            
+            $reporte->save();
+
+            // Notify hero if applicable
+            if (!empty($resueltoPor)) {
+                \App\Models\Notificacion::create([
+                    'usuario_id' => $resueltoPor,
+                    'tipo' => 'heroe_reconocido',
+                    'titulo' => '¡Eres un Héroe de la Comunidad!',
+                    'mensaje' => 'El dueño de la mascota te ha otorgado el reconocimiento por el hallazgo.',
+                    'reporte_id' => $reporte->id,
+                    'leida' => false
+                ]);
             }
 
             // E14.3: Notificar a TODOS los voluntarios vinculados via push

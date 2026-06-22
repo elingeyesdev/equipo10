@@ -454,26 +454,25 @@ class _ResumenOperativo extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               _InfoChip(
                 icon: Icons.group_outlined,
                 label:
                     '$voluntariosActivos voluntario${voluntariosActivos != 1 ? 's' : ''}',
               ),
-              const SizedBox(width: 8),
               const _InfoChip(
                 icon: Icons.circle,
                 label: 'Activo',
                 color: AppTheme.success,
               ),
-              if (ficha.cuadranteLatMin != null) ...[
-                const SizedBox(width: 8),
+              if (ficha.cuadranteLatMin != null)
                 const _InfoChip(
                   icon: Icons.map_outlined,
                   label: 'Zona asignada',
                 ),
-              ],
             ],
           ),
           if (ficha.descripcion.isNotEmpty) ...[

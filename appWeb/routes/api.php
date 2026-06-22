@@ -39,6 +39,7 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::post('subir-avatar-directo', [AuthController::class, 'subirAvatarDirecto']);
+Route::get('usuarios/{id}', [AuthController::class, 'perfil']);
 
 // ============================================
 // CATEGORÍAS

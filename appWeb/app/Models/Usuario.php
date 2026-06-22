@@ -62,6 +62,12 @@ class Usuario extends Authenticatable
         'puntos_ayuda' => 0,
     ];
 
+    protected $appends = [
+        'rescates_oro',
+        'evidencias_plata_bronce',
+    ];
+
+
     
     
         public function getAuthPassword()
@@ -87,6 +93,28 @@ class Usuario extends Authenticatable
     public function respuestas()
     {
         return $this->hasMany(Respuesta::class, 'usuario_id');
+    }
+
+    public function rescatesComoHeroe()
+    {
+        return $this->hasMany(Reporte::class, 'resuelto_por');
+    }
+
+    public function getRescatesOroAttribute()
+    {
+        return $this->rescatesComoHeroe()
+                    ->where('usuario_id', '!=', $this->id)
+                    ->count();
+    }
+
+    public function getEvidenciasPlataBronceAttribute()
+    {
+        return $this->respuestas()
+                    ->where('estado_evidencia', 'approved')
+                    ->whereHas('reporte', function ($q) {
+                        $q->where('usuario_id', '!=', $this->id);
+                    })
+                    ->count();
     }
 
     public function encuestas()

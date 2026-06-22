@@ -22,10 +22,17 @@ class ReporteModel {
   final int? vistas;
   final String? fechaPerdida;
   final String? avatarUsuario;
+  final int usuarioOro;
+  final int usuarioPlataBronce;
   final Map<String, dynamic>? caracteristicas;
   final double? recompensa;
   final DateTime? createdAt;
   final int nivelExpansion;
+
+  // Variables del héroe (resuelto_por)
+  final String? resueltoPorNombre;
+  final int resueltoPorOro;
+  final int resueltoPorPlataBronce;
 
   // Bounds del cuadrante asignado (para geofencing)
   final double? cuadranteLatMin;
@@ -75,10 +82,15 @@ class ReporteModel {
     this.vistas,
     this.fechaPerdida,
     this.avatarUsuario,
+    this.usuarioOro = 0,
+    this.usuarioPlataBronce = 0,
     this.caracteristicas,
     this.recompensa,
     this.createdAt,
     this.nivelExpansion = 1,
+    this.resueltoPorNombre,
+    this.resueltoPorOro = 0,
+    this.resueltoPorPlataBronce = 0,
     this.cuadranteLatMin,
     this.cuadranteLatMax,
     this.cuadranteLngMin,
@@ -132,10 +144,25 @@ class ReporteModel {
     // Extraer nombre y avatar del usuario creador
     String? uNombre;
     String? uAvatar;
+    int uOro = 0;
+    int uPlata = 0;
     final u = map['usuario'];
     if (u is Map) {
       uNombre = u['nombre']?.toString();
       uAvatar = u['avatar_url']?.toString();
+      uOro = (u['rescates_oro'] ?? 0) as int;
+      uPlata = (u['evidencias_plata_bronce'] ?? 0) as int;
+    }
+
+    // Extraer heroe si existe
+    String? hNombre;
+    int hOro = 0;
+    int hPlata = 0;
+    final h = map['heroe'];
+    if (h is Map) {
+      hNombre = h['nombre']?.toString();
+      hOro = (h['rescates_oro'] ?? 0) as int;
+      hPlata = (h['evidencias_plata_bronce'] ?? 0) as int;
     }
 
     // Fix para URL del avatar del usuario
@@ -209,6 +236,11 @@ class ReporteModel {
       cuadranteNombre: map['cuadrante']?['nombre']?.toString(),
       cuadranteZona: map['cuadrante']?['zona']?.toString(),
       expansionesData: expansionesList,
+      usuarioOro: uOro,
+      usuarioPlataBronce: uPlata,
+      resueltoPorNombre: hNombre,
+      resueltoPorOro: hOro,
+      resueltoPorPlataBronce: hPlata,
     );
   }
 

@@ -128,11 +128,13 @@ class ReporteService {
   }
 
   /// Marca temporalmente el reporte como Oculto/Cerrado (Resuelto)
-  Future<void> marcarResuelto(String reporteId, {String? justificacion}) async {
+  Future<void> marcarResuelto(String reporteId, {String? justificacion, String? resueltoPor, String? historiaExito}) async {
     final Map<String, dynamic> data = {
       'justificacion': (justificacion != null && justificacion.isNotEmpty)
           ? justificacion
           : null,
+      'resuelto_por': resueltoPor,
+      'historia_exito': historiaExito,
     };
 
     final response = await _api.client.put(

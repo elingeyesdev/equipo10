@@ -8,6 +8,8 @@ class PerfilModel {
   final String? avatarUrl;
   final List<String> habilidades;
   final Map<String, dynamic> estadisticas;
+  final int rescatesOro;
+  final int evidenciasPlataBronce;
 
   PerfilModel({
     required this.id,
@@ -17,6 +19,8 @@ class PerfilModel {
     this.avatarUrl,
     this.habilidades = const [],
     this.estadisticas = const {},
+    this.rescatesOro = 0,
+    this.evidenciasPlataBronce = 0,
   });
 
   factory PerfilModel.fromMap(Map<String, dynamic> map) {
@@ -28,11 +32,11 @@ class PerfilModel {
       email: map['email'] as String? ?? '',
       avatarUrl: _parseAvatarUrl(map['avatar_url'] as String?),
       habilidades: map['habilidades'] != null
-          ? List<String>.from(map['habilidades'])
+          ? List<String>.from(map['habilidades'] as List)
           : [],
-      estadisticas: map['estadisticas'] != null
-          ? Map<String, dynamic>.from(map['estadisticas'])
-          : {},
+      estadisticas: map['estadisticas'] as Map<String, dynamic>? ?? {},
+      rescatesOro: map['rescates_oro'] as int? ?? 0,
+      evidenciasPlataBronce: map['evidencias_plata_bronce'] as int? ?? 0,
     );
   }
 

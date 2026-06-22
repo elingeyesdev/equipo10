@@ -270,6 +270,39 @@ class VoluntarioController extends Controller
             $voluntario->recorrido_puntos = empty($puntosFinales) ? null : $puntosFinales;
             $voluntario->save();
 
+            // Lógica de gamificación: 1 punto por cada 1km caminado
+            $puntosGanados = 0;
+            $distanciaKm = 0;
+            if (count($puntosFinales) >= 2) {
+                // Calcular distancia total
+                for ($i = 1; $i < count($puntosFinales); $i++) {
+                    $lat1 = floatval($puntosFinales[$i - 1]['lat']);
+                    $lng1 = floatval($puntosFinales[$i - 1]['lng']);
+                    $lat2 = floatval($puntosFinales[$i]['lat']);
+                    $lng2 = floatval($puntosFinales[$i]['lng']);
+
+                    $r = 6371; // Radio de la tierra en km
+                    $dLat = deg2rad($lat2 - $lat1);
+                    $dLon = deg2rad($lng2 - $lng1);
+                    $a = sin($dLat/2) * sin($dLat/2) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon/2) * sin($dLon/2);
+                    $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+                    $distanciaKm += $r * $c;
+                }
+            }
+
+            $puntosGanados = floor($distanciaKm);
+
+            // Solo dar puntos si caminó al menos 1 km y no es el dueño
+            if ($puntosGanados > 0) {
+                $reporte = Reporte::find($reporteId);
+                if ($reporte && $reporte->usuario_id !== $usuarioId) {
+                    $userToReward = \App\Models\Usuario::find($usuarioId);
+                    if ($userToReward) {
+                        $userToReward->increment('evidencias_plata_bronce', $puntosGanados);
+                    }
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Búsqueda terminada. Recorrido guardado.',
