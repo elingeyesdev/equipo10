@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Top Colaboradores')
-@section('page-title', 'Ranking de Usuarios')
+@section('title', 'Top colaboradores')
+@section('page-title', 'Ranking de usuarios')
 
 @section('content')
 <div class="content-wrapper">
@@ -45,7 +45,7 @@
         <div class="col-lg-8 mb-4">
             <div class="card h-100">
                 <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-people-fill me-2"></i>Tabla de Posiciones</h5>
+                    <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-people-fill me-2"></i>Tabla de posiciones</h5>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
@@ -83,7 +83,7 @@
                                     </div>
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge bg-primary-subtle text-primary border border-primary fs-6">{{ $u->puntos_ayuda }}</span>
+                                    <span class="badge fs-6" style="background:#3F7AC5;color:white;">{{ $u->puntos_ayuda }}</span>
                                 </td>
                                 <td>
                                     <div class="small">

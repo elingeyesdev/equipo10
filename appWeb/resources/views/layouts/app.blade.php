@@ -808,6 +808,25 @@
             transform: translateZ(0);
             backface-visibility: hidden;
         }
+
+        /* Paginación — página activa en azul primario */
+        .page-item.active .page-link,
+        .dataTables_paginate .paginate_button.current,
+        .dataTables_paginate .paginate_button.current:hover {
+            background-color: #3F7AC5 !important;
+            border-color: #3F7AC5 !important;
+            color: white !important;
+        }
+        .page-link {
+            color: #3F7AC5;
+        }
+        .page-link:hover {
+            color: #5388CB;
+        }
+        /* Reducir tamaño de iconos en paginación de Laravel */
+        .pagination .page-link .bi {
+            font-size: 0.85rem;
+        }
     </style>
     
     @stack('styles')

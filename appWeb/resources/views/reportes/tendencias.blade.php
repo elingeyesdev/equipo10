@@ -1,18 +1,18 @@
 @extends('layouts.app')
 
-@section('title', 'Tendencias Temporales')
-@section('page-title', 'Mapa de Calor de Incidentes')
+@section('title', 'Tendencias temporales')
+@section('page-title', 'Mapa de calor de incidentes')
 
 @section('content')
 <div class="content-wrapper">
-    
+
     <div class="card mb-4">
         <div class="card-body">
             <div class="row align-items-end g-3">
                 <div class="col-lg-8">
                     <form action="{{ route('estadisticas.tendencias') }}" method="GET" class="row g-3 align-items-end">
                         <div class="col-md-4">
-                            <label class="form-label text-muted small fw-bold">Año de Análisis</label>
+                            <label class="form-label text-muted small fw-bold">Año de análisis</label>
                             <input type="number" name="year" value="{{ $year }}" min="2020" max="{{ date('Y') }}" class="form-control">
                         </div>
                         <div class="col-md-4">
@@ -48,11 +48,11 @@
     </div>
 
     <div class="row">
-        
+
         <div class="col-12">
             <div class="card shadow-sm">
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-calendar-range me-2"></i>Evolución Mensual (Perdidos vs Resueltos)</h5>
+                    <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-calendar-range me-2"></i>Evolución mensual (perdidos vs resueltos)</h5>
                     <span class="badge bg-secondary">{{ $year }}</span>
                 </div>
                 <div class="card-body">
@@ -62,13 +62,13 @@
                 </div>
             </div>
         </div>
-        
-        
+
+
         <div class="col-md-6 mt-4">
              <div class="alert alert-danger d-flex align-items-center mb-0 border-0 shadow-sm text-white" style="background-color: #EF4444;">
                  <i class="bi bi-exclamation-circle-fill fs-2 me-3"></i>
                  <div>
-                     <strong>Total Perdidos</strong>
+                     <strong>Total perdidos</strong>
                      <div class="fs-4 fw-bold">{{ array_sum($chartData['perdidos']) }} incidentes</div>
                  </div>
              </div>
@@ -77,7 +77,7 @@
              <div class="alert alert-primary d-flex align-items-center mb-0 border-0 shadow-sm text-white" style="background-color: #3F7AC5;">
                  <i class="bi bi-check-circle-fill fs-2 me-3"></i>
                  <div>
-                     <strong>Total Resueltos</strong>
+                     <strong>Total resueltos</strong>
                      <div class="fs-4 fw-bold">{{ array_sum($chartData['resueltos']) }} casos</div>
                  </div>
              </div>
@@ -95,9 +95,9 @@
                 labels: {!! json_encode($chartData['labels']) !!},
                 datasets: [
                     {
-                        label: 'Objetos Perdidos',
+                        label: 'Objetos perdidos',
                         data: {!! json_encode($chartData['perdidos']) !!},
-                        borderColor: '#EF4444', 
+                        borderColor: '#EF4444',
                         backgroundColor: 'rgba(239, 68, 68, 0.1)',
                         pointBackgroundColor: '#EF4444',
                         fill: true,
@@ -105,7 +105,7 @@
                         borderWidth: 2
                     },
                     {
-                        label: 'Casos Resueltos',
+                        label: 'Casos resueltos',
                         data: {!! json_encode($chartData['resueltos']) !!},
                         borderColor: '#3F7AC5',
                         backgroundColor: 'rgba(63, 122, 197, 0.1)',

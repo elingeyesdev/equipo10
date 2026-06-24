@@ -72,7 +72,7 @@
                     </div>
 
                     <div class="d-flex justify-content-end align-items-center gap-2 mt-2">
-                        <a href="{{ route('usuarios.index') }}" class="btn btn-secondary">Cancelar</a>
+                        <a href="{{ route('usuarios.index') }}" class="btn" style="background:#E9C978;color:#2B333D;font-weight:600;">Cancelar</a>
                         <button type="submit" class="btn btn-primary">Guardar usuario</button>
                     </div>
                 </form>

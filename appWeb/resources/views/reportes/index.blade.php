@@ -31,7 +31,7 @@
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary rounded-pill px-4" style="height:38px;">
+                            <button type="submit" class="btn btn-primary d-flex align-items-center justify-content-center" style="width:38px;height:38px;border-radius:50%;padding:0;">
                                 <i class="bi bi-search"></i>
                             </button>
                         </div>
@@ -125,10 +125,10 @@
                                     <a href="{{ route('reportes.show', $reporte->id) }}" class="btn btn-sm d-flex align-items-center justify-content-center" style="background:#5388CB;color:white;width:32px;height:32px;padding:0;" title="Ver detalles">
                                         <i class="bi bi-eye-fill"></i>
                                     </a>
-                                    <a href="{{ route('reportes.edit', $reporte->id) }}" class="btn btn-sm d-flex align-items-center justify-content-center" style="background:#3F7AC5;color:white;width:32px;height:32px;padding:0;" title="Editar">
+                                    <a href="{{ route('reportes.edit', $reporte->id) }}" class="btn btn-sm d-flex align-items-center justify-content-center" style="background:#E9C978;color:#2B333D;width:32px;height:32px;padding:0;" title="Editar">
                                         <i class="bi bi-pencil-fill"></i>
                                     </a>
-                                    <button type="button" class="btn btn-sm d-flex align-items-center justify-content-center" style="background:#E9C978;color:#2B333D;width:32px;height:32px;padding:0;" onclick="confirmDelete('{{ $reporte->id }}')" title="Eliminar">
+                                    <button type="button" class="btn btn-sm d-flex align-items-center justify-content-center" style="background:#EF4444;color:white;width:32px;height:32px;padding:0;" onclick="confirmDelete('{{ $reporte->id }}')" title="Eliminar">
                                         <i class="bi bi-trash-fill"></i>
                                     </button>
                                 </div>
