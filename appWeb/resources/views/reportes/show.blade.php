@@ -142,8 +142,7 @@
     <div class="report-header d-flex justify-content-between align-items-center">
         <div>
             <div class="d-flex align-items-center gap-3 mb-2">
-                <span class="badge rounded-pill bg-white text-{{ $reporte->tipo_reporte == 'perdido' ? 'danger' : 'success' }} px-3 py-2 fw-bold text-uppercase shadow-sm">
-                    <i class="bi {{ $reporte->tipo_reporte == 'perdido' ? 'bi-exclamation-circle-fill' : 'bi-check-circle-fill' }} me-1"></i>
+                <span class="badge rounded-pill px-3 py-2 fw-bold text-uppercase shadow-sm" style="background:{{ $reporte->tipo_reporte == 'perdido' ? '#EF4444' : '#16A34A' }};color:white;">
                     {{ ucfirst($reporte->tipo_reporte) }}
                 </span>
                 <span class="text-white-50 small">
@@ -166,38 +165,34 @@
                         @csrf
                         @method('PUT')
                         <button type="button" class="btn btn-success fw-semibold shadow-sm border-0" onclick="confirmarReanudar('{{ $reporte->id }}')">
-                            <i class="bi bi-play-circle me-1"></i> Reanudar Búsqueda
+                            Reanudar búsqueda
                         </button>
                     </form>
                 @else
-                    {{-- Pausar (solo activo/en progreso) --}}
                     <button type="button" class="btn btn-info fw-semibold shadow-sm border-0 text-white" onclick="confirmarPausa('{{ $reporte->id }}')">
-                        <i class="bi bi-pause-circle me-1"></i> Pausar Búsqueda
+                        Pausar búsqueda
                     </button>
-                    {{-- Cerrar definitivamente --}}
                     <button type="button" class="btn btn-warning fw-semibold shadow-sm border-0 text-dark" onclick="confirmarCierre('{{ $reporte->id }}')">
-                        <i class="bi bi-x-circle me-1"></i> Cerrar Búsqueda
+                        Cerrar búsqueda
                     </button>
                 @endif
             @else
                 @if(in_array($reporte->estado, ['cerrado', 'pausado']))
                     <button type="button" class="btn btn-secondary fw-semibold shadow-sm border-0" disabled title="Solo el creador o un admin puede reanudar la búsqueda">
-                        <i class="bi bi-play-circle me-1"></i> Reanudar Búsqueda
+                        Reanudar búsqueda
                     </button>
                 @else
                     <button type="button" class="btn btn-secondary fw-semibold shadow-sm border-0" disabled title="Solo el creador o un admin puede gestionar la búsqueda">
-                        <i class="bi bi-pause-circle me-1"></i> Pausar Búsqueda
+                        Pausar búsqueda
                     </button>
                 @endif
             @endif
 
-            <!-- Opción de eliminar reporte removida a petición -->
-
             <a href="{{ route('reportes.edit', $reporte->id) }}" class="btn btn-light bg-white text-primary fw-semibold shadow-sm border-0">
-                <i class="bi bi-pencil me-2"></i> Editar
+                Editar
             </a>
             <a href="{{ route('reportes.index') }}" class="btn btn-outline-light fw-semibold">
-                <i class="bi bi-arrow-left me-2"></i> Volver
+                Volver
             </a>
         </div>
     </div>
@@ -206,7 +201,7 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="reward-banner">
-                <h5 class="mb-0 text-white fw-bold"><i class="bi bi-cash-coin me-2 fs-4"></i> SE OFRECE RECOMPENSA</h5>
+                <h5 class="mb-0 text-white fw-bold">Se ofrece recompensa</h5>
                 <h2 class="fw-bold my-2 display-6">Bs. {{ number_format($reporte->recompensa, 2) }}</h2>
                 <small class="opacity-90">Si tienes información, contáctanos inmediatamente.</small>
             </div>
@@ -220,7 +215,7 @@
             <div class="card border-0 shadow-sm rounded-4 mb-4 flex-grow-1 d-flex flex-column">
                 <div class="card-body p-4">
                     <h5 class="fw-bold text-primary mb-4 border-bottom pb-2">
-                        <i class="bi bi-info-circle-fill me-2"></i> Detalles del Caso
+                        <i class="bi bi-info-circle-fill me-2"></i> Detalles del caso
                     </h5>
                     
                     <div class="row g-4 mb-4">

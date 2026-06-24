@@ -2,23 +2,23 @@
 
 @extends('layouts.app')
 
-@section('title', 'Crear Usuario')
-@section('page-title', 'Crear Nuevo Usuario')
+@section('title', 'Crear usuario')
+@section('page-title', 'Crear nuevo usuario')
 
 @section('content')
 <div class="row">
     <div class="col-md-8 mx-auto">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-person-plus me-2"></i>Nuevo Usuario</h5>
+                <h5 class="mb-0">Nuevo usuario</h5>
             </div>
             <div class="card-body">
                 <form action="{{ route('usuarios.store') }}" method="POST">
                     @csrf
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Nombre Completo *</label>
+                            <label class="form-label">Nombre completo *</label>
                             <input type="text" name="nombre" class="form-control @error('nombre') is-invalid @enderror" 
                                    value="{{ old('nombre') }}" required>
                             @error('nombre')
@@ -58,7 +58,7 @@
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Puntos de Ayuda</label>
+                            <label class="form-label">Puntos de ayuda</label>
                             <input type="number" name="puntos_ayuda" class="form-control" value="{{ old('puntos_ayuda', 0) }}" min="0">
                         </div>
 
@@ -71,13 +71,9 @@
                         </div>
                     </div>
 
-                    <div class="d-flex justify-content-end gap-2">
-                        <a href="{{ route('usuarios.index') }}" class="btn btn-secondary">
-                            <i class="bi bi-x-circle me-1"></i> Cancelar
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-circle me-1"></i> Guardar Usuario
-                        </button>
+                    <div class="d-flex justify-content-end align-items-center gap-2 mt-2">
+                        <a href="{{ route('usuarios.index') }}" class="btn btn-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">Guardar usuario</button>
                     </div>
                 </form>
             </div>

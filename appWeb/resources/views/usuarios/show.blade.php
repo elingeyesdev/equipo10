@@ -2,22 +2,18 @@
 
 @extends('layouts.app')
 
-@section('title', 'Ver Usuario')
-@section('page-title', 'Detalle del Usuario')
+@section('title', 'Ver usuario')
+@section('page-title', 'Detalle del usuario')
 
 @section('content')
 <div class="row">
     <div class="col-md-8 mx-auto">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-person me-2"></i>{{ $usuario->nombre }}</h5>
-                <div>
-                    <a href="{{ route('usuarios.edit', $usuario->id) }}" class="btn btn-warning btn-sm">
-                        <i class="bi bi-pencil"></i> Editar
-                    </a>
-                    <a href="{{ route('usuarios.index') }}" class="btn btn-secondary btn-sm">
-                        <i class="bi bi-arrow-left"></i> Volver
-                    </a>
+                <h5 class="mb-0">{{ $usuario->nombre }}</h5>
+                <div class="d-flex gap-2">
+                    <a href="{{ route('usuarios.edit', $usuario->id) }}" class="btn btn-warning btn-sm">Editar</a>
+                    <a href="{{ route('usuarios.index') }}" class="btn btn-secondary btn-sm">Volver</a>
                 </div>
             </div>
             <div class="card-body">
@@ -46,16 +42,16 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="text-muted small">Puntos de Ayuda</label>
-                        <p><span class="badge bg-info" style="font-size: 1.2rem;">{{ $usuario->puntos_ayuda }} pts</span></p>
+                        <label class="text-muted small">Puntos de ayuda</label>
+                        <p><span class="badge" style="background:#5388CB;color:white;font-size:1.1rem;">{{ $usuario->puntos_ayuda }} pts</span></p>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="text-muted small">Estado</label>
                         <p>
                             @if($usuario->activo)
-                                <span class="badge bg-success">Activo</span>
+                                <span class="badge" style="background:#3F7AC5;color:white;">Activo</span>
                             @else
-                                <span class="badge bg-danger">Inactivo</span>
+                                <span class="badge" style="background:#DFDFDF;color:#3F4B5B;">Inactivo</span>
                             @endif
                         </p>
                     </div>
@@ -63,40 +59,40 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="text-muted small">Fecha de Registro</label>
+                        <label class="text-muted small">Fecha de registro</label>
                         <p class="fw-bold">{{ $usuario->fecha_registro->format('d/m/Y H:i') }}</p>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="text-muted small">Última Actualización</label>
+                        <label class="text-muted small">Última actualización</label>
                         <p class="fw-bold">{{ $usuario->updated_at->format('d/m/Y H:i') }}</p>
                     </div>
                 </div>
 
                 <hr>
 
-                <h6 class="mb-3"><i class="bi bi-file-earmark-text me-2"></i>Reportes del Usuario</h6>
+                <h6 class="mb-3">Reportes del usuario</h6>
                 <div class="row">
                     <div class="col-md-4">
-                        <div class="card bg-light">
+                        <div class="card" style="background:#3F7AC5;">
                             <div class="card-body text-center">
-                                <h3 class="text-primary">{{ $usuario->reportes->count() }}</h3>
-                                <p class="mb-0 text-muted">Total Reportes</p>
+                                <h3 class="text-white fw-bold">{{ $usuario->reportes->count() }}</h3>
+                                <p class="mb-0 text-white opacity-85">Total reportes</p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="card bg-light">
+                        <div class="card" style="background:#EF4444;">
                             <div class="card-body text-center">
-                                <h3 class="text-danger">{{ $usuario->reportes->where('tipo_reporte', 'perdido')->count() }}</h3>
-                                <p class="mb-0 text-muted">Perdidos</p>
+                                <h3 class="text-white fw-bold">{{ $usuario->reportes->where('tipo_reporte', 'perdido')->count() }}</h3>
+                                <p class="mb-0 text-white opacity-85">Perdidos</p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="card bg-light">
+                        <div class="card" style="background:#16A34A;">
                             <div class="card-body text-center">
-                                <h3 class="text-success">{{ $usuario->reportes->where('tipo_reporte', 'encontrado')->count() }}</h3>
-                                <p class="mb-0 text-muted">Encontrados</p>
+                                <h3 class="text-white fw-bold">{{ $usuario->reportes->where('tipo_reporte', 'encontrado')->count() }}</h3>
+                                <p class="mb-0 text-white opacity-85">Encontrados</p>
                             </div>
                         </div>
                     </div>

@@ -746,7 +746,7 @@
                                             <i class="bi bi-{{ $reporte->tipo_reporte == 'perdido' ? 'x-circle' : 'check-circle' }}-fill me-1"></i>
                                             {{ ucfirst($reporte->tipo_reporte) }}
                                         </span>
-                                        <span class="badge rounded-pill" style="background-color: {{ $reporte->categoria->color ?? '#6c757d' }}20; color: {{ $reporte->categoria->color ?? '#6c757d' }}; border: 1px solid {{ $reporte->categoria->color ?? '#6c757d' }}">
+                                        <span class="badge rounded-pill" style="background-color: {{ $reporte->categoria->color ?? '#6c757d' }}; color: white;">
                                             {{ $reporte->categoria->nombre ?? 'N/A' }}
                                         </span>
                                         @if($reporte->recompensa)

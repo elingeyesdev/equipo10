@@ -2,7 +2,7 @@
 @extends('layouts.app')
 
 @section('title', 'Respuestas')
-@section('page-title', 'Gestión de Respuestas')
+@section('page-title', 'Gestión de respuestas')
 
 @section('content')
 
@@ -17,7 +17,7 @@
                         </div>
                     </div>
                     <div class="flex-grow-1 ms-3">
-                        <h6 class="text-muted mb-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Total Respuestas</h6>
+                        <h6 class="text-muted mb-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Total respuestas</h6>
                         <h3 class="mb-0 fw-bold">{{ $respuestas->count() }}</h3>
                     </div>
                 </div>
@@ -53,7 +53,7 @@
                         </div>
                     </div>
                     <div class="flex-grow-1 ms-3">
-                        <h6 class="text-muted mb-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Marcadas Útiles</h6>
+                        <h6 class="text-muted mb-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Marcadas útiles</h6>
                         <h3 class="mb-0 fw-bold">{{ $respuestas->where('util', true)->count() }}</h3>
                     </div>
                 </div>
@@ -71,7 +71,7 @@
                         </div>
                     </div>
                     <div class="flex-grow-1 ms-3">
-                        <h6 class="text-muted mb-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Tasa Verificación</h6>
+                        <h6 class="text-muted mb-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Tasa de verificación</h6>
                         <h3 class="mb-0 fw-bold">{{ $respuestas->count() > 0 ? round(($respuestas->where('verificada', true)->count() / $respuestas->count()) * 100, 1) : 0 }}%</h3>
                     </div>
                 </div>
@@ -87,7 +87,7 @@
             <div class="col">
                 <h5 class="mb-0 fw-bold">
                     <i class="bi bi-chat-dots text-primary me-2"></i>
-                    Catálogo de Respuestas
+                    Catálogo de respuestas
                 </h5>
                 <p class="text-muted small mb-0 mt-1">Gestiona todas las respuestas de los reportes</p>
             </div>
@@ -182,8 +182,8 @@
                         <td>
                             <div class="btn-group btn-group-sm">
                                 <a href="{{ route('reportes.show', $respuesta->reporte_id ?? '#') }}" 
-                                   class="btn btn-outline-info" 
-                                   title="Ver Reporte">
+                                   class="btn btn-outline-info"
+                                   title="Ver reporte">
                                     <i class="bi bi-eye"></i>
                                 </a>
                             </div>

@@ -86,14 +86,14 @@
         <div class="row align-items-center">
             <div class="col">
                 <h5 class="mb-0 fw-bold">
-                    <i class="bi bi-people text-primary me-2"></i>
-                    Catálogo de Usuarios
+                    <i class="bi bi-people-fill text-primary me-2"></i>
+                    Catálogo de usuarios
                 </h5>
                 <p class="text-muted small mb-0 mt-1">Administra y gestiona todos los usuarios del sistema</p>
             </div>
             <div class="col-auto">
                 <a href="{{ route('usuarios.create') }}" class="btn btn-primary px-4">
-                    <i class="bi bi-plus-circle me-2"></i> Nuevo Usuario
+                    Nuevo usuario
         </a>
             </div>
         </div>
@@ -117,16 +117,16 @@
                     @forelse($usuarios as $usuario)
                     <tr>
                         <td>
-                            <div class="d-flex align-items-center">
+                            <div class="d-flex align-items-center gap-3">
                                 @if($usuario->avatar_url)
-                                    <img src="{{ $usuario->avatar_url }}" class="rounded-circle me-3" width="48" height="48" alt="Avatar">
+                                    <img src="{{ $usuario->avatar_url }}" class="rounded-circle flex-shrink-0" width="40" height="40" alt="Avatar">
                                 @else
-                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px; font-size: 18px; font-weight: bold;">
+                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center flex-shrink-0" style="width:40px;height:40px;font-size:16px;font-weight:bold;">
                                         {{ substr($usuario->nombre, 0, 1) }}
                                     </div>
                                 @endif
-                                <div>
-                                    <strong class="d-block">{{ $usuario->nombre }}</strong>
+                                <div style="min-width:0;">
+                                    <strong class="d-block" style="word-break:break-word;">{{ $usuario->nombre }}</strong>
                                     <small class="text-muted">ID: {{ substr($usuario->id, 0, 8) }}...</small>
                                 </div>
                             </div>
@@ -159,34 +159,34 @@
                         </td>
                         <td>
                             @if($usuario->activo)
-                                <span class="badge" style="background:#16A34A;color:white;">
-                                    <i class="bi bi-check-circle-fill me-1"></i>Activo
+                                <span class="badge" style="background:#3F7AC5;color:white;">
+                                    Activo
                                 </span>
                             @else
                                 <span class="badge" style="background:#DFDFDF;color:#3F4B5B;">
-                                    <i class="bi bi-x-circle-fill me-1"></i>Inactivo
+                                    Inactivo
                                 </span>
                             @endif
                         </td>
                         <td>
                             <small class="text-muted">
-                                <i class="bi bi-calendar3 me-1"></i>{{ $usuario->fecha_registro->format('d/m/Y') }}<br>
-                                <i class="bi bi-clock me-1"></i>{{ $usuario->fecha_registro->format('H:i') }}
+                                {{ $usuario->fecha_registro->format('d/m/Y') }}<br>
+                                {{ $usuario->fecha_registro->format('H:i') }}
                             </small>
                         </td>
                         <td>
-                            <div class="btn-group btn-group-sm">
-                                <a href="{{ route('usuarios.show', $usuario->id) }}" class="btn btn-outline-info" title="Ver">
-                                    <i class="bi bi-eye"></i>
+                            <div class="d-flex gap-2">
+                                <a href="{{ route('usuarios.show', $usuario->id) }}" class="btn btn-sm d-flex align-items-center justify-content-center" style="background:#5388CB;color:white;width:34px;height:34px;padding:0;" title="Ver">
+                                    <i class="bi bi-eye-fill"></i>
                                 </a>
-                                <a href="{{ route('usuarios.edit', $usuario->id) }}" class="btn btn-outline-warning" title="Editar">
-                                    <i class="bi bi-pencil"></i>
+                                <a href="{{ route('usuarios.edit', $usuario->id) }}" class="btn btn-sm d-flex align-items-center justify-content-center" style="background:#E9C978;color:#2B333D;width:34px;height:34px;padding:0;" title="Editar">
+                                    <i class="bi bi-pencil-fill"></i>
                                 </a>
                                 <form action="{{ route('usuarios.destroy', $usuario->id) }}" method="POST" class="d-inline" onsubmit="return confirmarEliminacion(this)">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger" title="Eliminar">
-                                        <i class="bi bi-trash"></i>
+                                    <button type="submit" class="btn btn-sm d-flex align-items-center justify-content-center" style="background:#EF4444;color:white;width:34px;height:34px;padding:0;" title="Eliminar">
+                                        <i class="bi bi-trash-fill"></i>
                                     </button>
                                 </form>
                             </div>

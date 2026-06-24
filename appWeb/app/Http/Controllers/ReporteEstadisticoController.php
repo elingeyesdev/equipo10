@@ -22,16 +22,20 @@ class ReporteEstadisticoController extends Controller
     
     private function getDatosEficacia($fechaInicio, $fechaFin)
     {
-        return DB::table('reportes')
+        $query = DB::table('reportes')
             ->join('cuadrantes', 'reportes.cuadrante_id', '=', 'cuadrantes.id')
             ->select(
                 'cuadrantes.nombre as cuadrante',
                 DB::raw('COUNT(reportes.id) as total_reportes'),
                 DB::raw('SUM(CASE WHEN reportes.estado = \'resuelto\' THEN 1 ELSE 0 END) as recuperados'),
                 DB::raw('ROUND((SUM(CASE WHEN reportes.estado = \'resuelto\' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(reportes.id), 0)), 2) as tasa_exito')
-            )
-            ->whereBetween('reportes.created_at', [$fechaInicio, $fechaFin])
-            ->groupBy('cuadrantes.id', 'cuadrantes.nombre')
+            );
+
+        if ($fechaInicio && $fechaFin) {
+            $query->whereBetween('reportes.created_at', [$fechaInicio, $fechaFin]);
+        }
+
+        return $query->groupBy('cuadrantes.id', 'cuadrantes.nombre')
             ->orderByDesc('tasa_exito')
             ->get();
     }
@@ -66,8 +70,8 @@ class ReporteEstadisticoController extends Controller
 
     public function eficaciaCuadrante(Request $request)
     {
-        $fechaInicio = $request->input('fecha_inicio', Carbon::now()->subMonths(3));
-        $fechaFin = $request->input('fecha_fin', Carbon::now());
+        $fechaInicio = $request->filled('fecha_inicio') ? $request->input('fecha_inicio') : null;
+        $fechaFin = $request->filled('fecha_fin') ? $request->input('fecha_fin') : null;
 
         $datos = $this->getDatosEficacia($fechaInicio, $fechaFin);
 

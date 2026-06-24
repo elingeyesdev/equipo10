@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Gestión de Reportes')
-@section('page-title', 'Listado de Reportes')
+@section('title', 'Gestión de reportes')
+@section('page-title', 'Listado de reportes')
 
 @section('content')
 <div class="content-wrapper">
@@ -31,7 +31,7 @@
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary w-100">
+                            <button type="submit" class="btn btn-primary rounded-pill px-4" style="height:38px;">
                                 <i class="bi bi-search"></i>
                             </button>
                         </div>
@@ -65,9 +65,13 @@
                                 <div class="d-flex align-items-center">
                                     <div class="me-3">
                                         @if($reporte->tipo_reporte == 'perdido')
-                                            <span class="badge rounded-pill bg-danger"><i class="bi bi-exclamation-triangle"></i></span>
+                                            <span class="d-flex align-items-center justify-content-center rounded-circle" style="width:32px;height:32px;background:#E9C978;color:#2B333D;flex-shrink:0;">
+                                                <i class="bi bi-exclamation-triangle-fill" style="font-size:0.85rem;"></i>
+                                            </span>
                                         @else
-                                            <span class="badge rounded-pill bg-success"><i class="bi bi-check-circle"></i></span>
+                                            <span class="d-flex align-items-center justify-content-center rounded-circle" style="width:32px;height:32px;background:#16A34A;color:white;flex-shrink:0;">
+                                                <i class="bi bi-check-circle-fill" style="font-size:0.85rem;"></i>
+                                            </span>
                                         @endif
                                     </div>
                                     <div>
@@ -80,7 +84,7 @@
                             </td>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <div class="rounded-circle bg-light text-primary d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2 fw-bold" style="width:32px;height:32px;background:#3F7AC5;color:white;font-size:0.85rem;flex-shrink:0;">
                                         {{ substr($reporte->usuario->nombre ?? 'A', 0, 1) }}
                                     </div>
                                     <span class="small fw-semibold">{{ $reporte->usuario->nombre ?? 'Anónimo' }}</span>
@@ -113,19 +117,19 @@
                             </td>
                             <td>
                                 <small class="text-muted" title="{{ $reporte->created_at }}">
-                                    {{ $reporte->created_at->diffForHumans() }}
+                                    {{ $reporte->created_at->locale('es')->diffForHumans() }}
                                 </small>
                             </td>
                             <td class="text-end pe-4">
-                                <div class="btn-group">
-                                    <a href="{{ route('reportes.show', $reporte->id) }}" class="btn btn-sm btn-outline-secondary" title="Ver detalles">
-                                        <i class="bi bi-eye"></i>
+                                <div class="d-flex justify-content-end gap-2">
+                                    <a href="{{ route('reportes.show', $reporte->id) }}" class="btn btn-sm d-flex align-items-center justify-content-center" style="background:#5388CB;color:white;width:32px;height:32px;padding:0;" title="Ver detalles">
+                                        <i class="bi bi-eye-fill"></i>
                                     </a>
-                                    <a href="{{ route('reportes.edit', $reporte->id) }}" class="btn btn-sm btn-outline-primary" title="Editar">
-                                        <i class="bi bi-pencil"></i>
+                                    <a href="{{ route('reportes.edit', $reporte->id) }}" class="btn btn-sm d-flex align-items-center justify-content-center" style="background:#3F7AC5;color:white;width:32px;height:32px;padding:0;" title="Editar">
+                                        <i class="bi bi-pencil-fill"></i>
                                     </a>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmDelete('{{ $reporte->id }}')" title="Eliminar">
-                                        <i class="bi bi-trash"></i>
+                                    <button type="button" class="btn btn-sm d-flex align-items-center justify-content-center" style="background:#E9C978;color:#2B333D;width:32px;height:32px;padding:0;" onclick="confirmDelete('{{ $reporte->id }}')" title="Eliminar">
+                                        <i class="bi bi-trash-fill"></i>
                                     </button>
                                 </div>
                                 <form id="delete-form-{{ $reporte->id }}" action="{{ route('reportes.destroy', $reporte->id) }}" method="POST" class="d-none">

@@ -130,28 +130,41 @@
         
         .sidebar-header {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
-            text-align: center;
+            gap: 14px;
+            text-align: left;
         }
 
         .sidebar-header img.sidebar-logo {
-            width: 60px;
-            height: auto;
+            width: 52px;
+            height: 52px;
             object-fit: contain;
             border-radius: 10px;
-            margin-bottom: 10px;
+            flex-shrink: 0;
         }
 
         .sidebar-header h4 {
             display: none;
         }
 
-        .sidebar-header p {
-            color: rgba(255,255,255,0.85);
-            font-size: 0.85rem;
-            margin: 0;
-            font-weight: 500;
+        .sidebar-welcome {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .sidebar-welcome span {
+            color: rgba(255,255,255,0.65);
+            font-size: 0.78rem;
+            font-weight: 400;
+        }
+
+        .sidebar-welcome strong {
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 700;
+            line-height: 1.2;
         }
         
         .sidebar .nav {
@@ -455,13 +468,13 @@
         .badge.bg-light            { background-color: #ECECEC !important; color: #3F4B5B !important; }
         /* Eliminar opacidad de Bootstrap en badges */
         .badge[class*="bg-opacity"] { opacity: 1 !important; }
-        /* Colores de texto heredados — ya definidos por los bg overrides */
-        .badge.text-primary,
-        .badge.text-warning,
-        .badge.text-success,
-        .badge.text-danger,
-        .badge.text-secondary,
-        .badge.text-info { color: inherit !important; }
+        /* Las clases text-* en badges no deben sobrescribir los colores de bg-*-subtle */
+        .badge.text-primary { color: white !important; }
+        .badge.text-success  { color: #3F4B5B !important; }
+        .badge.text-danger   { color: white !important; }
+        .badge.text-warning  { color: #2B333D !important; }
+        .badge.text-secondary{ color: #3F4B5B !important; }
+        .badge.text-info     { color: white !important; }
         /* Overrides para elementos no-badge que usan subtle */
         .bg-primary-subtle:not(.badge) { background-color: rgba(63, 122, 197, 0.1) !important; }
         .bg-success-subtle:not(.badge) { background-color: rgba(22, 163, 74, 0.1) !important; }
@@ -812,7 +825,10 @@
             <nav class="sidebar" id="sidebar">
                 <div class="sidebar-header">
                     <img src="/images/logoapp.png" alt="Echoes" class="sidebar-logo">
-                    <p>Bienvenido, {{ Auth::user()->name ?? 'Administrador' }}</p>
+                    <div class="sidebar-welcome">
+                        <span>Bienvenido,</span>
+                        <strong>{{ Auth::user()->name ?? 'Administrador' }}</strong>
+                    </div>
                 </div>
 
                 <ul class="nav flex-column">
@@ -888,15 +904,9 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <h1 class="navbar-brand mb-0">@yield('page-title', 'Dashboard')</h1>
                         <div class="d-flex align-items-center gap-3">
-                            <div class="user-info">
-                                <div>
-                                    <strong class="d-block" style="font-size: 0.875rem; color: var(--dark-dark);">{{ Auth::user()->name ?? 'Administrador' }}</strong>
-                                    <small style="font-size: 0.75rem; color: var(--dark-light);">{{ Auth::user()->email ?? 'Sistema' }}</small>
-                                </div>
-                            </div>
-                            <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                            <form action="{{ route('logout') }}" method="POST" class="d-inline" id="logout-form">
                                 @csrf
-                                <button type="submit" class="btn-logout">Salir</button>
+                                <button type="button" class="btn-logout" onclick="confirmLogout()">Cerrar sesión</button>
                             </form>
                         </div>
                     </div>
@@ -1032,6 +1042,34 @@
                 });
             }, 200); // Aumentar delay a 200ms para mayor seguridad
         });
+
+        // Confirmación de cierre de sesión
+        function confirmLogout() {
+            Swal.fire({
+                title: '¿Cerrar sesión?',
+                text: '¿Estás seguro de que deseas cerrar tu sesión?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#E9C978',
+                cancelButtonColor: '#3F7AC5',
+                confirmButtonText: 'Sí, cerrar sesión',
+                cancelButtonText: 'Cancelar',
+                background: 'white',
+                customClass: {
+                    popup: 'rounded-4',
+                    confirmButton: 'btn',
+                    cancelButton: 'btn'
+                },
+                didRender: () => {
+                    const confirmBtn = document.querySelector('.swal2-confirm');
+                    if (confirmBtn) confirmBtn.style.color = '#2B333D';
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('logout-form').submit();
+                }
+            });
+        }
 
         // Confirmación de eliminación
         function confirmarEliminacion(form) {
