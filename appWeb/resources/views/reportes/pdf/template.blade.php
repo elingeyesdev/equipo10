@@ -17,14 +17,14 @@
     <p>Fecha de generación: {{ date('Y-m-d H:i:s') }}</p>
 
     <div class="content">
-        <p>Este es un reporte generado automáticamente por el sistema "Amigate".</p>
+        <p>Este es un reporte generado automáticamente por el sistema "Echoes".</p>
         
         
         <p>Los datos detallados se encuentran adjuntos o visualizados en la plataforma web.</p>
     </div>
 
     <div class="footer">
-        &copy; {{ date('Y') }} Amigate - Sistema de Objetos Perdidos
+        &copy; {{ date('Y') }} Echoes - Sistema de Objetos Perdidos
     </div>
 </body>
 </html>

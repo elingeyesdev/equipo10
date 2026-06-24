@@ -34,21 +34,27 @@
         display: inline-block;
     }
     .btn-save {
-        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        background-color: #3F7AC5;
         color: white;
         border: none;
         width: 100%;
         padding: 12px;
-        border-radius: 10px;
+        border-radius: 8px;
         font-weight: 700;
         margin-top: 15px;
     }
     .btn-save:hover {
-        background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+        background-color: #5388CB;
+        color: white;
+    }
+    .btn-save:disabled {
+        background-color: #DFDFDF;
+        color: #3F4B5B;
+        cursor: not-allowed;
     }
     .instruction-card {
-        background: #f8fafc;
-        border-left: 4px solid #2563eb;
+        background: #F8F8F8;
+        border-left: 4px solid #3F7AC5;
         padding: 15px;
         margin-bottom: 20px;
         font-size: 0.85rem;
@@ -217,7 +223,7 @@
                     allowIntersection: false,
                     showArea: true,
                     drawError: { color: '#e1e100', message: '<strong>Error:<strong> no puedes cruzar líneas' },
-                    shapeOptions: { color: '#2563eb' },
+                    shapeOptions: { color: '#3F7AC5' },
                     // Activamos guía visual para ayudar al pulso
                     guidelineDistance: 10,
                 },

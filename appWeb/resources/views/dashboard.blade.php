@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard - Amigate')
+@section('title', 'Dashboard - Echoes')
 @section('page-title', 'Dashboard')
 
 @push('styles')
@@ -26,8 +26,8 @@
     }
     
     @keyframes glow {
-        0%, 100% { box-shadow: 0 0 20px rgba(37, 99, 235, 0.3); }
-        50% { box-shadow: 0 0 40px rgba(37, 99, 235, 0.6); }
+        0%, 100% { box-shadow: 0 0 20px rgba(63, 122, 197, 0.3); }
+        50% { box-shadow: 0 0 40px rgba(63, 122, 197, 0.6); }
     }
     
     @keyframes pulse-ring {
@@ -42,25 +42,16 @@
 
     /* Dashboard Hero Header */
     .dashboard-header {
-        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #1e40af 100%);
+        background-color: #353F4C;
         border-radius: 16px;
         padding: 25px;
         color: white;
         margin-bottom: 25px;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 10px 30px -10px rgba(30, 58, 138, 0.4);
+        box-shadow: 0 10px 30px -10px rgba(53, 63, 76, 0.4);
     }
     
-    .dashboard-header::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 300px;
-        height: 100%;
-        background: radial-gradient(circle at right, rgba(255,255,255,0.1) 0%, transparent 70%);
-    }
     
     .dashboard-header h1 {
         font-size: 1.75rem;
@@ -82,19 +73,18 @@
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        background: rgba(16, 185, 129, 0.2);
-        backdrop-filter: blur(10px);
+        background: rgba(22, 163, 74, 0.2);
         padding: 8px 16px;
         border-radius: 50px;
         font-size: 0.85rem;
         font-weight: 600;
-        border: 1px solid rgba(16, 185, 129, 0.4);
+        border: 1px solid rgba(22, 163, 74, 0.4);
     }
     
     .dashboard-header .live-dot {
         width: 10px;
         height: 10px;
-        background: #10b981;
+        background: #16A34A;
         border-radius: 50%;
         animation: pulse-border 2s infinite;
     }
@@ -125,18 +115,18 @@
         height: 3px;
     }
     
-    .stat-card.primary::before { background: linear-gradient(90deg, #2563eb, #7c3aed); }
-    .stat-card.success::before { background: linear-gradient(90deg, #10b981, #34d399); }
-    .stat-card.warning::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-    .stat-card.info::before { background: linear-gradient(90deg, #06b6d4, #22d3ee); }
-    .stat-card.danger::before { background: linear-gradient(90deg, #ef4444, #f87171); }
+    .stat-card.primary::before { background: #3F7AC5; }
+    .stat-card.success::before { background: #16A34A; }
+    .stat-card.warning::before { background: #F59E0B; }
+    .stat-card.info::before    { background: #5388CB; }
+    .stat-card.danger::before  { background: #EF4444; }
     
     .stat-card:hover {
         transform: translateY(-4px);
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
     }
     
-    .stat-card.primary:hover { box-shadow: 0 25px 50px -12px rgba(37, 99, 235, 0.25); }
+    .stat-card.primary:hover { box-shadow: 0 25px 50px -12px rgba(63, 122, 197, 0.25); }
     .stat-card.success:hover { box-shadow: 0 25px 50px -12px rgba(16, 185, 129, 0.25); }
     .stat-card.warning:hover { box-shadow: 0 25px 50px -12px rgba(245, 158, 11, 0.25); }
     .stat-card.info:hover { box-shadow: 0 25px 50px -12px rgba(6, 182, 212, 0.25); }
@@ -152,48 +142,17 @@
         font-size: 1.5rem;
     }
     
-    .stat-icon::after {
-        content: '';
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
-        animation: shimmer 3s infinite;
-    }
-    
-    .stat-icon.primary { 
-        background: linear-gradient(135deg, #2563eb, #7c3aed); 
-        color: white;
-        box-shadow: 0 10px 30px -5px rgba(37, 99, 235, 0.4);
-    }
-    .stat-icon.success { 
-        background: linear-gradient(135deg, #10b981, #34d399); 
-        color: white;
-        box-shadow: 0 10px 30px -5px rgba(16, 185, 129, 0.4);
-    }
-    .stat-icon.warning { 
-        background: linear-gradient(135deg, #f59e0b, #fbbf24); 
-        color: white;
-        box-shadow: 0 10px 30px -5px rgba(245, 158, 11, 0.4);
-    }
-    .stat-icon.info { 
-        background: linear-gradient(135deg, #06b6d4, #22d3ee); 
-        color: white;
-        box-shadow: 0 10px 30px -5px rgba(6, 182, 212, 0.4);
-    }
-    .stat-icon.danger { 
-        background: linear-gradient(135deg, #ef4444, #f87171); 
-        color: white;
-        box-shadow: 0 10px 30px -5px rgba(239, 68, 68, 0.4);
-    }
+    .stat-icon.primary { background: #3F7AC5; color: white; }
+    .stat-icon.success { background: #16A34A; color: white; }
+    .stat-icon.warning { background: #F59E0B; color: white; }
+    .stat-icon.info    { background: #5388CB; color: white; }
+    .stat-icon.danger  { background: #EF4444; color: white; }
     
     .stat-value {
         font-size: 2rem;
         font-weight: 700;
         margin: 8px 0;
-        color: #1e293b;
+        color: #2B333D;
     }
     
     .stat-label {
@@ -205,19 +164,24 @@
     }
     
     .stat-change {
-        font-size: 0.9rem;
-        margin-top: 12px;
+        font-size: 0.78rem;
+        line-height: 1.2;
+        margin-top: 10px;
         display: flex;
         align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
+        gap: 10px;
+        padding: 5px 10px;
         border-radius: 50px;
         width: fit-content;
     }
+
+    .stat-change i {
+        flex-shrink: 0;
+    }
     
     .stat-change.positive {
-        background: rgba(16, 185, 129, 0.1);
-        color: #059669;
+        background: rgba(22, 163, 74, 0.1);
+        color: #16A34A;
     }
     
     .stat-change.neutral {
@@ -242,7 +206,7 @@
     
     .chart-container h5 {
         font-weight: 700;
-        color: #1e293b;
+        color: #2B333D;
     }
     
     /* Activity Card - Premium Style */
@@ -255,8 +219,8 @@
     }
     
     .activity-card .card-header {
-        background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(124, 58, 237, 0.05));
-        border-bottom: 1px solid rgba(0,0,0,0.05);
+        background: #F8F8F8;
+        border-bottom: 1px solid #ECECEC;
     }
     
     .activity-item {
@@ -278,12 +242,12 @@
     }
     
     .activity-item:hover {
-        background: linear-gradient(90deg, rgba(37, 99, 235, 0.03), transparent);
+        background: rgba(63, 122, 197, 0.05);
         padding-left: 28px;
     }
-    
+
     .activity-item:hover::before {
-        background: linear-gradient(180deg, #2563eb, #7c3aed);
+        background: #3F7AC5;
     }
     
     .activity-item:last-child {
@@ -340,10 +304,10 @@
         height: 4px;
     }
     
-    .mini-stat-card.danger::before { background: linear-gradient(90deg, #ef4444, #f87171); }
-    .mini-stat-card.success::before { background: linear-gradient(90deg, #10b981, #34d399); }
-    .mini-stat-card.warning::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-    .mini-stat-card.info::before { background: linear-gradient(90deg, #06b6d4, #22d3ee); }
+    .mini-stat-card.danger::before  { background: #EF4444; }
+    .mini-stat-card.success::before { background: #16A34A; }
+    .mini-stat-card.warning::before { background: #F59E0B; }
+    .mini-stat-card.info::before    { background: #5388CB; }
     
     .mini-stat-card:hover {
         transform: translateY(-5px);
@@ -399,7 +363,7 @@
             animation: none;
         }
         .dashboard-header {
-            background: linear-gradient(135deg, #1e3a8a 0%, #7c3aed 100%);
+            background-color: #353F4C;
         }
     }
 
@@ -552,7 +516,7 @@
 
 @section('content')
 
-<div class="dashboard-header" style="background: linear-gradient(135deg, #1e3a8a, #3b82f6); padding: 25px; border-radius: 16px; color: white; margin-bottom: 25px;">
+<div class="dashboard-header" style="background-color: #353F4C; padding: 25px; border-radius: 16px; color: white; margin-bottom: 25px;">
     <div class="d-flex justify-content-between align-items-center">
         <div>
             <div class="d-flex align-items-center gap-2 mb-2">
@@ -684,7 +648,7 @@
     <!-- Card SATISFACCIÓN GLOBAL -->
     <div class="col-xl col-md-6">
         <div class="stat-card" style="position: relative;">
-            <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #fbbf24, #f59e0b);"></div>
+            <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #F59E0B;"></div>
             <div class="d-flex justify-content-between align-items-start">
                 <div>
                     <div class="stat-label mb-2">
@@ -702,7 +666,7 @@
                         @endif
                     </div>
                 </div>
-                <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #fbbf24); color: white; box-shadow: 0 10px 30px -5px rgba(245, 158, 11, 0.4);">
+                <div class="stat-icon" style="background: #F59E0B; color: white;">
                     <i class="bi bi-star-fill"></i>
                 </div>
             </div>
@@ -721,7 +685,7 @@
                 <div>
                     <h5 class="mb-1 fw-bold">
                         <i class="bi bi-pie-chart-fill text-danger me-2"></i>
-                         Estado de Alertas
+                         Estado de alertas
                     </h5>
                     <p class="text-muted small mb-0">Casos activos vs resueltos</p>
                 </div>
@@ -736,7 +700,7 @@
                 <div>
                     <h5 class="mb-1 fw-bold">
                         <i class="bi bi-graph-up-arrow text-success me-2"></i>
-                         Pulso de la Ciudad
+                         Pulso de la ciudad
                     </h5>
                     <p class="text-muted small mb-0">Casos reportados los últimos 7 días</p>
                 </div>
@@ -755,7 +719,7 @@
                     <div>
                         <h5 class="mb-1 fw-bold">
                             <i class="bi bi-clock-history text-primary me-2"></i>
-                            Actividad Reciente (Tus Operativos)
+                            Actividad reciente
                         </h5>
                         <p class="text-muted small mb-0">Últimos reportes del sistema</p>
                     </div>
@@ -853,7 +817,7 @@
                     <div class="card-header bg-white border-0 py-4 px-4">
                         <h5 class="mb-1 fw-bold">
                             <i class="bi bi-person-plus text-primary me-2"></i>
-                            Nuevos Usuarios
+                            Nuevos usuarios
                         </h5>
                         <p class="text-muted small mb-0">Últimos registros en la comunidad</p>
                     </div>
@@ -894,7 +858,7 @@
                     <div class="card-header bg-white border-0 py-4 px-4">
                         <h5 class="mb-1 fw-bold">
                             <i class="bi bi-tags text-primary me-2"></i>
-                            Top Categorías
+                            Top categorías
                         </h5>
                         <p class="text-muted small mb-0">Mayor actividad histórica</p>
                     </div>
@@ -943,11 +907,11 @@
                     data: [{{ $reportesPerdidos ?? 0 }}, {{ $reportesResueltos ?? 0 }}],
                     backgroundColor: [
                         'rgba(239, 68, 68, 0.8)',
-                        'rgba(37, 99, 235, 0.8)'
+                        'rgba(63, 122, 197, 0.8)'
                     ],
                     borderColor: [
-                        '#ef4444',
-                        '#2563eb'
+                        '#EF4444',
+                        '#3F7AC5'
                     ],
                     borderWidth: 3,
                     hoverOffset: 15
@@ -992,12 +956,12 @@
                 datasets: [{
                     label: 'Alertas',
                     data: valores,
-                    borderColor: '#10b981',
+                    borderColor: '#16A34A',
                     backgroundColor: 'rgba(16, 185, 129, 0.15)',
                     borderWidth: 3,
                     fill: true,
                     tension: 0.4,
-                    pointBackgroundColor: '#10b981',
+                    pointBackgroundColor: '#16A34A',
                     pointBorderColor: '#fff',
                     pointBorderWidth: 2,
                     pointRadius: 6,

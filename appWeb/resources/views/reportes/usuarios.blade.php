@@ -126,7 +126,7 @@
                 datasets: [{
                     data: {!! json_encode($chartData['data']) !!},
                     backgroundColor: [
-                        '#2563eb', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#9CA3AF'
+                        '#3F7AC5', '#16A34A', '#E9C978', '#EF4444', '#5388CB', '#9CA3AF'
                     ],
                     borderWidth: 0,
                     hoverOffset: 4

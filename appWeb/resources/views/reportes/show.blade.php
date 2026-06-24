@@ -7,12 +7,12 @@
 <style>
     /* Custom "Llamativo" Styles */
     .report-header {
-        background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+        background-color: #353F4C;
         border-radius: 16px;
         padding: 2rem;
         color: white;
         margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(37, 99, 235, 0.2);
+        box-shadow: 0 10px 30px rgba(63, 122, 197, 0.2);
         position: relative;
         overflow: hidden;
     }
@@ -54,11 +54,11 @@
     .info-value {
         font-size: 1.1rem;
         font-weight: 600;
-        color: #1e293b;
+        color: #2B333D;
     }
 
     .reward-banner {
-        background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+        background-color: #16A34A;
         color: white;
         border-radius: 12px;
         padding: 1.5rem;
@@ -838,8 +838,8 @@ const iconTemporal = L.divIcon({
     className: '',
     html: `<div style="
         width:22px;height:22px;border-radius:50%;
-        background:#7c3aed;border:3px solid white;
-        box-shadow:0 0 0 4px rgba(124,58,237,0.4),0 2px 8px rgba(0,0,0,0.4);
+        background:#E9C978;border:3px solid white;
+        box-shadow:0 0 0 4px rgba(233,201,120,0.4),0 2px 8px rgba(0,0,0,0.4);
         animation:pulsoMorado 1s infinite;
     "></div>`,
     iconSize:[22,22], iconAnchor:[11,11]
@@ -969,7 +969,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (latlngs.length > 0) {
                 const polyline = L.polyline(latlngs, {
-                    color: '#10b981', // emerald-500
+                    color: '#16A34A', // emerald-500
                     weight: 4,
                     opacity: 0.8,
                     dashArray: '10, 10',
@@ -994,7 +994,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('coords-status').style.background = '#ede9fe';
         document.getElementById('coords-status').style.borderColor = '#a78bfa';
         document.getElementById('coords-text').innerHTML =
-            `<i class="bi bi-check-circle-fill" style="color:#7c3aed;"></i> &nbsp;${latSeleccionada}, ${lngSeleccionada}`;
+            `<i class="bi bi-check-circle-fill" style="color:#3F7AC5;"></i> &nbsp;${latSeleccionada}, ${lngSeleccionada}`;
         document.getElementById('btn-guardar-pista').disabled = false;
     });
 });
@@ -1008,7 +1008,7 @@ function buildTooltip(etiqueta, foto, fecha) {
     return `<div style="display:flex;align-items:center;gap:10px;padding:4px 2px;min-width:180px;max-width:240px;">
         ${fotoHtml}
         <div>
-            <div style="font-weight:700;color:#1e293b;font-size:0.85rem;line-height:1.2;">${etiqueta}</div>
+            <div style="font-weight:700;color:#2B333D;font-size:0.85rem;line-height:1.2;">${etiqueta}</div>
             ${fecha ? `<div style="color:#64748b;font-size:0.75rem;margin-top:2px;"><i class="bi bi-clock"></i> ${fecha}</div>` : ''}
         </div>
     </div>`;
@@ -1045,7 +1045,7 @@ function dibujarZonaBusqueda(lat, lng, nivel) {
     ];
     
     L.rectangle(bounds, {
-        color: "#059669",
+        color: "#16A34A",
         weight: 2,
         fillColor: "#10B981",
         fillOpacity: 0.25,

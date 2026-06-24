@@ -106,10 +106,17 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
         ),
       );
     } else {
+      final rawMsg = vm.errorMessage ?? 'Error al iniciar sesión.';
+      final displayMsg = rawMsg.startsWith('Exception: ')
+          ? rawMsg.replaceFirst('Exception: ', '')
+          : rawMsg;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(vm.errorMessage ?? 'Error al iniciar sesión.'),
-          backgroundColor: AppTheme.danger,
+          content: Text(
+            displayMsg,
+            style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: AppTheme.accent,
           behavior: SnackBarBehavior.floating,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -124,7 +131,11 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
     final vm = context.watch<AuthViewModel>();
     final size = MediaQuery.of(context).size;
 
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final cardTop = (size.height * 0.42 - bottomInset).clamp(0.0, size.height * 0.42);
+
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
       body: Stack(
         children: [
@@ -176,7 +187,8 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
                       children: [
                         const SizedBox(height: 36),
                         Container(
-                          padding: const EdgeInsets.all(14),
+                          width: 108,
+                          height: 108,
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(24),
@@ -185,11 +197,14 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
                               width: 1,
                             ),
                           ),
-                          child: Image.asset(
-                            'assets/images/logoapp.png',
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.contain,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(23),
+                            child: Image.asset(
+                              'assets/images/logoapp.png',
+                              width: 108,
+                              height: 108,
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 14),
@@ -204,7 +219,7 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Búsqueda y Rescate',
+                          'Búsqueda y rescate',
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.white.withOpacity(0.7),
@@ -222,7 +237,7 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
 
           // ── Tarjeta blanca con el formulario ──────────────────────────
           Positioned(
-            top: size.height * 0.42,
+            top: cardTop,
             left: 0,
             right: 0,
             bottom: 0,
@@ -329,11 +344,13 @@ class _LoginViewState extends State<LoginView> with TickerProviderStateMixin {
                                   });
                                 },
                                 activeColor: AppTheme.primary,
+                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                visualDensity: VisualDensity.compact,
                               ),
                               const Text('Recuérdame', style: TextStyle(color: AppTheme.textSecondary)),
                             ],
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 18),
 
                           // Botón de login
                           if (vm.isLoading)

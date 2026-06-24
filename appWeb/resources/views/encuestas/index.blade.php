@@ -1,16 +1,16 @@
 @extends('layouts.app')
 
-@section('title', 'Reseñas y Satisfacción - Amigate')
+@section('title', 'Reseñas y Satisfacción - Echoes')
 @section('page-title', 'Reseñas y Satisfacción')
 
 @push('styles')
 <style>
     .header-card {
-        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        background-color: #353F4C;
         border-radius: 16px;
         color: white;
         padding: 30px;
-        box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
+        box-shadow: 0 10px 25px rgba(63, 122, 197, 0.3);
         margin-bottom: 30px;
     }
     
@@ -28,12 +28,12 @@
     
     .stars-big i {
         font-size: 2rem;
-        color: #fbbf24;
+        color: #F59E0B;
         text-shadow: 0 2px 5px rgba(251, 191, 36, 0.4);
     }
 
     .progress-bar-star {
-        background-color: #fbbf24;
+        background-color: #F59E0B;
     }
 
     .review-card {
@@ -55,7 +55,7 @@
         width: 48px;
         height: 48px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #3b82f6, #60a5fa);
+        background-color: #3F7AC5;
         color: white;
         display: flex;
         align-items: center;
@@ -65,7 +65,7 @@
     }
 
     .stars-small i {
-        color: #fbbf24;
+        color: #F59E0B;
         font-size: 1.1rem;
     }
     .stars-small .empty {

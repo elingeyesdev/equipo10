@@ -93,22 +93,22 @@
                             <td>
                                 @switch($reporte->estado)
                                     @case('activo')
-                                        <span class="badge bg-primary-subtle text-primary border border-primary">Activo</span>
+                                        <span class="badge" style="background-color:#3F7AC5;color:white;">Activo</span>
                                         @break
                                     @case('pausado')
-                                        <span class="badge bg-warning-subtle text-warning border border-warning">Pausado</span>
+                                        <span class="badge" style="background-color:#E9C978;color:#2B333D;">Pausado</span>
                                         @break
                                     @case('resuelto')
-                                        <span class="badge bg-success-subtle text-success border border-success">Finalizado</span>
+                                        <span class="badge" style="background-color:#DFDFDF;color:#3F4B5B;">Finalizado</span>
                                         @break
                                     @case('inactivo')
-                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary">Inactivo</span>
+                                        <span class="badge" style="background-color:#ECECEC;color:#3F4B5B;">Inactivo</span>
                                         @break
                                     @case('spam')
-                                        <span class="badge bg-danger-subtle text-danger border border-danger">Spam</span>
+                                        <span class="badge" style="background-color:#EF4444;color:white;">Spam</span>
                                         @break
                                     @default
-                                        <span class="badge bg-light text-dark border">{{ $reporte->estado }}</span>
+                                        <span class="badge" style="background-color:#ECECEC;color:#3F4B5B;">{{ $reporte->estado }}</span>
                                 @endswitch
                             </td>
                             <td>

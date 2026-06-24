@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Cuadrantes - Amigate')
+@section('title', 'Cuadrantes - Echoes')
 @section('page-title', 'Gestión de Cuadrantes')
 
 @push('styles')
@@ -40,7 +40,7 @@
         font-size: 0.9rem;
         font-weight: 700;
         margin-bottom: 10px;
-        color: #1e293b;
+        color: #2B333D;
     }
     
     .map-controls .form-label {
@@ -61,9 +61,9 @@
     
     .map-controls .form-control:focus,
     .map-controls .form-select:focus {
-        border-color: #2563eb;
+        border-color: #3F7AC5;
         outline: none;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        box-shadow: 0 0 0 3px rgba(63, 122, 197, 0.1);
     }
     
     .controls-sidebar {
@@ -82,7 +82,7 @@
         display: block;
         font-weight: 600;
         margin-bottom: 8px;
-        color: #1e293b;
+        color: #2B333D;
         font-size: 0.9rem;
     }
     
@@ -99,8 +99,8 @@
     .control-group input:focus,
     .control-group select:focus {
         outline: none;
-        border-color: #2563eb;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        border-color: #3F7AC5;
+        box-shadow: 0 0 0 3px rgba(63, 122, 197, 0.1);
     }
     
     .btn-cuadrante {
@@ -131,34 +131,35 @@
     }
     
     .btn-reload {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        background-color: #EF4444;
         color: white;
     }
-    
+
     .btn-reload:hover {
-        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        background-color: #dc2626;
     }
-    
+
     .btn-primary-cuadrante {
-        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        background-color: #3F7AC5;
         color: white;
     }
-    
+
     .btn-primary-cuadrante:hover {
-        background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
-    }
-    
-    .btn-success-cuadrante {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        background-color: #5388CB;
         color: white;
     }
-    
-    .btn-success-cuadrante:hover {
-        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+
+    .btn-success-cuadrante {
+        background-color: #16A34A;
+        color: white;
     }
-    
+
+    .btn-success-cuadrante:hover {
+        background-color: #15803d;
+    }
+
     .stats-box {
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        background-color: #F8F8F8;
         border-radius: 12px;
         padding: 20px;
         margin-top: 20px;
@@ -167,7 +168,7 @@
     
     .stats-box h5 {
         margin-bottom: 15px;
-        color: #1e293b;
+        color: #2B333D;
         font-size: 1.1rem;
         font-weight: 700;
         display: flex;
@@ -197,16 +198,16 @@
     }
     
     .stat-value {
-        color: #2563eb;
+        color: #3F7AC5;
         font-weight: 700;
         font-size: 1.3rem;
     }
-    
+
     .loading {
         display: none;
         text-align: center;
         padding: 20px;
-        color: #2563eb;
+        color: #3F7AC5;
     }
     
     .loading.active {
@@ -214,8 +215,8 @@
     }
     
     .spinner {
-        border: 3px solid #e2e8f0;
-        border-top: 3px solid #2563eb;
+        border: 3px solid #DFDFDF;
+        border-top: 3px solid #3F7AC5;
         border-radius: 50%;
         width: 35px;
         height: 35px;
@@ -249,9 +250,9 @@
     }
     
     .alert-info {
-        background: #dbeafe;
-        color: #1e40af;
-        border: 1px solid #93c5fd;
+        background: rgba(83, 136, 203, 0.1);
+        color: #3F7AC5;
+        border: 1px solid rgba(83, 136, 203, 0.3);
     }
     
     .log {
@@ -298,7 +299,7 @@
     .legend h6 {
         margin-bottom: 10px;
         font-weight: 700;
-        color: #1e293b;
+        color: #2B333D;
     }
     
     .legend-item {
@@ -822,7 +823,7 @@
                                     [pLat - radioPista, pLng - radioPista], 
                                     [pLat + radioPista, pLng + radioPista]
                                 ], {
-                                    color: '#10b981', weight: 2, fillColor: '#10b981', fillOpacity: 0.25
+                                    color: '#16A34A', weight: 2, fillColor: '#16A34A', fillOpacity: 0.25
                                 }).addTo(targetLayer); // Añadir a la misma capa de pistas
                             }
                         }
@@ -875,7 +876,7 @@
                         [lat - radioDinamico, lng - radioDinamico], 
                         [lat + radioDinamico, lng + radioDinamico]
                     ], {
-                        color: '#10b981', weight: 2, fillColor: '#10b981', fillOpacity: 0.25
+                        color: '#16A34A', weight: 2, fillColor: '#16A34A', fillOpacity: 0.25
                     }).addTo(capas[layerKey]);
                 }
             });
@@ -947,7 +948,7 @@
 
         // Dibujar límite referencial (opcional, muy transparente)
         const bounds = [[santaCruzBounds.norte, santaCruzBounds.oeste], [santaCruzBounds.sur, santaCruzBounds.este]];
-        L.rectangle(bounds, { color: '#2563eb', weight: 1, fillOpacity: 0.05 }).addTo(map);
+        L.rectangle(bounds, { color: '#3F7AC5', weight: 1, fillOpacity: 0.05 }).addTo(map);
 
         if (cuadrantesData.length > 0) cargarCuadrantesExistentes();
     }

@@ -12,26 +12,26 @@
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="flex-shrink-0">
-                        <div class="rounded-circle bg-primary bg-opacity-10 p-3">
-                            <i class="bi bi-people fs-4 text-primary"></i>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:52px;height:52px;background:#3F7AC5;">
+                            <i class="bi bi-people-fill fs-4 text-white"></i>
                         </div>
                     </div>
                     <div class="flex-grow-1 ms-3">
-                        <h6 class="text-muted mb-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Total Usuarios</h6>
+                        <h6 class="text-muted mb-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Total usuarios</h6>
                         <h3 class="mb-0 fw-bold">{{ $usuarios->count() }}</h3>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <div class="col-xl-3 col-md-6 mb-3">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="flex-shrink-0">
-                        <div class="rounded-circle bg-success bg-opacity-10 p-3">
-                            <i class="bi bi-check-circle fs-4 text-success"></i>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:52px;height:52px;background:#5388CB;">
+                            <i class="bi bi-check-circle-fill fs-4 text-white"></i>
                         </div>
                     </div>
                     <div class="flex-grow-1 ms-3">
@@ -42,36 +42,36 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-xl-3 col-md-6 mb-3">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="flex-shrink-0">
-                        <div class="rounded-circle bg-warning bg-opacity-10 p-3">
-                            <i class="bi bi-trophy fs-4 text-warning"></i>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:52px;height:52px;background:#6796D1;">
+                            <i class="bi bi-trophy-fill fs-4 text-white"></i>
                         </div>
                     </div>
                     <div class="flex-grow-1 ms-3">
-                        <h6 class="text-muted mb-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Total Puntos</h6>
+                        <h6 class="text-muted mb-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Total puntos</h6>
                         <h3 class="mb-0 fw-bold">{{ number_format($usuarios->sum('puntos_ayuda'), 0, ',', '.') }}</h3>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <div class="col-xl-3 col-md-6 mb-3">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="flex-shrink-0">
-                        <div class="rounded-circle bg-info bg-opacity-10 p-3">
-                            <i class="bi bi-bar-chart fs-4 text-info"></i>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:52px;height:52px;background:#87ABDA;">
+                            <i class="bi bi-bar-chart-fill fs-4 text-white"></i>
                         </div>
                     </div>
                     <div class="flex-grow-1 ms-3">
-                        <h6 class="text-muted mb-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Promedio Puntos</h6>
+                        <h6 class="text-muted mb-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Promedio puntos</h6>
                         <h3 class="mb-0 fw-bold">{{ $usuarios->count() > 0 ? round($usuarios->avg('puntos_ayuda'), 1) : 0 }}</h3>
                     </div>
                 </div>
@@ -148,22 +148,22 @@
                             @endif
                         </td>
                         <td>
-                            <span class="badge bg-info-subtle text-info border border-info px-3 py-2">
-                                <i class="bi bi-trophy me-1"></i>{{ number_format($usuario->puntos_ayuda ?? 0, 0, ',', '.') }} pts
+                            <span class="badge" style="background:#5388CB;color:white;">
+                                <i class="bi bi-trophy-fill me-1"></i>{{ number_format($usuario->puntos_ayuda ?? 0, 0, ',', '.') }} pts
                             </span>
                         </td>
                         <td>
-                            <span class="badge bg-primary-subtle text-primary border border-primary">
-                                <i class="bi bi-file-earmark-text me-1"></i>{{ $usuario->reportes->count() ?? 0 }}
+                            <span class="badge" style="background:#3F7AC5;color:white;">
+                                <i class="bi bi-file-earmark-text-fill me-1"></i>{{ $usuario->reportes->count() ?? 0 }}
                             </span>
                         </td>
                         <td>
                             @if($usuario->activo)
-                                <span class="badge bg-success-subtle text-success border border-success">
+                                <span class="badge" style="background:#16A34A;color:white;">
                                     <i class="bi bi-check-circle-fill me-1"></i>Activo
                                 </span>
                             @else
-                                <span class="badge bg-danger-subtle text-danger border border-danger">
+                                <span class="badge" style="background:#DFDFDF;color:#3F4B5B;">
                                     <i class="bi bi-x-circle-fill me-1"></i>Inactivo
                                 </span>
                             @endif

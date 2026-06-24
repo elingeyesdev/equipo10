@@ -74,7 +74,7 @@
              </div>
         </div>
         <div class="col-md-6 mt-4">
-             <div class="alert alert-primary d-flex align-items-center mb-0 border-0 shadow-sm text-white" style="background-color: #2563eb;">
+             <div class="alert alert-primary d-flex align-items-center mb-0 border-0 shadow-sm text-white" style="background-color: #3F7AC5;">
                  <i class="bi bi-check-circle-fill fs-2 me-3"></i>
                  <div>
                      <strong>Total Resueltos</strong>
@@ -107,9 +107,9 @@
                     {
                         label: 'Casos Resueltos',
                         data: {!! json_encode($chartData['resueltos']) !!},
-                        borderColor: '#2563eb', 
-                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                        pointBackgroundColor: '#2563eb',
+                        borderColor: '#3F7AC5',
+                        backgroundColor: 'rgba(63, 122, 197, 0.1)',
+                        pointBackgroundColor: '#3F7AC5',
                         fill: true,
                         tension: 0.4,
                         borderWidth: 2
