@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'api_service.dart';
 
@@ -79,8 +80,9 @@ class TrackingService {
     try {
       await _api.client
           .put('/reportes/$reporteId/voluntarios/iniciar/$usuarioId');
-    } catch (_) {
+    } catch (e) {
       // Continuar de todas formas — modo offline-first
+      debugPrint('[TrackingService] No se pudo notificar inicio al backend: $e');
     }
 
     _puntos.clear();
@@ -140,7 +142,7 @@ class TrackingService {
       _puntos.add(nuevoPunto);
       _puntosPendientes.add(nuevoPunto);
     }, onError: (e) {
-      // Ignorar errores del stream de ubicación silenciosamente
+      debugPrint('[TrackingService] Error en stream de ubicación: $e');
     });
 
     // Iniciar Timer para Ráfagas (cada 15 segundos)

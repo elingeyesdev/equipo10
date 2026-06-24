@@ -65,10 +65,21 @@ class _PerfilViewState extends State<PerfilView> {
   }
 
   Future<void> _pickImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      if (mounted) {
-        await context.read<PerfilViewModel>().actualizarAvatar(image.path);
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 800,
+    );
+    if (image != null && mounted) {
+      final vm = context.read<PerfilViewModel>();
+      final success = await vm.actualizarAvatar(image);
+      if (mounted && !success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(vm.errorMessage ?? 'Error al actualizar la foto.'),
+            backgroundColor: AppTheme.danger,
+          ),
+        );
       }
     }
   }
@@ -297,14 +308,7 @@ class _PerfilViewState extends State<PerfilView> {
                 child: ListTile(
                   contentPadding:
                       const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                  leading: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppTheme.danger.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.logout, color: AppTheme.danger),
-                  ),
+                  leading: const Icon(Icons.logout, color: AppTheme.danger, size: 28),
                   title: const Text('Cerrar sesión',
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
@@ -338,15 +342,8 @@ class _MenuOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: AppTheme.primary.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(icon, color: AppTheme.primary),
-      ),
+      contentPadding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+      leading: Icon(icon, color: AppTheme.primary, size: 28),
       title: Text(title,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
       subtitle: Text(subtitle, style: const TextStyle(fontSize: 13)),

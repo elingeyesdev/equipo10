@@ -14,9 +14,9 @@ class SoporteView extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: AppTheme.danger, size: 28),
+            Icon(Icons.warning_amber_rounded, color: AppTheme.accent, size: 28),
             SizedBox(width: 8),
-            Text('Eliminar cuenta', style: TextStyle(color: AppTheme.danger)),
+            Text('Eliminar cuenta'),
           ],
         ),
         content: const Text(
@@ -36,10 +36,11 @@ class SoporteView extends StatelessWidget {
               _procesarEliminacion(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.danger,
-              foregroundColor: Colors.white,
+              backgroundColor: AppTheme.accent,
+              foregroundColor: AppTheme.darkDark,
             ),
-            child: const Text('Sí, eliminar cuenta'),
+            child: const Text('Sí, eliminar cuenta',
+                style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -49,7 +50,6 @@ class SoporteView extends StatelessWidget {
   Future<void> _procesarEliminacion(BuildContext context) async {
     final vm = context.read<AuthViewModel>();
 
-    // Mostrar un dialog de carga de barrera
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -59,19 +59,15 @@ class SoporteView extends StatelessWidget {
     final success = await vm.eliminarCuenta();
 
     if (!context.mounted) return;
-
-    // Quitar el dialog de carga
     Navigator.of(context).pop();
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content:
-              Text('Tu cuenta ha sido eliminada. Lamentamos verte partir.'),
+          content: Text('Tu cuenta ha sido eliminada. Lamentamos verte partir.'),
           backgroundColor: Colors.orange,
         ),
       );
-      // Redirigir a login
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginView()),
         (_) => false,
@@ -91,101 +87,63 @@ class SoporteView extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Soporte y legal',
-            style: TextStyle(color: AppTheme.textPrimary)),
         backgroundColor: Colors.white,
-        foregroundColor: AppTheme.textPrimary,
+        foregroundColor: AppTheme.primary,
         elevation: 0,
-        centerTitle: true,
+        centerTitle: false,
+        titleSpacing: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: const TextStyle(
+          color: AppTheme.primary,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        iconTheme: const IconThemeData(color: AppTheme.primary),
+        title: const Text('Soporte y legal'),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // ── Legal ──────────────────────────────────────────────────────────
-          const _SeccionHeader(titulo: 'Legal y privacidad'),
-          Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Colors.grey.shade200),
-            ),
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.policy_outlined,
-                      color: AppTheme.primary),
-                  title: const Text('Política de privacidad',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
-                  trailing: const Icon(Icons.open_in_new, size: 16),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Abriendo enlace externo...')));
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.description_outlined,
-                      color: AppTheme.primary),
-                  title: const Text('Términos de servicio',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
-                  trailing: const Icon(Icons.open_in_new, size: 16),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Abriendo enlace externo...')));
-                  },
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // ── Contacto ───────────────────────────────────────────────────────
-          const _SeccionHeader(titulo: 'Ayuda y contacto'),
-          Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Colors.grey.shade200),
-            ),
-            child: ListTile(
-              leading:
-                  const Icon(Icons.email_outlined, color: AppTheme.primary),
-              title: const Text('Contactar a soporte',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: const Text('soporte@echoesapp.com',
-                  style: TextStyle(fontSize: 12)),
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('Abriendo cliente de correo...')));
-              },
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // ── Zona Peligro ───────────────────────────────────────────────────
+          // ── Zona de peligro ────────────────────────────────────────────────
           const _SeccionHeader(titulo: 'Zona de peligro'),
           Card(
             elevation: 0,
-            color: AppTheme.danger.withOpacity(0.05),
+            color: AppTheme.accent.withValues(alpha: 0.08),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: AppTheme.danger.withOpacity(0.3)),
+              side: BorderSide(color: AppTheme.accent.withValues(alpha: 0.4)),
             ),
             child: ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.danger.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.person_remove, color: AppTheme.danger),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              leading: const Icon(Icons.person_remove,
+                  color: AppTheme.accentDark, size: 28),
+              title: const Text(
+                'Eliminar cuenta',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, color: AppTheme.darkDark),
               ),
-              title: const Text('Eliminar cuenta',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, color: AppTheme.danger)),
               subtitle: const Text(
-                  'Esta acción borrará tus datos permanentemente y no se puede deshacer.',
-                  style: TextStyle(fontSize: 12, color: AppTheme.danger)),
+                'Esta acción borrará tus datos permanentemente y no se puede deshacer.',
+                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              ),
+              trailing: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppTheme.accent,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'Eliminar',
+                  style: TextStyle(
+                    color: AppTheme.darkDark,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
               onTap: () => _onEliminarCuenta(context),
             ),
           ),

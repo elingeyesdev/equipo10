@@ -33,6 +33,18 @@ class PdfReporteService {
     required Map<String, dynamic> datos,
     void Function(String paso, String mensaje, double porcentaje)? onProgress,
   }) async {
+    try {
+      return await _generarReportePDFInterno(datos: datos, onProgress: onProgress);
+    } catch (e) {
+      debugPrint('[PDF] Error generando reporte: $e');
+      rethrow;
+    }
+  }
+
+  Future<Uint8List> _generarReportePDFInterno({
+    required Map<String, dynamic> datos,
+    void Function(String paso, String mensaje, double porcentaje)? onProgress,
+  }) async {
     // 1. Obtener mapas estáticos de Mapbox
     onProgress?.call('mapa', 'Descargando mapas satelitales...', 0.05);
     Uint8List? mapaRutasBytes;
@@ -116,11 +128,18 @@ class PdfReporteService {
   }
 
   Future<Uint8List?> _descargarImagenRaw(String url) async {
-    try {
-      final res =
-          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
-      if (res.statusCode == 200) return res.bodyBytes;
-    } catch (_) {}
+    for (int intento = 0; intento < 2; intento++) {
+      try {
+        final res = await http
+            .get(Uri.parse(url))
+            .timeout(const Duration(seconds: 20));
+        if (res.statusCode == 200 && res.bodyBytes.isNotEmpty) {
+          return res.bodyBytes;
+        }
+      } catch (e) {
+        debugPrint('[PDF] Error descargando mapa (intento ${intento + 1}): $e');
+      }
+    }
     return null;
   }
 
@@ -1245,21 +1264,23 @@ class PdfReporteService {
   /// Retorna null si la descarga falla. Retorna los bytes originales
   /// si la decodificación/compresión falla (fallback seguro).
   Future<Uint8List?> _descargarYOptimizar(String url) async {
-    try {
-      final response = await http.get(Uri.parse(url)).timeout(
-            const Duration(seconds: 15),
-          );
-      if (response.statusCode != 200) return null;
-      final originalBytes = response.bodyBytes;
-
-      // ── Compresión real con el paquete `image` en background ───────────
-      // Offloaded a un isolate para evitar bloquear la UI
-      final Uint8List? optimizados =
-          await compute(_optimizarImagenIsolate, originalBytes);
-      return optimizados ?? originalBytes;
-    } catch (e) {
-      return null;
+    for (int intento = 0; intento < 2; intento++) {
+      try {
+        final response = await http.get(Uri.parse(url)).timeout(
+              const Duration(seconds: 20),
+            );
+        if (response.statusCode != 200 || response.bodyBytes.isEmpty) {
+          continue;
+        }
+        final originalBytes = response.bodyBytes;
+        final Uint8List? optimizados =
+            await compute(_optimizarImagenIsolate, originalBytes);
+        return optimizados ?? originalBytes;
+      } catch (e) {
+        debugPrint('[PDF] Error descargando imagen (intento ${intento + 1}): $e');
+      }
     }
+    return null;
   }
 
   /// Descarga y optimiza todas las evidencias aprobadas de la lista,
@@ -1280,11 +1301,16 @@ class PdfReporteService {
             .where((e) => e['foto_url'] != null || e['url'] != null)
             .toList();
 
-    final total = aCargar.length;
+    // Limitar a 12 imágenes para evitar OOM en dispositivos con poca RAM
+    const int maxImagenes = 12;
+    final aCargarLimitado = aCargar.length > maxImagenes
+        ? aCargar.sublist(0, maxImagenes)
+        : aCargar;
+    final total = aCargarLimitado.length;
     if (total == 0) return result;
 
     for (int i = 0; i < total; i++) {
-      final ev = aCargar[i];
+      final ev = aCargarLimitado[i];
       final url = ev['foto_url']?.toString() ?? ev['url']?.toString();
       if (url == null || url.isEmpty) continue;
 
@@ -1296,16 +1322,20 @@ class PdfReporteService {
         progresoDescarga,
       );
 
-      final bytes = await _descargarYOptimizar(url);
-      if (bytes != null) {
-        result.add(_ImagenCargada(
-          url: url,
-          bytes: bytes,
-          descripcion: ev['descripcion']?.toString(),
-          fecha: ev['created_at'] != null
-              ? DateTime.tryParse(ev['created_at'].toString())
-              : null,
-        ));
+      try {
+        final bytes = await _descargarYOptimizar(url);
+        if (bytes != null) {
+          result.add(_ImagenCargada(
+            url: url,
+            bytes: bytes,
+            descripcion: ev['descripcion']?.toString(),
+            fecha: ev['created_at'] != null
+                ? DateTime.tryParse(ev['created_at'].toString())
+                : null,
+          ));
+        }
+      } catch (e) {
+        debugPrint('[PDF] Error procesando imagen $i: $e');
       }
     }
     return result;
@@ -1417,19 +1447,23 @@ Future<Uint8List> _ensamblarPdfIsolate(_PdfParams args) async {
 
 /// Ejecuta la compresión de imagen pesada en un isolate
 Uint8List? _optimizarImagenIsolate(Uint8List originalBytes) {
+  if (originalBytes.isEmpty) return null;
   try {
     final imagen = img_pkg.decodeImage(originalBytes);
     if (imagen == null) return originalBytes;
 
-    const int anchoMaximo = 1200;
+    // Reducir más agresivamente en archivos grandes para evitar OOM
+    const int anchoMaximo = 900;
     final img_pkg.Image imagenOptimizada = imagen.width > anchoMaximo
         ? img_pkg.copyResize(imagen, width: anchoMaximo)
         : imagen;
 
     final List<int> comprimidos =
-        img_pkg.encodeJpg(imagenOptimizada, quality: 60);
-    return Uint8List.fromList(comprimidos);
-  } catch (e) {
+        img_pkg.encodeJpg(imagenOptimizada, quality: 55);
+    final resultado = Uint8List.fromList(comprimidos);
+    // Si la compresión aumentó el tamaño, devolver originales
+    return resultado.length < originalBytes.length ? resultado : originalBytes;
+  } catch (_) {
     return originalBytes;
   }
 }

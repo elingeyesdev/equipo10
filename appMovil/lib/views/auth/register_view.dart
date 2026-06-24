@@ -127,9 +127,12 @@ class _RegisterViewState extends State<RegisterView> {
                     labelText: 'Teléfono',
                     prefixIcon: Icon(Icons.phone_outlined, size: 20),
                   ),
-                  validator: (v) => (v == null || v.trim().isEmpty)
-                      ? 'Ingresa tu teléfono'
-                      : null,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return 'Ingresa tu teléfono';
+                    final digits = v.replaceAll(RegExp(r'\D'), '');
+                    if (digits.length != 8) return 'El teléfono debe tener 8 dígitos';
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
                 // Email
@@ -142,9 +145,10 @@ class _RegisterViewState extends State<RegisterView> {
                     prefixIcon: Icon(Icons.email_outlined, size: 20),
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty)
-                      return 'Ingresa tu correo';
-                    if (!v.contains('@')) return 'Correo inválido';
+                    if (v == null || v.trim().isEmpty) return 'Ingresa tu correo';
+                    final emailRegex = RegExp(
+                        r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$');
+                    if (!emailRegex.hasMatch(v.trim())) return 'Correo inválido';
                     return null;
                   },
                 ),

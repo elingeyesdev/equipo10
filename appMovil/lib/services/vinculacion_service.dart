@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'api_service.dart';
 import '../models/perfil_model.dart';
 
@@ -73,18 +74,24 @@ class VinculacionService {
       if (response.statusCode == 200 && response.data['success'] == true) {
         final List data = response.data['data'];
 
-        // Filtramos solo los que están 'buscando'
+        // Filtramos solo los que están 'buscando' y tienen datos de usuario
         final activos = data.where((v) => v['estado'] == 'buscando').toList();
 
-        // Formateamos usando PerfilModel para representar a los usuarios
-        return activos.map((v) {
+        final perfiles = <PerfilModel>[];
+        for (final v in activos) {
           final u = v['usuario'];
-          return PerfilModel(
-            id: u['id'],
-            nombreCompleto: u['nombre'] ?? 'Sin nombre',
-            telefono: u['telefono'] ?? 'Sin teléfono',
-          );
-        }).toList();
+          if (u == null) continue;
+          try {
+            perfiles.add(PerfilModel(
+              id: u['id']?.toString() ?? '',
+              nombreCompleto: u['nombre']?.toString() ?? 'Sin nombre',
+              telefono: u['telefono']?.toString() ?? 'Sin teléfono',
+            ));
+          } catch (e) {
+            debugPrint('[VinculacionService] Voluntario con datos inválidos: $e');
+          }
+        }
+        return perfiles;
       }
       return [];
     } catch (e) {

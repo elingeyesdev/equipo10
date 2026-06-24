@@ -11,6 +11,7 @@ class EditarFichaViewModel extends ChangeNotifier {
   XFile? _xFile;
   Uint8List? _imageBytes;
   String? _fotoUrlExistente;
+  bool _fotoEliminada = false;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -29,6 +30,7 @@ class EditarFichaViewModel extends ChangeNotifier {
     _fotoUrlExistente = ficha.fotoUrl;
     _xFile = null;
     _imageBytes = null;
+    _fotoEliminada = false;
     caracteristicas.clear();
     if (ficha.caracteristicas != null) {
       caracteristicas.addAll(ficha.caracteristicas!);
@@ -67,6 +69,9 @@ class EditarFichaViewModel extends ChangeNotifier {
   }
 
   void limpiarImagen() {
+    if (_fotoUrlExistente != null || _xFile != null) {
+      _fotoEliminada = true;
+    }
     _xFile = null;
     _imageBytes = null;
     _fotoUrlExistente = null;
@@ -104,6 +109,7 @@ class EditarFichaViewModel extends ChangeNotifier {
         titulo: titulo.trim(),
         descripcion: descripcion.trim(),
         fotoUrl: fotoUrl,
+        removerFoto: _fotoEliminada && _xFile == null,
         telefonoContacto: telefonoContacto,
         recompensa: recompensa,
         direccionReferencia: direccionReferencia,

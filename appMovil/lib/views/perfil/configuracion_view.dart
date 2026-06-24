@@ -1,6 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/painting.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_theme.dart';
 
 class ConfiguracionView extends StatefulWidget {
@@ -11,54 +13,33 @@ class ConfiguracionView extends StatefulWidget {
 }
 
 class _ConfiguracionViewState extends State<ConfiguracionView> {
-  bool _notificacionesPush = true;
-  bool _alertasSonoras = true;
   LocationPermission _locationPermission = LocationPermission.denied;
   bool _isLoadingCache = false;
 
   @override
   void initState() {
     super.initState();
-    _cargarConfiguracion();
     _revisarPermisos();
-  }
-
-  Future<void> _cargarConfiguracion() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _notificacionesPush = prefs.getBool('pref_notif_push') ?? true;
-      _alertasSonoras = prefs.getBool('pref_alertas_sonoras') ?? true;
-    });
-  }
-
-  Future<void> _guardarNotifPush(bool value) async {
-    setState(() => _notificacionesPush = value);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('pref_notif_push', value);
-  }
-
-  Future<void> _guardarAlertas(bool value) async {
-    setState(() => _alertasSonoras = value);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('pref_alertas_sonoras', value);
   }
 
   Future<void> _revisarPermisos() async {
     final perm = await Geolocator.checkPermission();
-    setState(() {
-      _locationPermission = perm;
-    });
+    setState(() => _locationPermission = perm);
   }
 
   Future<void> _limpiarCache() async {
     setState(() => _isLoadingCache = true);
-    // Simular limpieza de caché de imágenes y mapas
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+      await CachedNetworkImage.evictFromCache('');
+      await DefaultCacheManager().emptyCache();
+    } catch (_) {}
     if (!mounted) return;
     setState(() => _isLoadingCache = false);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Caché limpiada correctamente (Liberados ~45MB)'),
+        content: Text('Caché de imágenes limpiada correctamente'),
         backgroundColor: AppTheme.success,
       ),
     );
@@ -66,7 +47,6 @@ class _ConfiguracionViewState extends State<ConfiguracionView> {
 
   @override
   Widget build(BuildContext context) {
-    // Determinar color y texto del estado del GPS
     Color gpsColor;
     String gpsText;
     IconData gpsIcon;
@@ -91,12 +71,20 @@ class _ConfiguracionViewState extends State<ConfiguracionView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Configuración',
-            style: TextStyle(color: AppTheme.textPrimary)),
         backgroundColor: Colors.white,
-        foregroundColor: AppTheme.textPrimary,
+        foregroundColor: AppTheme.primary,
         elevation: 0,
-        centerTitle: true,
+        centerTitle: false,
+        titleSpacing: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: const TextStyle(
+          color: AppTheme.primary,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        iconTheme: const IconThemeData(color: AppTheme.primary),
+        title: const Text('Configuración'),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -141,9 +129,8 @@ class _ConfiguracionViewState extends State<ConfiguracionView> {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    'La aplicación requiere permisos "Todo el tiempo" para poder trazar tu recorrido de búsqueda correctamente aunque apagues la pantalla.',
-                    style:
-                        TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                    'La aplicación requiere permisos "Todo el tiempo" para trazar tu recorrido de búsqueda correctamente aunque apagues la pantalla.',
+                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
@@ -151,7 +138,6 @@ class _ConfiguracionViewState extends State<ConfiguracionView> {
                     child: OutlinedButton.icon(
                       onPressed: () async {
                         await Geolocator.openAppSettings();
-                        // Al volver, revisamos si cambió
                         _revisarPermisos();
                       },
                       icon: const Icon(Icons.settings),
@@ -168,41 +154,6 @@ class _ConfiguracionViewState extends State<ConfiguracionView> {
           ),
           const SizedBox(height: 24),
 
-          // ── Notificaciones ─────────────────────────────────────────────────
-          const _SeccionHeader(titulo: 'Notificaciones'),
-          Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Colors.grey.shade200),
-            ),
-            child: Column(
-              children: [
-                SwitchListTile(
-                  activeColor: AppTheme.primary,
-                  title: const Text('Notificaciones push',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: const Text('Nuevos operativos y avisos urgentes',
-                      style: TextStyle(fontSize: 12)),
-                  value: _notificacionesPush,
-                  onChanged: _guardarNotifPush,
-                ),
-                const Divider(height: 1),
-                SwitchListTile(
-                  activeColor: AppTheme.primary,
-                  title: const Text('Alertas sonoras',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: const Text(
-                      'Sonido al recibir notificaciones en la app',
-                      style: TextStyle(fontSize: 12)),
-                  value: _alertasSonoras,
-                  onChanged: _guardarAlertas,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
           // ── Almacenamiento ─────────────────────────────────────────────────
           const _SeccionHeader(titulo: 'Almacenamiento'),
           Card(
@@ -214,15 +165,8 @@ class _ConfiguracionViewState extends State<ConfiguracionView> {
             child: ListTile(
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              leading: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppTheme.accent.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.cleaning_services,
-                    color: AppTheme.accentDark),
-              ),
+              leading: const Icon(Icons.cleaning_services,
+                  color: AppTheme.accentDark, size: 28),
               title: const Text('Limpiar caché',
                   style: TextStyle(fontWeight: FontWeight.w600)),
               subtitle: const Text('Mapas e imágenes temporales',

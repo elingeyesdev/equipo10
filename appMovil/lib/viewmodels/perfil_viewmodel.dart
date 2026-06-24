@@ -1,4 +1,6 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/perfil_model.dart';
 import '../services/auth_service.dart';
 
@@ -137,8 +139,9 @@ class PerfilViewModel extends ChangeNotifier {
     }
   }
 
-  /// Actualiza el avatar del usuario
-  Future<bool> actualizarAvatar(String filePath) async {
+  /// Actualiza el avatar del usuario.
+  /// Recibe el [XFile] elegido por el usuario desde la galería.
+  Future<bool> actualizarAvatar(XFile xFile) async {
     if (_authService.currentUserId == null) return false;
 
     _isLoading = true;
@@ -146,8 +149,19 @@ class PerfilViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Leer bytes antes de enviar — evita problemas con Content URIs en Android
+      final bytes = await xFile.readAsBytes();
+      final fileName = xFile.name.isNotEmpty ? xFile.name : 'avatar.jpg';
+
+      // Evictar URL anterior del caché para que CachedNetworkImage muestre la nueva imagen
+      final oldUrl = _perfil?.avatarUrl;
+      if (oldUrl != null && oldUrl.isNotEmpty) {
+        await CachedNetworkImage.evictFromCache(oldUrl);
+      }
+
       final avatarUrl = await _authService.subirAvatarDirecto(
-          _authService.currentUserId!, filePath);
+          _authService.currentUserId!, bytes, fileName);
+
       if (avatarUrl != null) {
         await cargarPerfil();
         return true;

@@ -88,6 +88,14 @@ class _TrackingViewState extends State<TrackingView> {
           backgroundColor: AppTheme.success,
         ));
         Navigator.of(context).pop(true);
+      }).catchError((e) {
+        debugPrint('[TrackingView] Error al terminar búsqueda: $e');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error al finalizar el recorrido: $e'),
+          backgroundColor: AppTheme.danger,
+        ));
+        _terminandoPorNotificacion = false;
       });
     }
   }

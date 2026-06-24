@@ -43,10 +43,12 @@ class AuthService {
         // Errores de validación (correo ya existe, teléfono inválido, etc.)
         final errors = data?['errors'];
         if (errors is Map && errors.isNotEmpty) {
-          final firstField = errors.values.first;
-          final firstMsg =
-              firstField is List ? firstField.first : firstField.toString();
-          throw Exception(firstMsg.toString());
+          final firstField = errors.values.firstOrNull;
+          final firstMsg = firstField is List
+              ? (firstField.isNotEmpty ? firstField.first.toString() : null)
+              : firstField?.toString();
+          throw Exception(
+              firstMsg ?? 'Datos inválidos. Verifica los campos del formulario.');
         }
         throw Exception(
             'Datos inválidos. Verifica que tu correo no esté ya registrado.');
@@ -75,7 +77,9 @@ class AuthService {
         // Registrar el token FCM ahora que ya hay sesión activa.
         // (FCMService.init() corre al arrancar la app antes del login,
         //  por eso puede fallar. Aquí lo reintentamos con sesión válida.)
-        FCMService().sendTokenToBackend(user['id'].toString()).ignore();
+        FCMService().sendTokenToBackend(user['id'].toString()).catchError(
+              (e) => debugPrint('[AuthService] Error registrando FCM token: $e'),
+            );
       } else {
         throw Exception(response.data['message'] ?? 'Credenciales incorrectas');
       }
@@ -157,12 +161,18 @@ class AuthService {
   }
 
   /// Sube la imagen de avatar directamente al servidor Laravel.
-  Future<String?> subirAvatarDirecto(String userId, String filePath) async {
+  /// Recibe los bytes ya leídos para evitar problemas con Content URIs en Android.
+  Future<String?> subirAvatarDirecto(
+      String userId, List<int> bytes, String fileName) async {
     try {
-      final fileName = filePath.split('/').last;
+      final ext = fileName.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
       final formData = FormData.fromMap({
         'id': userId,
-        'avatar': await MultipartFile.fromFile(filePath, filename: fileName),
+        'avatar': MultipartFile.fromBytes(
+          bytes,
+          filename: fileName,
+          contentType: DioMediaType('image', ext),
+        ),
       });
 
       final response = await _api.client.post(
@@ -171,7 +181,7 @@ class AuthService {
       );
 
       if (response.statusCode == 200 && response.data['success'] == true) {
-        return response.data['avatar_url'];
+        return response.data['avatar_url']?.toString();
       }
       return null;
     } on DioException catch (e) {
@@ -179,7 +189,7 @@ class AuthService {
           '[ERROR] Error subiendo avatar: ${e.response?.statusCode} - ${e.message}');
       return null;
     } catch (e) {
-      debugPrint('[ERROR] Error inesperado: $e');
+      debugPrint('[ERROR] Error inesperado al subir avatar: $e');
       return null;
     }
   }

@@ -128,9 +128,18 @@ class _TuCuentaViewState extends State<TuCuentaView>
       appBar: AppBar(
         title: const Text('Tu cuenta'),
         backgroundColor: Colors.white,
-        foregroundColor: AppTheme.textPrimary,
+        foregroundColor: AppTheme.primary,
         elevation: 0,
-        centerTitle: true,
+        centerTitle: false,
+        titleSpacing: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: const TextStyle(
+          color: AppTheme.primary,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        iconTheme: const IconThemeData(color: AppTheme.primary),
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppTheme.primary,

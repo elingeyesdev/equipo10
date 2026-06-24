@@ -354,8 +354,8 @@ class ReporteController extends Controller
                 $reporte->cuadrante_id = $request->cuadrante_id;
             }
 
-            // Reemplazar imágenes si se enviaron nuevas
-            if ($request->has('imagenes') && is_array($request->imagenes) && count($request->imagenes) > 0) {
+            // Reemplazar imágenes si se envió el campo (array vacío = borrar todas)
+            if ($request->has('imagenes') && is_array($request->imagenes)) {
                 ReporteImagen::where('reporte_id', $reporte->id)->delete();
                 foreach ($request->imagenes as $index => $url) {
                     ReporteImagen::create([
@@ -364,7 +364,6 @@ class ReporteController extends Controller
                         'orden' => $index + 1
                     ]);
                 }
-                
             }
 
             $reporte->save();

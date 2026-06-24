@@ -281,6 +281,7 @@ class ReporteService {
     required String titulo,
     required String descripcion,
     String? fotoUrl,
+    bool removerFoto = false,
     String? telefonoContacto,
     double? recompensa,
     String? direccionReferencia,
@@ -300,11 +301,10 @@ class ReporteService {
     if (caracteristicasExtra != null)
       data['caracteristicas'] = caracteristicasExtra;
 
-    // Solo incluir 'imagenes' si hay una URL válida.
-    // Enviar una lista vacía hace que el backend intente borrar todas las
-    // imágenes y lanza un 500. Si el usuario no cambió ni borró la imagen,
-    // simplemente no mandamos el campo y el servidor no toca las imágenes.
-    if (fotoUrl != null && fotoUrl.isNotEmpty) {
+    if (removerFoto) {
+      // Array vacío indica al backend que borre todas las imágenes del reporte.
+      data['imagenes'] = [];
+    } else if (fotoUrl != null && fotoUrl.isNotEmpty) {
       data['imagenes'] = [fotoUrl];
     }
 
@@ -314,9 +314,24 @@ class ReporteService {
         throw Exception('Fallo al actualizar el reporte.');
       }
     } on DioException catch (e) {
-      final msg = e.response?.data?['error'] ??
-          e.response?.data?['message'] ??
-          e.message ??
+      final statusCode = e.response?.statusCode;
+      final body = e.response?.data;
+
+      if (statusCode == 422) {
+        final errors = body?['errors'];
+        if (errors is Map && errors.isNotEmpty) {
+          final firstMsg = (errors.values.first as List?)?.first?.toString();
+          throw Exception(
+              firstMsg ?? 'Datos inválidos. Revisa los campos del formulario.');
+        }
+        final msg = body?['error'] ??
+            body?['message'] ??
+            'Datos inválidos. Revisa los campos del formulario.';
+        throw Exception(msg);
+      }
+
+      final msg = body?['error'] ??
+          body?['message'] ??
           'Error al actualizar el reporte.';
       throw Exception(msg);
     }

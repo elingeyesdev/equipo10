@@ -122,7 +122,19 @@ class _TuActividadViewState extends State<TuActividadView> {
 
     if (perfil == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Tu actividad')),
+        appBar: AppBar(
+          backgroundColor: AppTheme.primary,
+          foregroundColor: Colors.white,
+          titleTextStyle: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+          iconTheme: const IconThemeData(color: Colors.white),
+          title: const Text('Tu actividad'),
+          centerTitle: false,
+          titleSpacing: 0,
+        ),
         body: const Center(child: Text('No se pudo cargar la actividad.')),
       );
     }
@@ -130,7 +142,22 @@ class _TuActividadViewState extends State<TuActividadView> {
     final stats = perfil.estadisticas;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tu actividad')),
+      appBar: AppBar(
+        backgroundColor: AppTheme.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: false,
+        titleSpacing: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Tu actividad'),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -220,10 +247,10 @@ class _TuActividadViewState extends State<TuActividadView> {
                 children: perfil.habilidades.map((hab) {
                   return Chip(
                     label: Text(hab),
-                    backgroundColor: AppTheme.primary.withValues(alpha: 0.08),
+                    backgroundColor: AppTheme.darkBase,
                     labelStyle: const TextStyle(
-                        color: AppTheme.primary, fontWeight: FontWeight.bold),
-                    deleteIconColor: AppTheme.primary,
+                        color: Colors.white, fontWeight: FontWeight.w600),
+                    deleteIconColor: Colors.white70,
                     onDeleted: () async {
                       final confirm = await showDialog<bool>(
                         context: context,

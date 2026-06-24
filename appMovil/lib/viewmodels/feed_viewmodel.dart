@@ -182,7 +182,8 @@ class FeedViewModel extends ChangeNotifier {
         if (local.isEmpty) {
           _errorMessage = 'Error al cargar. Sin datos en caché disponibles.';
         }
-      } catch (_) {
+      } catch (cacheError) {
+        debugPrint('[FeedViewModel] Error al leer caché local: $cacheError');
         _errorMessage = e.toString();
       }
     } finally {

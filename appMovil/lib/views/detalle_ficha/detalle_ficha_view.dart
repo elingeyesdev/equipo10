@@ -990,39 +990,31 @@ class _InfoSection extends StatelessWidget {
                     return (icono: icono, texto: '$etiqueta: $valorStr');
                   }).toList();
 
-                  // Build interleaved list: [item, separator, item, ...]
-                  final widgets = <Widget>[];
-                  for (int i = 0; i < entries.length; i++) {
-                    final item = entries[i];
-                    widgets.add(Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(item.icono,
-                            size: 14, color: AppTheme.primaryBase),
-                        const SizedBox(width: 5),
-                        Text(
-                          item.texto,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppTheme.textPrimary,
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: entries.map((item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Icon(item.icono,
+                                size: 14, color: AppTheme.primaryBase),
                           ),
-                        ),
-                      ],
-                    ));
-                    if (i < entries.length - 1) {
-                      widgets.add(const Text(
-                        ' • ',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ));
-                    }
-                  }
-                  return Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    runSpacing: 6,
-                    children: widgets,
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              item.texto,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )).toList(),
                   );
                 }),
               ],

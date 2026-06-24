@@ -60,11 +60,15 @@ class CrearFichaViewModel extends ChangeNotifier {
       }
       _errorMessage = null;
     } catch (e) {
-      _errorMessage = 'Error al cargar categorías: $e';
+      debugPrint('[CrearFichaVM] Error al cargar categorías: $e');
+      _errorMessage = 'No se pudieron cargar las categorías. Toca para reintentar.';
     } finally {
       _setLoading(false);
     }
   }
+
+  /// Permite reintentar la carga de categorías desde la UI si falló.
+  Future<void> reintentarCargaCategorias() => _cargarCategorias();
 
   void seleccionarCategoria(String id) {
     categoriaSeleccionadaId = id;

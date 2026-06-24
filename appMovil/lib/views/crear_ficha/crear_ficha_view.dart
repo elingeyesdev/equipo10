@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../../models/campo_categoria_model.dart';
 import '../../models/campos_categoria.dart';
@@ -23,6 +25,9 @@ class _CrearFichaViewState extends State<CrearFichaView> {
   final _recompensaCtrl = TextEditingController();
   final _direccionCtrl = TextEditingController();
   DateTime? _fechaPerdida;
+
+  String? _direccionAproximada;
+  bool _geocodingLoading = false;
 
   // Controladores dinámicos para campos de texto de la categoría
   final Map<String, TextEditingController> _ctrlsDinamicos = {};
@@ -86,6 +91,46 @@ class _CrearFichaViewState extends State<CrearFichaView> {
     }
   }
 
+  Future<void> _geocodificar(double lat, double lng) async {
+    setState(() => _geocodingLoading = true);
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lng&format=json&zoom=14&accept-language=es',
+      );
+      final response = await http.get(uri,
+          headers: {'User-Agent': 'EchoesApp/1.0'}).timeout(
+        const Duration(seconds: 6),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final address = data['address'] as Map<String, dynamic>?;
+        if (address != null) {
+          final partes = <String>[];
+          final road = address['road'] ?? address['pedestrian'] ?? address['path'];
+          final suburb = address['suburb'] ?? address['neighbourhood'] ?? address['quarter'];
+          final city = address['city'] ?? address['town'] ?? address['village'] ?? address['municipality'];
+          if (road != null) partes.add(road as String);
+          if (suburb != null) partes.add(suburb as String);
+          if (city != null) partes.add(city as String);
+          if (partes.isNotEmpty) {
+            setState(() => _direccionAproximada = partes.join(', '));
+            return;
+          }
+        }
+        // Fallback: display_name truncado
+        final display = data['display_name'] as String?;
+        if (display != null) {
+          final parts = display.split(',');
+          setState(() => _direccionAproximada =
+              parts.take(3).map((s) => s.trim()).join(', '));
+          return;
+        }
+      }
+    } catch (_) {}
+    // Si falla la API, mostrar zona genérica con las coords como fallback
+    setState(() => _direccionAproximada = 'Ubicación seleccionada en el mapa');
+  }
+
   Future<void> _onCrear() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -101,12 +146,23 @@ class _CrearFichaViewState extends State<CrearFichaView> {
 
     final vm = context.read<CrearFichaViewModel>();
 
+    if (vm.latitudLPP == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes marcar la ubicación del incidente en el mapa.',
+              style: TextStyle(color: AppTheme.darkDark)),
+          backgroundColor: AppTheme.accent,
+        ),
+      );
+      return;
+    }
+
     // Volcar campos dinámicos al ViewModel
     for (final entry in _ctrlsDinamicos.entries) {
       vm.setCaracteristica(entry.key, entry.value.text.trim());
     }
     for (final entry in _switchDinamicos.entries) {
-      vm.setCaracteristica(entry.key, entry.value);
+      vm.setCaracteristica(entry.key, entry.value.toString());
     }
     for (final entry in _opcionDinamica.entries) {
       vm.setCaracteristica(entry.key, entry.value);
@@ -210,7 +266,20 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                       const _SectionHeader(label: 'Datos del reporte'),
                       const SizedBox(height: 16),
 
-                      // Dropdown de Categoría
+                      // Dropdown de Categoría (o botón de reintento si falló)
+                      if (vm.categorias.isEmpty && vm.errorMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: OutlinedButton.icon(
+                            onPressed: vm.reintentarCargaCategorias,
+                            icon: const Icon(Icons.refresh, size: 18),
+                            label: const Text('Reintentar cargar categorías'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.primary,
+                              side: const BorderSide(color: AppTheme.primary),
+                            ),
+                          ),
+                        ),
                       if (vm.categorias.isNotEmpty) ...[
                         DropdownButtonFormField<String>(
                           value: vm.categoriaSeleccionadaId,
@@ -450,11 +519,23 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const LPPPickerView()),
-                          ),
+                          onPressed: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const LPPPickerView()),
+                            );
+                            final lat = context.read<CrearFichaViewModel>().latitudLPP;
+                            final lng = context.read<CrearFichaViewModel>().longitudLPP;
+                            if (lat != null && lng != null) {
+                              setState(() {
+                                _geocodingLoading = true;
+                                _direccionAproximada = null;
+                              });
+                              await _geocodificar(lat, lng);
+                              setState(() => _geocodingLoading = false);
+                            }
+                          },
                           style: ButtonStyle(
                             backgroundColor:
                                 WidgetStateProperty.resolveWith((states) =>
@@ -483,16 +564,32 @@ class _CrearFichaViewState extends State<CrearFichaView> {
                               const Icon(Icons.map_outlined, size: 20),
                               const SizedBox(width: 10),
                               Expanded(
-                                child: Text(
-                                  vm.latitudLPP != null
-                                      ? 'Ubicación marcada: ${vm.latitudLPP!.toStringAsFixed(4)}, ${vm.longitudLPP!.toStringAsFixed(4)}'
-                                      : 'Toca aquí para marcar la ubicación en el mapa',
-                                  style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600),
-                                ),
+                                child: _geocodingLoading
+                                    ? const Row(children: [
+                                        SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: AppTheme.primary),
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text('Obteniendo dirección...',
+                                            style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600)),
+                                      ])
+                                    : Text(
+                                        vm.latitudLPP != null
+                                            ? (_direccionAproximada ??
+                                                'Ubicación seleccionada en el mapa')
+                                            : 'Toca aquí para marcar la ubicación en el mapa',
+                                        style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600),
+                                      ),
                               ),
-                              if (vm.latitudLPP != null)
+                              if (vm.latitudLPP != null && !_geocodingLoading)
                                 const Icon(Icons.check_circle, size: 20),
                             ],
                           ),

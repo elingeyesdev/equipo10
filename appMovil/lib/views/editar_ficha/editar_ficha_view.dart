@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -128,7 +129,7 @@ class _EditarFichaViewState extends State<EditarFichaView> {
       vm.setCaracteristica(entry.key, entry.value.text.trim());
     }
     for (final entry in _switchDinamicos.entries) {
-      vm.setCaracteristica(entry.key, entry.value);
+      vm.setCaracteristica(entry.key, entry.value.toString());
     }
     for (final entry in _opcionDinamica.entries) {
       vm.setCaracteristica(entry.key, entry.value);
@@ -611,7 +612,7 @@ class _CampoDinamico extends StatelessWidget {
 // Widget: Selector y preview de imagen
 // ──────────────────────────────────────────────────────────
 class _ImagePickerSection extends StatelessWidget {
-  final List<int>? imageBytes;
+  final Uint8List? imageBytes;
   final String? fotoUrlExistente;
   final bool tieneImagen;
   final bool isLoading;
@@ -633,7 +634,7 @@ class _ImagePickerSection extends StatelessWidget {
 
     if (imageBytes != null) {
       imageContent = Image.memory(
-        imageBytes! as dynamic,
+        imageBytes!,
         fit: BoxFit.cover,
         width: double.infinity,
         gaplessPlayback: true,
