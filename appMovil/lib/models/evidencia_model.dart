@@ -15,6 +15,7 @@ class EvidenciaModel {
   final DateTime? creadoEn;
   // Estado de aprobacion: pending, approved, rejected
   final String estado;
+  final bool esClave;
 
   EvidenciaModel({
     required this.id,
@@ -28,6 +29,7 @@ class EvidenciaModel {
     this.fotoUrl,
     this.creadoEn,
     this.estado = 'approved',
+    this.esClave = false,
   });
 
   factory EvidenciaModel.fromMap(Map<String, dynamic> map) {
@@ -79,8 +81,8 @@ class EvidenciaModel {
       creadoEn: map['created_at'] != null
           ? DateTime.tryParse(map['created_at'].toString())
           : null,
-      // estado_evidencia viene directamente en la respuesta
       estado: map['estado_evidencia']?.toString() ?? 'pending',
+      esClave: map['es_clave'] == true || map['es_clave'] == 1,
     );
   }
 

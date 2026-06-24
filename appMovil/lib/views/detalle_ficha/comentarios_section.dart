@@ -153,8 +153,11 @@ class _ComentariosSectionState extends State<ComentariosSection> {
                       if (!ok && mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('No se pudo enviar el comentario. Intenta de nuevo.'),
-                            backgroundColor: Colors.red,
+                            content: Text(
+                              'No se pudo enviar el comentario. Verifica tu conexión e intenta de nuevo.',
+                              style: TextStyle(color: AppTheme.darkDark),
+                            ),
+                            backgroundColor: AppTheme.accent,
                           ),
                         );
                       }

@@ -26,6 +26,8 @@ class _TabMapaPanelState extends State<TabMapaPanel> {
   final CuadranteService _cuadranteService = CuadranteService();
   bool _useSatellite = true;
   bool _dialogAbierto = false;
+  bool _mostrarRecorridos = true;
+  bool _mostrarEvidencias = true;
   List<Polygon> _cuadrantesPolygons = [];
 
   @override
@@ -532,19 +534,21 @@ class _TabMapaPanelState extends State<TabMapaPanel> {
                   }),
                 ];
               }()),
-            PolylineLayer(
-              polylines: List.generate(vm.rutasVoluntarios.length, (index) {
-                final ruta = vm.rutasVoluntarios[index];
-                final originalIndex = vm.todasLasRutas.indexOf(ruta);
-                return Polyline(
-                  points: ruta.puntos,
-                  color: pathColors[originalIndex % pathColors.length]
-                      .withOpacity(0.7),
-                  strokeWidth: 4.0,
-                );
-              }),
-            ),
-            MarkerLayer(
+            if (_mostrarRecorridos)
+              PolylineLayer(
+                polylines: List.generate(vm.rutasVoluntarios.length, (index) {
+                  final ruta = vm.rutasVoluntarios[index];
+                  final originalIndex = vm.todasLasRutas.indexOf(ruta);
+                  return Polyline(
+                    points: ruta.puntos,
+                    color: pathColors[originalIndex % pathColors.length]
+                        .withOpacity(0.7),
+                    strokeWidth: 4.0,
+                  );
+                }),
+              ),
+            if (_mostrarRecorridos)
+              MarkerLayer(
               markers: List.generate(vm.rutasVoluntarios.length, (index) {
                 final ruta = vm.rutasVoluntarios[index];
                 if (ruta.puntos.isEmpty) return null;
@@ -637,7 +641,7 @@ class _TabMapaPanelState extends State<TabMapaPanel> {
               }).whereType<Marker>().toList(),
             ),
             MarkerLayer(markers: markersPistas),
-            MarkerLayer(markers: markersEvidencias),
+            if (_mostrarEvidencias) MarkerLayer(markers: markersEvidencias),
           ],
         ),
         // Filtrar recorridos — esquina superior izquierda
@@ -677,6 +681,30 @@ class _TabMapaPanelState extends State<TabMapaPanel> {
               ),
             ),
           ),
+
+        // Filtros de capa — esquina superior derecha
+        Positioned(
+          top: 16,
+          right: 16,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _LayerToggleChip(
+                label: 'Recorridos',
+                icon: Icons.route,
+                active: _mostrarRecorridos,
+                onTap: () => setState(() => _mostrarRecorridos = !_mostrarRecorridos),
+              ),
+              const SizedBox(height: 8),
+              _LayerToggleChip(
+                label: 'Evidencias',
+                icon: Icons.camera_alt,
+                active: _mostrarEvidencias,
+                onTap: () => setState(() => _mostrarEvidencias = !_mostrarEvidencias),
+              ),
+            ],
+          ),
+        ),
 
         // Toggle satélite/callejero — esquina inferior izquierda
         Positioned(
@@ -743,6 +771,57 @@ class _TabMapaPanelState extends State<TabMapaPanel> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _LayerToggleChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _LayerToggleChip({
+    required this.label,
+    required this.icon,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? AppTheme.primary : Colors.white,
+          borderRadius: BorderRadius.circular(50),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: active ? Colors.white : AppTheme.primary),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: active ? Colors.white : AppTheme.primary,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

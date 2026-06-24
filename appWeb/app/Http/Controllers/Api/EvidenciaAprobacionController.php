@@ -50,6 +50,20 @@ class EvidenciaAprobacionController extends Controller
         ], 200);
     }
 
+    // Marcar/desmarcar una evidencia como clave para el caso
+    public function toggleClave($id)
+    {
+        $respuesta = Respuesta::findOrFail($id);
+        $respuesta->es_clave = !$respuesta->es_clave;
+        $respuesta->save();
+
+        return response()->json([
+            'success' => true,
+            'es_clave' => $respuesta->es_clave,
+            'data' => $respuesta
+        ], 200);
+    }
+
     // Rechazar una evidencia (respuesta de avistamiento)
     public function reject($id)
     {

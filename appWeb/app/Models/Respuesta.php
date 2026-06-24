@@ -30,7 +30,8 @@ class Respuesta extends Model
         'util',
         'estado_evidencia',
         'titulo',
-        'categoria_informacion'
+        'categoria_informacion',
+        'es_clave',
     ];
 
     protected $casts = [
@@ -40,6 +41,7 @@ class Respuesta extends Model
         'ubicacion_lng' => 'decimal:8',
         'verificada' => 'boolean',
         'util' => 'boolean',
+        'es_clave' => 'boolean',
         'created_at' => 'datetime',
         'estado_evidencia' => 'string'
     ];

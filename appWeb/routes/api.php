@@ -275,6 +275,7 @@ Route::prefix('evidencias')->group(function () {
     Route::get('{reporteId}/pendientes', [EvidenciaAprobacionController::class, 'pending']);
     Route::post('{id}/aprobar', [EvidenciaAprobacionController::class, 'approve']);
     Route::post('{id}/rechazar', [EvidenciaAprobacionController::class, 'reject']);
+    Route::post('{id}/toggle-clave', [EvidenciaAprobacionController::class, 'toggleClave']);
 });
 
 // ============================================

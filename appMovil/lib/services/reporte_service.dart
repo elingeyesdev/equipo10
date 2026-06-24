@@ -101,12 +101,20 @@ class ReporteService {
   Future<Map<String, dynamic>?> enviarComentario(
       String reporteId, String texto) async {
     try {
-      final response =
-          await _api.client.post('/reportes/$reporteId/comentarios', data: {
-        'texto': texto,
-      });
+      final response = await _api.client
+          .post('/reportes/$reporteId/comentarios', data: {'texto': texto})
+          .timeout(const Duration(seconds: 15));
       if (response.statusCode == 201 && response.data['success'] == true) {
         return Map<String, dynamic>.from(response.data['data'] as Map);
+      }
+      return null;
+    } on DioException catch (e) {
+      debugPrint('[ReporteService] enviarComentario DioException: $e');
+      final body = e.response?.data;
+      final errors = body?['errors'];
+      if (errors is Map && errors.isNotEmpty) {
+        final firstMsg = (errors.values.first as List?)?.first?.toString();
+        if (firstMsg != null) debugPrint('[ReporteService] error de validación: $firstMsg');
       }
       return null;
     } catch (e) {

@@ -218,15 +218,17 @@ class EvidenciaService {
       ),
     });
 
-    final response = await _api.client.post(
-      '/reportes/upload-image',
-      data: formData,
-    );
+    final response = await _api.client
+        .post('/reportes/upload-image', data: formData)
+        .timeout(
+          const Duration(seconds: 30),
+          onTimeout: () => throw Exception('Tiempo de espera agotado al subir la imagen. Verifica tu conexión.'),
+        );
 
     if (response.statusCode == 200 && response.data['success'] == true) {
       return response.data['url'] as String;
     }
-    throw Exception('Error al subir la imagen al servidor.');
+    throw Exception('No se pudo subir la imagen al servidor.');
   }
 
   // ── CRUD de evidencias ────────────────────────────────────────
@@ -304,6 +306,15 @@ class EvidenciaService {
       throw Exception(
           response.data['message'] ?? 'Error al rechazar evidencia.');
     }
+  }
+
+  // Alternar el atributo "evidencia clave" por su ID de respuesta
+  Future<bool> toggleEvidenciaClave(String respuestaId) async {
+    final response = await _api.client.post('/evidencias/$respuestaId/toggle-clave');
+    if (response.statusCode == 200 && response.data['success'] == true) {
+      return response.data['es_clave'] == true;
+    }
+    throw Exception(response.data['message'] ?? 'Error al actualizar evidencia clave.');
   }
 
   // Eliminar una evidencia por su ID de respuesta

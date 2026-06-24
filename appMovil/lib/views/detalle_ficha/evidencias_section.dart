@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../../models/evidencia_model.dart';
@@ -157,27 +159,29 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-                'Sin conexión. Evidencia guardada, se subirá automáticamente.'),
-            backgroundColor: Colors.orange,
+              'Sin conexión. Evidencia guardada, se subirá automáticamente cuando vuelva la red.',
+              style: TextStyle(color: AppTheme.darkDark),
+            ),
+            backgroundColor: AppTheme.accent,
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(widget.esCreador
-                ? 'Evidencia publicada exitosamente'
-                : 'Evidencia subida. El creador de la búsqueda la verificará antes de que aparezca en el mapa.'),
+                ? 'Evidencia publicada correctamente.'
+                : 'Evidencia enviada. El creador del reporte la revisará antes de publicarla.'),
             backgroundColor: AppTheme.success,
             duration: const Duration(seconds: 4),
           ),
         );
       }
     } else {
-      final errorMsg = vm.errorMessage ?? 'Error al procesar la evidencia.';
+      final errorMsg = vm.errorMessage ?? 'No se pudo procesar la evidencia. Intenta de nuevo.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(errorMsg),
-          backgroundColor: AppTheme.danger,
+          content: Text(errorMsg, style: const TextStyle(color: AppTheme.darkDark)),
+          backgroundColor: AppTheme.accent,
         ),
       );
     }
@@ -341,20 +345,61 @@ class _PublicarEvidenciaPage extends StatefulWidget {
 }
 
 class _PublicarEvidenciaPageState extends State<_PublicarEvidenciaPage> {
-  // Owned here — created in initState, disposed in dispose.
-  // NEVER passed from parent.
   late final TextEditingController _ctrl;
+  String? _direccionAproximada;
+  bool _geocodingLoading = false;
 
   @override
   void initState() {
     super.initState();
     _ctrl = TextEditingController();
+    if (widget.tienePosicion && widget.latitud != null && widget.longitud != null) {
+      _geocodificar(widget.latitud!, widget.longitud!);
+    }
   }
 
   @override
   void dispose() {
     _ctrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _geocodificar(double lat, double lng) async {
+    setState(() => _geocodingLoading = true);
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lng&format=json&zoom=14&accept-language=es',
+      );
+      final response = await http
+          .get(uri, headers: {'User-Agent': 'EchoesApp/1.0'}).timeout(
+        const Duration(seconds: 6),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final address = data['address'] as Map<String, dynamic>?;
+        if (address != null) {
+          final partes = <String>[];
+          final road = address['road'] ?? address['pedestrian'] ?? address['path'];
+          final suburb = address['suburb'] ?? address['neighbourhood'] ?? address['quarter'];
+          final city = address['city'] ?? address['town'] ?? address['village'] ?? address['municipality'];
+          if (road != null) partes.add(road as String);
+          if (suburb != null) partes.add(suburb as String);
+          if (city != null) partes.add(city as String);
+          if (partes.isNotEmpty) {
+            setState(() => _direccionAproximada = partes.join(', '));
+            return;
+          }
+        }
+        final display = data['display_name'] as String?;
+        if (display != null) {
+          final parts = display.split(',');
+          setState(() => _direccionAproximada =
+              parts.take(3).map((s) => s.trim()).join(', '));
+          return;
+        }
+      }
+    } catch (_) {}
+    setState(() => _direccionAproximada = 'Ubicación registrada');
   }
 
   void _confirmar() {
@@ -367,16 +412,28 @@ class _PublicarEvidenciaPageState extends State<_PublicarEvidenciaPage> {
       );
       return;
     }
-    // Pop returns the text. The parent (which is a stable, non-animated route)
-    // will handle calling publicarEvidencia once this route is fully gone.
     Navigator.of(context).pop(text);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Nueva Evidencia'),
+        backgroundColor: Colors.white,
+        foregroundColor: AppTheme.primary,
+        elevation: 0,
+        centerTitle: false,
+        titleSpacing: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: const TextStyle(
+          color: AppTheme.primary,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        iconTheme: const IconThemeData(color: AppTheme.primary),
+        title: const Text('Nueva evidencia'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(null),
@@ -394,7 +451,7 @@ class _PublicarEvidenciaPageState extends State<_PublicarEvidenciaPage> {
           children: [
             if (widget.bytesPreview != null) ...[
               ClipRRect(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(12),
                 child: Image.memory(
                   widget.bytesPreview!,
                   width: double.infinity,
@@ -404,60 +461,78 @@ class _PublicarEvidenciaPageState extends State<_PublicarEvidenciaPage> {
               ),
               const SizedBox(height: 12),
             ],
-            Row(
-              children: [
-                Icon(
-                  widget.tienePosicion ? Icons.location_on : Icons.location_off,
-                  size: 14,
-                  color: widget.tienePosicion
-                      ? AppTheme.success
-                      : AppTheme.textSecondary,
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    widget.tienePosicion
-                        ? 'GPS: ${widget.latitud!.toStringAsFixed(5)}, ${widget.longitud!.toStringAsFixed(5)}'
-                        : 'Sin ubicación GPS',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: widget.tienePosicion
-                          ? AppTheme.success
-                          : AppTheme.textSecondary,
+            // Ubicación aproximada
+            if (widget.tienePosicion) ...[
+              _geocodingLoading
+                  ? Row(children: [
+                      const SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(strokeWidth: 1.5),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Obteniendo ubicación...',
+                        style: TextStyle(
+                            fontSize: 12, color: AppTheme.textSecondary),
+                      ),
+                    ])
+                  : Text(
+                      _direccionAproximada ?? 'Ubicación registrada',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.success,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
+            ] else ...[
+              const Text(
+                'Sin ubicación GPS',
+                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              ),
+              const SizedBox(height: 20),
+            ],
             TextField(
               controller: _ctrl,
               maxLines: 4,
               maxLength: 400,
               autofocus: false,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Descripción de la evidencia *',
                 hintText: 'Ej: Encontré el collar en la zona noreste...',
-                prefixIcon: Icon(Icons.description_outlined),
                 alignLabelWithHint: true,
-                border: OutlineInputBorder(),
                 counterText: '',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppTheme.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: AppTheme.primaryBase, width: 2),
+                ),
               ),
             ),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               height: 50,
-              child: ElevatedButton.icon(
+              child: ElevatedButton(
                 onPressed: _confirmar,
-                icon: const Icon(Icons.cloud_upload_outlined),
-                label: const Text('Confirmar y publicar'),
                 style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  backgroundColor: AppTheme.accent,
+                  foregroundColor: AppTheme.darkDark,
+                  shape: const StadiumBorder(),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'Confirmar y publicar',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                 ),
               ),
             ),

@@ -187,21 +187,26 @@ class EvidenciaViewModel extends ChangeNotifier {
           msg.toLowerCase().contains('socket');
 
       if (isNetworkError) {
-        await _service.encolarEvidencia(
-          reporteId: reporteId,
-          usuarioId: usuarioId,
-          descripcion: descripcion,
-          xFile: _fotoTemporal!,
-          lat: _posicionTemporal?.latitude,
-          lng: _posicionTemporal?.longitude,
-        );
-
-        _fotoTemporal = null;
-        _bytesPreview = null;
-        _posicionTemporal = null;
-
-        _setState(EvidenciaEstado.listoOffline);
-        return true;
+        try {
+          await _service.encolarEvidencia(
+            reporteId: reporteId,
+            usuarioId: usuarioId,
+            descripcion: descripcion,
+            xFile: _fotoTemporal!,
+            lat: _posicionTemporal?.latitude,
+            lng: _posicionTemporal?.longitude,
+          );
+          _fotoTemporal = null;
+          _bytesPreview = null;
+          _posicionTemporal = null;
+          _setState(EvidenciaEstado.listoOffline);
+          return true;
+        } catch (enqueueError) {
+          debugPrint('[EvidenciaVM] Error al encolar offline: $enqueueError');
+          _errorMessage = 'Sin conexión y no se pudo guardar localmente. Intenta de nuevo.';
+          _setState(EvidenciaEstado.error);
+          return false;
+        }
       }
 
       _errorMessage = msg.replaceFirst('Exception: ', '');
@@ -236,6 +241,38 @@ class EvidenciaViewModel extends ChangeNotifier {
       await _service.rechazarEvidencia(evidenciaId);
       final todas = await _service.obtenerEvidencias(reporteId);
       _evidencias = todas;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Alternar el estado "evidencia clave" y actualizar la lista local.
+  Future<bool> toggleEvidenciaClave(String evidenciaId, String reporteId) async {
+    try {
+      final nuevoValor = await _service.toggleEvidenciaClave(evidenciaId);
+      _evidencias = _evidencias.map((e) {
+        if (e.id == evidenciaId) {
+          return EvidenciaModel(
+            id: e.id,
+            reporteId: e.reporteId,
+            usuarioId: e.usuarioId,
+            nombreUsuario: e.nombreUsuario,
+            avatarUsuario: e.avatarUsuario,
+            descripcion: e.descripcion,
+            lat: e.lat,
+            lng: e.lng,
+            fotoUrl: e.fotoUrl,
+            creadoEn: e.creadoEn,
+            estado: e.estado,
+            esClave: nuevoValor,
+          );
+        }
+        return e;
+      }).toList();
       notifyListeners();
       return true;
     } catch (e) {

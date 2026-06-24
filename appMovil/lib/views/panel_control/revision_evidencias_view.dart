@@ -1,5 +1,8 @@
+import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../../models/evidencia_model.dart';
 import '../../viewmodels/evidencia_viewmodel.dart';
@@ -55,25 +58,52 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Revision de Evidencias'),
+        backgroundColor: AppTheme.primary,
+        foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
+        elevation: 0,
+        centerTitle: false,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Revisión de evidencias',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.download_for_offline_outlined,
-                color: Colors.white),
-            tooltip: 'Descargar Evidencias',
-            onPressed: () {
-              if (vm.evidencias.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                        'No hay evidencias disponibles en este operativo para descargar.'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-              _mostrarDialogoDescarga(context, vm.evidencias);
-            },
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                if (vm.evidencias.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                          'No hay evidencias disponibles en este operativo para descargar.'),
+                      backgroundColor: AppTheme.accent,
+                    ),
+                  );
+                  return;
+                }
+                _mostrarDialogoDescarga(context, vm.evidencias);
+              },
+              icon: const Icon(Icons.download_for_offline_outlined, size: 18),
+              label: const Text('Descargar'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: AppTheme.primary,
+                textStyle: const TextStyle(
+                    fontWeight: FontWeight.w600, fontSize: 13),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                elevation: 0,
+              ),
+            ),
           ),
         ],
         bottom: TabBar(
@@ -121,14 +151,14 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
                   evidencias: pendientes,
                   reporteId: widget.reporteId,
                   tipo: 'pending',
-                  emptyMessage: 'No hay evidencias pendientes de revision.',
+                  emptyMessage: 'No hay evidencias pendientes de revisión.',
                   emptyIcon: Icons.hourglass_empty,
                 ),
                 _EvidenciasList(
                   evidencias: aprobadas,
                   reporteId: widget.reporteId,
                   tipo: 'approved',
-                  emptyMessage: 'Aun no has aprobado ninguna evidencia.',
+                  emptyMessage: 'Aún no has aprobado ninguna evidencia.',
                   emptyIcon: Icons.check_circle_outline,
                 ),
                 _EvidenciasList(
@@ -164,7 +194,7 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
                       color: AppTheme.primary, size: 28),
                   SizedBox(width: 10),
                   Text(
-                    'Descarga de Evidencias',
+                    'Descarga de evidencias',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -179,7 +209,7 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Filtro de Evidencias:',
+                      'Filtro de evidencias:',
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
@@ -187,7 +217,7 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
                     ),
                     const SizedBox(height: 8),
                     RadioListTile<String>(
-                      title: const Text('Solo Aprobadas (Recomendado)',
+                      title: const Text('Solo aprobadas (recomendado)',
                           style: TextStyle(fontSize: 13)),
                       value: 'approved',
                       groupValue: filtro,
@@ -198,7 +228,7 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
                     ),
                     RadioListTile<String>(
                       title: const Text(
-                          'Todas (Aprobadas, Pendientes y Rechazadas)',
+                          'Todas (aprobadas, pendientes y rechazadas)',
                           style: TextStyle(fontSize: 13)),
                       value: 'all',
                       groupValue: filtro,
@@ -209,7 +239,7 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
                     ),
                     const Divider(),
                     const Text(
-                      'Formato de Descarga:',
+                      'Formato de descarga:',
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
@@ -217,7 +247,7 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
                     ),
                     const SizedBox(height: 8),
                     RadioListTile<String>(
-                      title: const Text('Ficha de Evidencias (HTML imprimible)',
+                      title: const Text('Ficha de evidencias (HTML imprimible)',
                           style: TextStyle(fontSize: 13)),
                       value: 'dossier',
                       groupValue: formato,
@@ -237,7 +267,7 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
                       },
                     ),
                     RadioListTile<String>(
-                      title: const Text('Ficha + Fotos individuales',
+                      title: const Text('Ficha + fotos individuales',
                           style: TextStyle(fontSize: 13)),
                       value: 'both',
                       groupValue: formato,
@@ -393,7 +423,7 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
               Icon(Icons.check_circle, color: Colors.green, size: 28),
               SizedBox(width: 10),
               Text(
-                'Descarga Completada',
+                'Descarga completada',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
             ],
@@ -443,18 +473,23 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
         estadoText = 'Rechazada';
       }
 
+      final String claveHtml = e.esClave
+          ? '<span class="badge badge-clave">★ Evidencia clave</span>'
+          : '';
+
       tableRows.write('''
         <tr>
           <td><strong>${e.nombreUsuario ?? 'Voluntario'}</strong></td>
           <td>${e.descripcion.isNotEmpty ? e.descripcion : 'Sin descripción'}</td>
           <td><code>$coords</code></td>
           <td>$fecha</td>
-          <td><span class="badge $badgeClass">$estadoText</span></td>
+          <td><span class="badge $badgeClass">$estadoText</span> $claveHtml</td>
         </tr>
       ''');
 
       cards.write('''
-        <div class="evidence-card">
+        <div class="evidence-card${e.esClave ? ' card-clave' : ''}">
+          ${e.esClave ? '<div class="clave-banner">★ Evidencia clave</div>' : ''}
           ${e.fotoUrl != null ? '<img class="evidence-image" src="${e.fotoUrl}" alt="Evidencia">' : '<div class="evidence-image" style="display:flex;align-items:center;justify-content:center;color:#888;">Sin imagen</div>'}
           <div class="evidence-content">
             <h3 class="evidence-title">Evidencia de ${e.nombreUsuario ?? 'Voluntario'}</h3>
@@ -492,8 +527,11 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
         .badge-approved { background-color: #e2f0d9; color: #385723; }
         .badge-pending { background-color: #fff2cc; color: #7f6000; }
         .badge-rejected { background-color: #fce4d6; color: #c65911; }
+        .badge-clave { background-color: #fff3cd; color: #856404; border: 1px solid #ffc107; }
         .evidence-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; margin-top: 20px; }
-        .evidence-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 6px 12px rgba(0,0,0,0.05); border: 1px solid #eef; display: flex; flex-direction: column; transition: transform 0.2s; }
+        .evidence-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 6px 12px rgba(0,0,0,0.05); border: 1px solid #eef; display: flex; flex-direction: column; }
+        .card-clave { border: 2px solid #ffc107; box-shadow: 0 6px 16px rgba(255,193,7,0.2); }
+        .clave-banner { background: #ffc107; color: #333; font-weight: bold; font-size: 13px; padding: 6px 16px; }
         .evidence-image { width: 100%; height: 240px; object-fit: cover; background-color: #e9ecef; }
         .evidence-content { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; }
         .evidence-title { font-weight: bold; font-size: 18px; margin: 0 0 10px 0; color: #222; }
@@ -510,19 +548,19 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
 </head>
 <body>
     <div class="header">
-        <h1>Ficha de Evidencias del Operativo</h1>
+        <h1>Ficha de evidencias del operativo</h1>
         <p>Generado por Echoes el $fechaGen</p>
-        <p><strong>Búsqueda:</strong> ${widget.reporteTitulo} | <strong>ID de Operativo:</strong> ${widget.reporteId}</p>
+        <p><strong>Búsqueda:</strong> ${widget.reporteTitulo} | <strong>ID de operativo:</strong> ${widget.reporteId}</p>
     </div>
-    
-    <h2 style="color: #333; border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-bottom: 20px;">Resumen del Operativo</h2>
+
+    <h2 style="color: #333; border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-bottom: 20px;">Resumen del operativo</h2>
     <table class="summary-table">
         <thead>
             <tr>
                 <th>Voluntario</th>
                 <th>Descripción</th>
                 <th>Coordenadas</th>
-                <th>Fecha y Hora</th>
+                <th>Fecha y hora</th>
                 <th>Estado</th>
             </tr>
         </thead>
@@ -530,8 +568,8 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
             ${tableRows.toString()}
         </tbody>
     </table>
-    
-    <h2 style="color: #333; border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-top: 40px; margin-bottom: 20px;">Detalle de Evidencias Fotográficas</h2>
+
+    <h2 style="color: #333; border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-top: 40px; margin-bottom: 20px;">Detalle de evidencias fotográficas</h2>
     <div class="evidence-grid">
         ${cards.toString()}
     </div>
@@ -541,7 +579,7 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
   }
 }
 
-// Lista de evidencias segun tipo
+// Lista de evidencias según tipo
 class _EvidenciasList extends StatelessWidget {
   final List<EvidenciaModel> evidencias;
   final String reporteId;
@@ -599,6 +637,9 @@ class _EvidenciasList extends StatelessWidget {
   }
 }
 
+// Caché global de geocodificación — evita peticiones duplicadas entre tarjetas y rebuilds
+final Map<String, String> _geocodingCache = {};
+
 // Card de evidencia con foto, descripcion, voluntario y acciones
 class _EvidenciaCard extends StatefulWidget {
   final EvidenciaModel evidencia;
@@ -617,6 +658,61 @@ class _EvidenciaCard extends StatefulWidget {
 
 class _EvidenciaCardState extends State<_EvidenciaCard> {
   bool _procesando = false;
+  String? _direccionGeocodificada;
+  bool _geocodingLoading = false;
+  Timer? _geocodingTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.evidencia.lat != null && widget.evidencia.lng != null) {
+      final key = '${widget.evidencia.lat!.toStringAsFixed(5)},${widget.evidencia.lng!.toStringAsFixed(5)}';
+      if (_geocodingCache.containsKey(key)) {
+        // Resultado ya en caché — no hace falta petición HTTP
+        _direccionGeocodificada = _geocodingCache[key];
+      } else {
+        _geocodificar(widget.evidencia.lat!, widget.evidencia.lng!, key);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _geocodingTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _geocodificar(double lat, double lng, String cacheKey) async {
+    if (mounted) setState(() => _geocodingLoading = true);
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lng&format=json&zoom=16&accept-language=es',
+      );
+      final response = await http.get(uri, headers: {
+        'User-Agent': 'EchoesApp/1.0',
+      }).timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final address = data['address'] as Map<String, dynamic>?;
+        if (address != null) {
+          final parts = <String>[];
+          final road = address['road'] ?? address['pedestrian'] ?? address['path'];
+          final suburb = address['suburb'] ?? address['neighbourhood'] ?? address['quarter'];
+          final city = address['city'] ?? address['town'] ?? address['municipality'] ?? address['county'];
+          if (road != null) parts.add(road.toString());
+          if (suburb != null) parts.add(suburb.toString());
+          if (city != null) parts.add(city.toString());
+          if (parts.isNotEmpty) {
+            final direccion = parts.join(', ');
+            _geocodingCache[cacheKey] = direccion;
+            if (mounted) setState(() => _direccionGeocodificada = direccion);
+          }
+        }
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _geocodingLoading = false);
+  }
 
   Future<void> _accion(bool aprobar) async {
     setState(() => _procesando = true);
@@ -631,21 +727,39 @@ class _EvidenciaCardState extends State<_EvidenciaCard> {
     setState(() => _procesando = false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(ok
-            ? (aprobar ? 'Evidencia aprobada' : 'Evidencia rechazada')
-            : 'Error al procesar la evidencia'),
-        backgroundColor: ok
-            ? (aprobar ? AppTheme.success : Colors.red.shade700)
-            : Colors.red.shade700,
+        content: Text(
+          ok
+              ? (aprobar ? 'Evidencia aprobada' : 'Evidencia rechazada')
+              : 'Error al procesar la evidencia',
+          style: const TextStyle(color: AppTheme.darkDark),
+        ),
+        backgroundColor: AppTheme.accent,
       ),
     );
+  }
+
+  Future<void> _toggleClave() async {
+    setState(() => _procesando = true);
+    final vm = context.read<EvidenciaViewModel>();
+    final ok = await vm.toggleEvidenciaClave(widget.evidencia.id, widget.reporteId);
+    if (!mounted) return;
+    setState(() => _procesando = false);
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo actualizar la evidencia clave.',
+              style: TextStyle(color: AppTheme.darkDark)),
+          backgroundColor: AppTheme.accent,
+        ),
+      );
+    }
   }
 
   Future<void> _eliminar() async {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('¿Eliminar Evidencia?'),
+        title: const Text('¿Eliminar evidencia?'),
         content: const Text('Esta acción no se puede deshacer.'),
         actions: [
           TextButton(
@@ -663,13 +777,17 @@ class _EvidenciaCardState extends State<_EvidenciaCard> {
 
     setState(() => _procesando = true);
     final vm = context.read<EvidenciaViewModel>();
-    final ok = await vm.eliminarEvidencia(widget.evidencia.id, widget.reporteId);
+    final ok =
+        await vm.eliminarEvidencia(widget.evidencia.id, widget.reporteId);
     if (!mounted) return;
     setState(() => _procesando = false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(ok ? 'Evidencia eliminada' : 'Error al eliminar evidencia'),
-        backgroundColor: ok ? Colors.black87 : Colors.red.shade700,
+        content: Text(
+          ok ? 'Evidencia eliminada' : 'Error al eliminar evidencia',
+          style: const TextStyle(color: AppTheme.darkDark),
+        ),
+        backgroundColor: AppTheme.accent,
       ),
     );
   }
@@ -680,41 +798,50 @@ class _EvidenciaCardState extends State<_EvidenciaCard> {
     if (diff.inMinutes < 1) return 'Hace un momento';
     if (diff.inMinutes < 60) return 'Hace ${diff.inMinutes} min';
     if (diff.inHours < 24) return 'Hace ${diff.inHours} h';
-    return 'Hace ${diff.inDays} dias';
+    return 'Hace ${diff.inDays} días';
   }
 
   @override
   Widget build(BuildContext context) {
     Color borderColor;
     Color badgeColor;
+    Color badgeTextColor;
     String badgeText;
     IconData badgeIcon;
 
     switch (widget.tipo) {
       case 'pending':
-        borderColor = const Color(0xFFFFD700);
+        borderColor = Colors.grey.shade300;
         badgeColor = const Color(0xFFFFC107);
+        badgeTextColor = AppTheme.darkDark;
         badgeText = 'PENDIENTE';
         badgeIcon = Icons.hourglass_top;
         break;
       case 'approved':
-        borderColor = Colors.green;
-        badgeColor = Colors.green;
+        borderColor = AppTheme.primary;
+        badgeColor = AppTheme.primary;
+        badgeTextColor = Colors.white;
         badgeText = 'APROBADA';
         badgeIcon = Icons.check_circle;
         break;
       default:
-        borderColor = Colors.red;
-        badgeColor = Colors.red;
+        borderColor = AppTheme.accent;
+        badgeColor = AppTheme.accent;
+        badgeTextColor = AppTheme.darkDark;
         badgeText = 'RECHAZADA';
         badgeIcon = Icons.cancel;
     }
+
+    final esClave = widget.evidencia.esClave;
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor, width: 1.5),
+        border: Border.all(
+          color: borderColor,
+          width: esClave ? 2.0 : 1.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -737,22 +864,41 @@ class _EvidenciaCardState extends State<_EvidenciaCard> {
             ),
             child: Row(
               children: [
-                Icon(badgeIcon, color: Colors.white, size: 15),
+                Icon(badgeIcon, color: badgeTextColor, size: 15),
                 const SizedBox(width: 6),
                 Text(
                   badgeText,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: badgeTextColor,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.5,
                   ),
                 ),
+                if (esClave) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '★ Evidencia clave',
+                      style: TextStyle(
+                        color: badgeTextColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
                 const Spacer(),
                 Text(
                   _tiempoRelativo(widget.evidencia.creadoEn),
-                  style: const TextStyle(
-                    color: Colors.white70,
+                  style: TextStyle(
+                    color: badgeTextColor.withValues(alpha: 0.7),
                     fontSize: 11,
                   ),
                 ),
@@ -802,31 +948,42 @@ class _EvidenciaCardState extends State<_EvidenciaCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Descripcion
-                Text(
-                  widget.evidencia.descripcion,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppTheme.textPrimary,
-                    height: 1.5,
+                // Descripción
+                if (widget.evidencia.descripcion.isNotEmpty)
+                  Text(
+                    widget.evidencia.descripcion,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textPrimary,
+                      height: 1.5,
+                    ),
                   ),
-                ),
                 const SizedBox(height: 10),
-                // GPS
-                if (widget.evidencia.lat != null &&
-                    widget.evidencia.lng != null)
+                // Ubicación geocodificada
+                if (widget.evidencia.lat != null && widget.evidencia.lng != null)
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Icon(Icons.location_on,
                           size: 13, color: AppTheme.success),
                       const SizedBox(width: 4),
-                      Text(
-                        '${widget.evidencia.lat!.toStringAsFixed(5)}, ${widget.evidencia.lng!.toStringAsFixed(5)}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppTheme.success,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      Expanded(
+                        child: _geocodingLoading
+                            ? const SizedBox(
+                                height: 12,
+                                width: 12,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 1.5, color: AppTheme.success),
+                              )
+                            : Text(
+                                _direccionGeocodificada ??
+                                    '${widget.evidencia.lat!.toStringAsFixed(5)}, ${widget.evidencia.lng!.toStringAsFixed(5)}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppTheme.success,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                       ),
                     ],
                   ),
@@ -864,7 +1021,6 @@ class _EvidenciaCardState extends State<_EvidenciaCard> {
                     ),
                   ],
                 ),
-                // Acciones de Gestión de Evidencia (Aprobar/Rechazar/Eliminar siempre visibles)
                 const SizedBox(height: 14),
                 if (_procesando)
                   const Center(
@@ -876,63 +1032,104 @@ class _EvidenciaCardState extends State<_EvidenciaCard> {
                 else
                   Column(
                     children: [
+                      // Aprobar / Rechazar
                       Row(
                         children: [
                           if (widget.evidencia.estado != 'rejected')
                             Expanded(
-                              child: ElevatedButton.icon(
+                              child: ElevatedButton(
                                 onPressed: () => _accion(false),
-                                icon: Icon(Icons.close_rounded, color: Colors.red.shade700, size: 20),
-                                label: Text('Rechazar',
-                                    style: TextStyle(
-                                        color: Colors.red.shade700,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14)),
                                 style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  backgroundColor: Colors.red.shade50,
-                                  foregroundColor: Colors.red.shade700,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                  backgroundColor: AppTheme.accent,
+                                  foregroundColor: AppTheme.darkDark,
                                   elevation: 0,
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12)),
                                 ),
+                                child: const Text('Rechazar',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14)),
                               ),
                             ),
-                          if (widget.evidencia.estado != 'rejected' && widget.evidencia.estado != 'approved')
+                          if (widget.evidencia.estado != 'rejected' &&
+                              widget.evidencia.estado != 'approved')
                             const SizedBox(width: 12),
                           if (widget.evidencia.estado != 'approved')
                             Expanded(
-                              child: ElevatedButton.icon(
+                              child: ElevatedButton(
                                 onPressed: () => _accion(true),
-                                icon: const Icon(Icons.check_rounded, size: 20, color: Colors.white),
-                                label: const Text('Aprobar',
-                                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.white)),
                                 style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  backgroundColor: AppTheme.success,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                  backgroundColor: AppTheme.primary,
+                                  foregroundColor: Colors.white,
                                   elevation: 2,
-                                  shadowColor: AppTheme.success.withValues(alpha: 0.4),
+                                  shadowColor:
+                                      AppTheme.primary.withValues(alpha: 0.4),
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12)),
                                 ),
+                                child: const Text('Aprobar',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14)),
                               ),
                             ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
+                      // Evidencia clave toggle — solo visible si no está rechazada
+                      if (widget.evidencia.estado != 'rejected')
                       SizedBox(
                         width: double.infinity,
-                        child: TextButton.icon(
+                        child: ElevatedButton(
+                          onPressed: _toggleClave,
+                          style: ElevatedButton.styleFrom(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 12),
+                            backgroundColor: esClave
+                                ? AppTheme.accent.withValues(alpha: 0.15)
+                                : Colors.grey.shade100,
+                            foregroundColor: esClave
+                                ? AppTheme.darkDark
+                                : Colors.grey.shade700,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            side: esClave
+                                ? const BorderSide(
+                                    color: AppTheme.accent, width: 1.5)
+                                : BorderSide.none,
+                          ),
+                          child: Text(
+                            esClave
+                                ? '★ Marcar como no clave'
+                                : '☆ Marcar como evidencia clave',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 13),
+                          ),
+                        ),
+                      ),
+                      if (widget.evidencia.estado != 'rejected')
+                        const SizedBox(height: 10),
+                      // Eliminar
+                      SizedBox(
+                        width: double.infinity,
+                        child: TextButton(
                           onPressed: _eliminar,
-                          icon: Icon(Icons.delete_outline_rounded, color: Colors.grey.shade600, size: 20),
-                          label: Text('Eliminar Evidencia Definitivamente', 
-                              style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
                           style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 14),
                             backgroundColor: Colors.grey.shade100,
+                            foregroundColor: Colors.grey.shade600,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12)),
                           ),
+                          child: const Text('Eliminar evidencia definitivamente',
+                              style: TextStyle(fontWeight: FontWeight.w500)),
                         ),
                       ),
                     ],

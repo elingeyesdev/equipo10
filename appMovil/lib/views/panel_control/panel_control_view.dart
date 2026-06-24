@@ -585,9 +585,9 @@ class _PanelControlViewState extends State<PanelControlView>
                           child: _buildActionButton(
                         label: 'Pausar',
                         icon: Icons.pause_rounded,
-                        color: const Color(0xFF92400E),
+                        color: AppTheme.primary,
                         textColor: Colors.white,
-                        shadowColor: const Color(0x3392400E),
+                        shadowColor: AppTheme.primary.withValues(alpha: 0.3),
                         onPressed: vm.isChangingState
                             ? null
                             : () => _cambiarEstado(context, 'pausado'),
@@ -1099,7 +1099,7 @@ class _EstadoBadge extends StatelessWidget {
     String label;
 
     if (estado == 'activo') {
-      dotColor = AppTheme.accent;
+      dotColor = AppTheme.primary;
       label = 'Activo';
     } else if (estado == 'pausado') {
       dotColor = AppTheme.accent;
