@@ -906,7 +906,7 @@ class _PanelControlViewState extends State<PanelControlView>
         'mapa' => (
             Icons.map_rounded,
             'Capturando mapa',
-            const Color(0xFF16A34A)
+            AppTheme.primary,
           ),
         'recopilando' => (
             Icons.cloud_download_rounded,
@@ -916,7 +916,7 @@ class _PanelControlViewState extends State<PanelControlView>
         'imagenes' => (
             Icons.photo_library_rounded,
             'Optimizando imágenes',
-            const Color(0xFF8B5CF6)
+            AppTheme.primary,
           ),
         'ensamblando' => (
             Icons.picture_as_pdf_rounded,
@@ -926,7 +926,7 @@ class _PanelControlViewState extends State<PanelControlView>
         'error' => (
             Icons.error_outline_rounded,
             'Error',
-            const Color(0xFFEF4444)
+            AppTheme.accent,
           ),
         _ => (
             Icons.hourglass_top_rounded,

@@ -84,7 +84,7 @@ class _UnirseBottomSheetState extends State<UnirseBottomSheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Debes aceptar la responsabilidad para continuar.'),
-          backgroundColor: Colors.orange,
+          backgroundColor: AppTheme.accent,
         ),
       );
       return;
@@ -232,19 +232,15 @@ class _UnirseBottomSheetState extends State<UnirseBottomSheet> {
                               }
                             });
                           },
-                          selectedColor: AppTheme.primary.withOpacity(0.12),
-                          checkmarkColor: AppTheme.primary,
+                          selectedColor: AppTheme.primary,
+                          checkmarkColor: Colors.white,
+                          backgroundColor: Colors.grey.shade100,
                           labelStyle: TextStyle(
-                            color: selected
-                                ? AppTheme.primary
-                                : AppTheme.textSecondary,
-                            fontWeight:
-                                selected ? FontWeight.bold : FontWeight.normal,
+                            color: selected ? Colors.white : AppTheme.textSecondary,
+                            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                           ),
                           side: BorderSide(
-                            color: selected
-                                ? AppTheme.primary
-                                : const Color(0xFFE0E0E0),
+                            color: selected ? AppTheme.primary : const Color(0xFFE0E0E0),
                           ),
                         );
                       }).toList(),
@@ -318,19 +314,15 @@ class _UnirseBottomSheetState extends State<UnirseBottomSheet> {
                             _disponibilidadSeleccionada = val ? opcion : null;
                           });
                         },
-                        selectedColor: AppTheme.primary.withOpacity(0.12),
-                        checkmarkColor: AppTheme.primary,
+                        selectedColor: AppTheme.primary,
+                        checkmarkColor: Colors.white,
+                        backgroundColor: Colors.grey.shade100,
                         labelStyle: TextStyle(
-                          color: selected
-                              ? AppTheme.primary
-                              : AppTheme.textSecondary,
-                          fontWeight:
-                              selected ? FontWeight.bold : FontWeight.normal,
+                          color: selected ? Colors.white : AppTheme.textSecondary,
+                          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                         ),
                         side: BorderSide(
-                          color: selected
-                              ? AppTheme.primary
-                              : const Color(0xFFE0E0E0),
+                          color: selected ? AppTheme.primary : const Color(0xFFE0E0E0),
                         ),
                       );
                     }).toList(),
@@ -351,7 +343,7 @@ class _UnirseBottomSheetState extends State<UnirseBottomSheet> {
                   SizedBox(
                     width: double.infinity,
                     height: 52,
-                    child: ElevatedButton.icon(
+                    child: ElevatedButton(
                       onPressed: _isLoading ? null : _confirmarUnirse,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _aceptoResponsabilidad
@@ -362,19 +354,17 @@ class _UnirseBottomSheetState extends State<UnirseBottomSheet> {
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      icon: _isLoading
+                      child: _isLoading
                           ? const SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: Colors.white),
                             )
-                          : const Icon(Icons.group_add),
-                      label: Text(
-                        _isLoading ? 'Uniéndome...' : 'Confirmar y unirme',
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
+                          : const Text(
+                              'Confirmar y unirme',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -466,7 +456,7 @@ class _ResumenOperativo extends StatelessWidget {
               const _InfoChip(
                 icon: Icons.circle,
                 label: 'Activo',
-                color: AppTheme.success,
+                color: AppTheme.primary,
               ),
               if (ficha.cuadranteLatMin != null)
                 const _InfoChip(
@@ -504,22 +494,23 @@ class _InfoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isColored = color != AppTheme.textSecondary;
+    final bg = isColored ? color : const Color(0xFFEEEEEE);
+    final fg = isColored ? Colors.white : AppTheme.textSecondary;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: bg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: color),
+          Icon(icon, size: 12, color: fg),
           const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(
-                fontSize: 11, color: color, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 11, color: fg, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -588,11 +579,11 @@ class _ResponsabilidadCheckbox extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: value
-              ? AppTheme.success.withOpacity(0.06)
-              : const Color(0xFFFFF3E0),
+              ? AppTheme.primary.withOpacity(0.06)
+              : AppTheme.accent.withOpacity(0.08),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: value ? AppTheme.success : const Color(0xFFFF9800),
+            color: value ? AppTheme.primary : AppTheme.accent,
             width: 1.5,
           ),
         ),
@@ -602,7 +593,7 @@ class _ResponsabilidadCheckbox extends StatelessWidget {
             Checkbox(
               value: value,
               onChanged: onChanged,
-              activeColor: AppTheme.success,
+              activeColor: AppTheme.primary,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               visualDensity: VisualDensity.compact,
             ),

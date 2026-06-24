@@ -25,6 +25,15 @@ class PdfReporteService {
   static const _danger = PdfColor.fromInt(0xFFEF4444);
   static const _border = PdfColor.fromInt(0xFFDFDFDF);
 
+  /// Convierte cualquier valor dinámico a double de forma segura.
+  static double _safeDouble(dynamic value, [double fallback = 0.0]) {
+    if (value == null) return fallback;
+    if (value is double) return value.isNaN || value.isInfinite ? fallback : value;
+    if (value is num) return value.toDouble();
+    final parsed = double.tryParse(value.toString());
+    return (parsed == null || parsed.isNaN || parsed.isInfinite) ? fallback : parsed;
+  }
+
   /// Genera el PDF completo del operativo.
   ///
   /// [datos] es el Map retornado por el endpoint `/reportes/{id}/reporte-final`.
@@ -371,8 +380,7 @@ class PdfReporteService {
                       padding: const pw.EdgeInsets.symmetric(
                           horizontal: 10, vertical: 3),
                       decoration: pw.BoxDecoration(
-                        color: estadoColor.shade(0.15),
-                        border: pw.Border.all(color: estadoColor, width: 0.8),
+                        color: estadoColor,
                         borderRadius: pw.BorderRadius.circular(4),
                       ),
                       child: pw.Text(
@@ -380,7 +388,7 @@ class PdfReporteService {
                         style: pw.TextStyle(
                           font: ttfBold,
                           fontSize: 9,
-                          color: estadoColor,
+                          color: PdfColors.white,
                         ),
                       ),
                     ),
@@ -446,8 +454,7 @@ class PdfReporteService {
                         padding: const pw.EdgeInsets.symmetric(
                             horizontal: 10, vertical: 4),
                         decoration: pw.BoxDecoration(
-                          color: PdfColor.fromInt(0xFFFEF3C7),
-                          border: pw.Border.all(color: _accent, width: 0.8),
+                          color: _accent,
                           borderRadius: pw.BorderRadius.circular(6),
                         ),
                         child: pw.Text(
@@ -455,7 +462,7 @@ class PdfReporteService {
                           style: pw.TextStyle(
                             font: ttfBold,
                             fontSize: 10,
-                            color: PdfColor.fromInt(0xFF92400E),
+                            color: _darkBase,
                           ),
                         ),
                       ),
@@ -537,10 +544,10 @@ class PdfReporteService {
     pw.Font ttfBold,
   ) {
     final stats = datos['estadisticas'] as Map<String, dynamic>? ?? {};
-    final totalVoluntarios = stats['total_voluntarios'] ?? 0;
-    final totalEvidencias = stats['total_evidencias'] ?? 0;
-    final evidenciasAprobadas = stats['evidencias_aprobadas'] ?? 0;
-    final cuadrantesExpandidos = stats['cuadrantes_expandidos'] ?? 1;
+    final totalVoluntarios = _safeDouble(stats['total_voluntarios']).toInt();
+    final totalEvidencias = _safeDouble(stats['total_evidencias']).toInt();
+    final evidenciasAprobadas = _safeDouble(stats['evidencias_aprobadas']).toInt();
+    final cuadrantesExpandidos = _safeDouble(stats['cuadrantes_expandidos'], 1).toInt();
 
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -552,13 +559,14 @@ class PdfReporteService {
             _buildStatCard(
                 'Voluntarios', '$totalVoluntarios', _primary, ttfBold),
             pw.SizedBox(width: 8),
-            _buildStatCard('Evidencias', '$totalEvidencias', _warning, ttfBold),
+            _buildStatCard('Evidencias', '$totalEvidencias', _accent, ttfBold,
+                textColor: _darkBase),
             pw.SizedBox(width: 8),
             _buildStatCard(
-                'Aprobadas', '$evidenciasAprobadas', _success, ttfBold),
+                'Aprobadas', '$evidenciasAprobadas', _primary, ttfBold),
             pw.SizedBox(width: 8),
             _buildStatCard('Cuadrantes', '$cuadrantesExpandidos',
-                PdfColors.indigo, ttfBold),
+                _primary, ttfBold),
           ],
         ),
       ],
@@ -769,13 +777,13 @@ class PdfReporteService {
                             padding: const pw.EdgeInsets.symmetric(
                                 horizontal: 6, vertical: 2),
                             decoration: pw.BoxDecoration(
-                              color: _success.shade(0.15),
+                              color: _primary,
                               borderRadius: pw.BorderRadius.circular(4),
                             ),
                             child: pw.Text(
                               'APROBADA',
                               style: pw.TextStyle(
-                                  font: ttfBold, fontSize: 7, color: _success),
+                                  font: ttfBold, fontSize: 7, color: PdfColors.white),
                             ),
                           ),
                         ],
@@ -811,16 +819,16 @@ class PdfReporteService {
   ) {
     final stats = datos['estadisticas'] as Map<String, dynamic>? ?? {};
 
-    final totalVoluntarios = (stats['total_voluntarios'] ?? 0) as num;
-    final tiempoTotalMinutos = (stats['tiempo_total_minutos'] ?? 0) as num;
-    final tiempoActivoMinutos = (stats['tiempo_activo_minutos'] ?? 0) as num;
-    final distanciaKm = (stats['distancia_total_km'] ?? 0.0) as num;
-    final totalEvidencias = (stats['total_evidencias'] ?? 0) as num;
-    final evidenciasAprobadas = (stats['evidencias_aprobadas'] ?? 0) as num;
-    final evidenciasRechazadas = (stats['evidencias_rechazadas'] ?? 0) as num;
-    final cuadrantesExpandidos = (stats['cuadrantes_expandidos'] ?? 1) as num;
-    final nivelExpansion = (datos['nivel_expansion'] ?? 1) as num;
-    final maxExpansion = (datos['max_expansion'] ?? 10) as num;
+    final totalVoluntarios = _safeDouble(stats['total_voluntarios']).toInt();
+    final tiempoTotalMinutos = _safeDouble(stats['tiempo_total_minutos']).toInt();
+    final tiempoActivoMinutos = _safeDouble(stats['tiempo_activo_minutos']).toInt();
+    final distanciaKm = _safeDouble(stats['distancia_total_km']);
+    final totalEvidencias = _safeDouble(stats['total_evidencias']).toInt();
+    final evidenciasAprobadas = _safeDouble(stats['evidencias_aprobadas']).toInt();
+    final evidenciasRechazadas = _safeDouble(stats['evidencias_rechazadas']).toInt();
+    final cuadrantesExpandidos = _safeDouble(stats['cuadrantes_expandidos'], 1).toInt();
+    final nivelExpansion = _safeDouble(datos['nivel_expansion'], 1);
+    final maxExpansion = _safeDouble(datos['max_expansion'], 10);
 
     final horasTotales = tiempoTotalMinutos ~/ 60;
     final minutosTotales = tiempoTotalMinutos % 60;
@@ -910,8 +918,8 @@ class PdfReporteService {
           pw.SizedBox(height: 8),
           _buildBarraProgreso(
             label: 'Expansión',
-            valor: nivelExpansion.toDouble(),
-            maximo: maxExpansion.toDouble(),
+            valor: nivelExpansion,
+            maximo: maxExpansion,
             color: _primary,
             ttfNormal: ttfNormal,
             ttfBold: ttfBold,
@@ -983,6 +991,9 @@ class PdfReporteService {
     final keys = conteoPorFecha.keys.toList();
     final values = keys.map((k) => conteoPorFecha[k]!).toList();
 
+    // El chart de la librería pdf produce NaN si hay menos de 2 puntos de dato
+    if (keys.length < 2) return pw.SizedBox();
+
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -990,6 +1001,7 @@ class PdfReporteService {
             '[ DISTRIBUCIÓN DE EVIDENCIAS EN EL TIEMPO ]', ttfBold),
         pw.SizedBox(height: 12),
         pw.Container(
+          width: 531,
           height: 180,
           padding: const pw.EdgeInsets.all(12),
           decoration: pw.BoxDecoration(
@@ -1050,13 +1062,13 @@ class PdfReporteService {
   }
 
   pw.Widget _buildStatCard(
-      String label, String valor, PdfColor color, pw.Font ttfBold) {
+      String label, String valor, PdfColor color, pw.Font ttfBold,
+      {PdfColor textColor = PdfColors.white}) {
     return pw.Expanded(
       child: pw.Container(
         padding: const pw.EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: pw.BoxDecoration(
-          color: color.shade(0.12),
-          border: pw.Border.all(color: color.shade(0.4), width: 0.5),
+          color: color,
           borderRadius: pw.BorderRadius.circular(8),
         ),
         child: pw.Column(
@@ -1064,13 +1076,13 @@ class PdfReporteService {
           children: [
             pw.Text(
               valor,
-              style: pw.TextStyle(font: ttfBold, fontSize: 22, color: color),
+              style: pw.TextStyle(font: ttfBold, fontSize: 22, color: textColor),
               textAlign: pw.TextAlign.center,
             ),
             pw.SizedBox(height: 4),
             pw.Text(
               label,
-              style: pw.TextStyle(fontSize: 8, color: _textSecondary),
+              style: pw.TextStyle(fontSize: 8, color: textColor),
               textAlign: pw.TextAlign.center,
             ),
           ],
@@ -1348,7 +1360,7 @@ class PdfReporteService {
   PdfColor _colorEstado(String estado) {
     switch (estado.toLowerCase()) {
       case 'activo':
-        return _success;
+        return _primary;
       case 'pausado':
         return _warning;
       case 'resuelto':

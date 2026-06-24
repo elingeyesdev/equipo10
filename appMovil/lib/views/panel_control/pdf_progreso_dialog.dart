@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 
 /// Estado inmutable que describe el progreso actual de la generación del PDF.
 class PdfProgreso {
@@ -30,6 +31,8 @@ class PdfProgresoDialog extends StatelessWidget {
       valueListenable: progresoNotifier,
       builder: (context, progreso, _) {
         return Dialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           elevation: 8,
@@ -46,14 +49,14 @@ class PdfProgresoDialog extends StatelessWidget {
                       ? const Icon(
                           Icons.error_outline_rounded,
                           size: 56,
-                          color: Color(0xFFEF4444),
+                          color: AppTheme.accent,
                           key: ValueKey('error_icon'),
                         )
                       : progreso.porcentaje >= 1.0
                           ? const Icon(
                               Icons.check_circle_rounded,
                               size: 56,
-                              color: Color(0xFF16A34A),
+                              color: AppTheme.primary,
                               key: ValueKey('done_icon'),
                             )
                           : SizedBox(
@@ -117,10 +120,10 @@ class PdfProgresoDialog extends StatelessWidget {
                       builder: (ctx, value, _) => LinearProgressIndicator(
                         value: value < 0.03 ? null : value,
                         minHeight: 8,
-                        backgroundColor: const Color(0xFFE8EFF8),
+                        backgroundColor: AppTheme.primary.withValues(alpha: 0.12),
                         valueColor: AlwaysStoppedAnimation<Color>(
                           progreso.porcentaje >= 1.0
-                              ? const Color(0xFF16A34A)
+                              ? AppTheme.primary
                               : progreso.color,
                         ),
                       ),
@@ -137,7 +140,7 @@ class PdfProgresoDialog extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11,
                           color: progreso.porcentaje >= 1.0
-                              ? const Color(0xFF16A34A)
+                              ? AppTheme.primary
                               : const Color(0xFF6B7280),
                           fontWeight: FontWeight.w500,
                         ),

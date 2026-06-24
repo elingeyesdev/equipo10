@@ -31,4 +31,8 @@ class NotificacionApiService {
       return false;
     }
   }
+
+  Future<void> marcarTodasComoLeidas(List<String> ids) async {
+    await Future.wait(ids.map((id) => marcarComoLeida(id)));
+  }
 }

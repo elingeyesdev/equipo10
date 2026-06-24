@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:dio/dio.dart';
+import 'package:http/http.dart' as http;
 import '../../models/reporte_model.dart';
 import '../../services/api_service.dart';
 import '../../services/tile_cache_service.dart';
@@ -37,6 +39,38 @@ const List<Map<String, String>> _etiquetasPista = [
   {'emoji': '[S]', 'label': 'Ultima señal'},
   {'emoji': '[!]', 'label': 'Zona de interes'},
 ];
+
+// Cache compartido de geocoding para evitar peticiones repetidas
+final Map<String, String> _geocodingCache = {};
+
+String _formatearFechaLegible(String fechaStr) {
+  if (fechaStr.isEmpty) return 'Fecha desconocida';
+  final dt = DateTime.tryParse(fechaStr);
+  if (dt == null) return fechaStr;
+  final meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  return '${dt.day} ${meses[dt.month - 1]} ${dt.year}';
+}
+
+Future<String?> _geocodificarCoordenadas(double lat, double lng) async {
+  final key = '${lat.toStringAsFixed(5)},${lng.toStringAsFixed(5)}';
+  if (_geocodingCache.containsKey(key)) return _geocodingCache[key];
+  try {
+    final uri = Uri.parse(
+      'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&accept-language=es',
+    );
+    final response = await http.get(uri, headers: {'User-Agent': 'EchoesApp/1.0'})
+        .timeout(const Duration(seconds: 8));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final address = data['display_name'] as String?;
+      if (address != null) {
+        _geocodingCache[key] = address;
+        return address;
+      }
+    }
+  } catch (_) {}
+  return null;
+}
 
 class MapaOperativoView extends StatefulWidget {
   final ReporteModel ficha;
@@ -770,7 +804,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text('Punto original actualizado correctamente'),
-              backgroundColor: Colors.orange,
+              backgroundColor: AppTheme.primary,
               behavior: SnackBarBehavior.floating,
             ));
           }
@@ -865,9 +899,11 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        icon: const Icon(Icons.warning_amber_rounded,
-            color: Colors.orange, size: 48),
+        icon: const Icon(Icons.location_on_rounded,
+            color: AppTheme.primary, size: 48),
         title: const Text(
           '¿Mover punto original?',
           textAlign: TextAlign.center,
@@ -887,14 +923,14 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: AppTheme.primary.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                border: Border.all(color: AppTheme.primary.withOpacity(0.25)),
               ),
               child: Row(
                 children: [
                   const Icon(Icons.info_outline,
-                      color: Colors.orange, size: 18),
+                      color: AppTheme.primary, size: 18),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -915,19 +951,18 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
           ),
-          ElevatedButton.icon(
+          ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
               _guardarPista();
             },
-            icon: const Icon(Icons.move_down, size: 18),
-            label: const Text('Sí, mover punto'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
+              backgroundColor: AppTheme.primary,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
+            child: const Text('Sí, mover punto'),
           ),
         ],
       ),
@@ -1388,20 +1423,42 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                   style: const TextStyle(fontSize: 13, height: 1.4),
                 ),
               ],
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.location_on, size: 14, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${evidencia.lat!.toStringAsFixed(5)}, ${evidencia.lng!.toStringAsFixed(5)}',
-                    style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[500],
-                        fontFamily: 'monospace'),
-                  ),
-                ],
-              ),
+              if (evidencia.lat != null && evidencia.lng != null) ...[
+                const SizedBox(height: 8),
+                FutureBuilder<String?>(
+                  future: _geocodificarCoordenadas(evidencia.lat!, evidencia.lng!),
+                  builder: (ctx, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Row(
+                        children: [
+                          Icon(Icons.location_on, size: 14, color: Colors.grey),
+                          SizedBox(width: 4),
+                          SizedBox(
+                            width: 12,
+                            height: 12,
+                            child: CircularProgressIndicator(strokeWidth: 1.5),
+                          ),
+                        ],
+                      );
+                    }
+                    final dir = snapshot.data ??
+                        '${evidencia.lat!.toStringAsFixed(5)}, ${evidencia.lng!.toStringAsFixed(5)}';
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.location_on, size: 14, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            dir,
+                            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ],
           ),
         ),
@@ -1427,7 +1484,13 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
   Widget build(BuildContext context) {
     if (_lpp == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Mapa Operativo')),
+        appBar: AppBar(
+          title: const Text('Mapa Operativo'),
+          backgroundColor: AppTheme.primary,
+          foregroundColor: Colors.white,
+          centerTitle: false,
+          titleSpacing: 0,
+        ),
         body: const Center(
             child: Text('La ficha no tiene un punto LPP establecido.')),
       );
@@ -1618,6 +1681,10 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mapa Operativo'),
+        backgroundColor: AppTheme.primary,
+        foregroundColor: Colors.white,
+        centerTitle: false,
+        titleSpacing: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, size: 24),
@@ -1653,11 +1720,10 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                   _actualizarCachePoligonos();
                 }
               }),
-              icon: Icon(_modoPista ? Icons.close : Icons.add_location_alt,
-                  color: _modoPista ? Colors.red : Colors.white),
+              icon: const Icon(Icons.add_location_alt, color: Colors.white),
               label: Text(_modoPista ? 'Cerrar' : 'Añadir',
-                  style: TextStyle(
-                      color: _modoPista ? Colors.red : Colors.white,
+                  style: const TextStyle(
+                      color: Colors.white,
                       fontWeight: FontWeight.bold)),
             ),
         ],
@@ -2113,7 +2179,8 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                               const SizedBox(width: 4),
                               Text(
                                 _pistaTooltip!.fecha.isNotEmpty
-                                    ? '${_pistaTooltip!.fecha}${_pistaTooltip!.hora.isNotEmpty ? " · ${_pistaTooltip!.hora}" : ""}'
+                                    ? _formatearFechaLegible(_pistaTooltip!.fecha) +
+                                        (_pistaTooltip!.hora.isNotEmpty ? ' · ${_pistaTooltip!.hora}' : '')
                                     : 'Fecha desconocida',
                                 style: const TextStyle(
                                     fontSize: 11, color: Color(0xFF94A3B8)),
@@ -2124,46 +2191,42 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                TextButton.icon(
+                                TextButton(
                                   onPressed: () =>
                                       _iniciarSoloEdicionPista(_pistaTooltip!),
-                                  icon: const Icon(Icons.edit, size: 14),
-                                  label: const Text('Editar',
-                                      style: TextStyle(fontSize: 11)),
                                   style: TextButton.styleFrom(
-                                    foregroundColor: const Color(0xFF10B981),
+                                    foregroundColor: AppTheme.primary,
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 6, vertical: 4),
                                     minimumSize: Size.zero,
                                   ),
+                                  child: const Text('Editar',
+                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
                                 ),
-                                TextButton.icon(
+                                TextButton(
                                   onPressed: () =>
                                       _iniciarEdicionPista(_pistaTooltip!),
-                                  icon: const Icon(Icons.open_with, size: 14),
-                                  label: const Text('Mover',
-                                      style: TextStyle(fontSize: 11)),
                                   style: TextButton.styleFrom(
-                                    foregroundColor: const Color(0xFF2563EB),
+                                    foregroundColor: AppTheme.primary,
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 6, vertical: 4),
                                     minimumSize: Size.zero,
                                   ),
+                                  child: const Text('Mover',
+                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
                                 ),
                                 if (_pistaTooltip!.id != 'LPP')
-                                  TextButton.icon(
+                                  TextButton(
                                     onPressed: () =>
                                         _confirmarEliminarPista(_pistaTooltip!),
-                                    icon: const Icon(Icons.delete_outline,
-                                        size: 14),
-                                    label: const Text('Eliminar',
-                                        style: TextStyle(fontSize: 11)),
                                     style: TextButton.styleFrom(
-                                      foregroundColor: Colors.red.shade400,
+                                      foregroundColor: AppTheme.accent,
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 6, vertical: 4),
                                       minimumSize: Size.zero,
                                     ),
+                                    child: const Text('Eliminar',
+                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
                                   ),
                               ],
                             ),
@@ -2235,9 +2298,7 @@ class _MapaOperativoViewState extends State<MapaOperativoView> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: (_editandoPista && _pistaEnEdicion?.id == 'LPP')
-                      ? Colors.orange.withOpacity(0.95)
-                      : AppTheme.primary.withOpacity(0.95),
+                  color: AppTheme.primary.withOpacity(0.95),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: const [
                     BoxShadow(

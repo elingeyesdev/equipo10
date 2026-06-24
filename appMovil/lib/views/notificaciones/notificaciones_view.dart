@@ -30,8 +30,30 @@ class _NotificacionesViewState extends State<NotificacionesView> {
         title: const Text('Notificaciones',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: AppTheme.primary,
+        foregroundColor: Colors.white,
+        centerTitle: false,
+        titleSpacing: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
+        actions: [
+          Consumer<NotificacionesViewModel>(
+            builder: (context, vm, _) {
+              final hayNoLeidas = vm.notificaciones.any((n) => !n.leida);
+              if (!hayNoLeidas) return const SizedBox.shrink();
+              return TextButton(
+                onPressed: () => vm.marcarTodasComoLeidas(),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+                child: const Text(
+                  'Marcar todo',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer<NotificacionesViewModel>(
         builder: (context, vm, child) {

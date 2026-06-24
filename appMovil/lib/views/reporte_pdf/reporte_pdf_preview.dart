@@ -28,8 +28,10 @@ class ReportePdfPreview extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Reporte PDF'),
-        backgroundColor: AppTheme.darkBase,
+        backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
+        centerTitle: false,
+        titleSpacing: 0,
         actions: [
           // Botón de compartir adicional en el AppBar
           IconButton(

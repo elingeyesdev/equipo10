@@ -36,6 +36,7 @@ class TabGaleriaPanel extends StatelessWidget {
           'url': e.fotoUrl!,
           'tipo': 'evidencia',
           'autor': e.nombreUsuario ?? 'Voluntario',
+          'esClave': e.esClave,
         });
       }
     }
@@ -74,15 +75,19 @@ class TabGaleriaPanel extends StatelessWidget {
         final img = todasLasImagenes[index];
         return GestureDetector(
           onTap: () {
+            final esOriginal = img['tipo'] == 'original';
+            final esClave = img['esClave'] == true;
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (_) => FullScreenImageView(
                   imageUrl: img['url'],
-                  title: img['tipo'] == 'original'
+                  title: esOriginal
                       ? 'Imagen del reporte'
-                      : 'Evidencia aprobada',
-                  subtitle: '${img['autor'] ?? ''}',
+                      : esClave
+                          ? '★ Evidencia clave'
+                          : 'Evidencia aprobada',
+                  subtitle: img['autor'] ?? '',
                 ),
               ),
             );
@@ -103,15 +108,30 @@ class TabGaleriaPanel extends StatelessWidget {
                       child: const Center(child: CircularProgressIndicator())),
                 ),
               ),
+              // Ícono de foto para la imagen original del reporte
               if (img['tipo'] == 'original')
                 Positioned(
                   top: 4,
                   right: 4,
                   child: Container(
-                    padding: const EdgeInsets.all(2),
+                    padding: const EdgeInsets.all(3),
                     decoration: const BoxDecoration(
                         color: Colors.black54, shape: BoxShape.circle),
-                    child: const Icon(Icons.star, color: Colors.amber, size: 12),
+                    child: const Icon(Icons.camera_alt,
+                        color: Colors.white, size: 11),
+                  ),
+                ),
+              // Estrella para evidencias clave
+              if (img['esClave'] == true)
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(
+                        color: Colors.black54, shape: BoxShape.circle),
+                    child: const Icon(Icons.star,
+                        color: Color(0xFFE9C978), size: 12),
                   ),
                 ),
             ],

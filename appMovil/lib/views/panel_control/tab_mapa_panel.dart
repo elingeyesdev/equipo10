@@ -461,8 +461,8 @@ class _TabMapaPanelState extends State<TabMapaPanel> {
       );
     }));
 
-    // Pistas adicionales — puntos ámbar simples
-    markersPistas.addAll(vm.pistas.map((pista) {
+    // Pistas adicionales — se agregan a markersEvidencias para que el toggle las oculte junto con las evidencias
+    markersEvidencias.addAll(vm.pistas.map((pista) {
       return Marker(
         point: pista.punto,
         width: 28,
@@ -497,6 +497,7 @@ class _TabMapaPanelState extends State<TabMapaPanel> {
             MapTileLayer(useSatellite: _useSatellite),
             if (_cuadrantesPolygons.isNotEmpty)
               PolygonLayer(polygons: _cuadrantesPolygons),
+            // Halo verde del LPP — siempre visible
             if (ficha.latitud != null && ficha.longitud != null)
               PolygonLayer(polygons: () {
                 const double radioBase = 0.0007;
@@ -517,23 +518,26 @@ class _TabMapaPanelState extends State<TabMapaPanel> {
                     borderColor: const Color(0xFF059669),
                     borderStrokeWidth: 2.5,
                   ),
-                  ...vm.pistas.map((p) {
-                    final rp = radioBase *
-                        _calcularNivel(p.createdAt?.toIso8601String());
-                    return Polygon(
-                      points: [
-                        LatLng(p.punto.latitude - rp, p.punto.longitude - rp),
-                        LatLng(p.punto.latitude - rp, p.punto.longitude + rp),
-                        LatLng(p.punto.latitude + rp, p.punto.longitude + rp),
-                        LatLng(p.punto.latitude + rp, p.punto.longitude - rp),
-                      ],
-                      color: const Color(0xFF10B981).withOpacity(0.18),
-                      borderColor: const Color(0xFF059669),
-                      borderStrokeWidth: 1.5,
-                    );
-                  }),
                 ];
               }()),
+            // Halos verdes de pistas — se ocultan con el toggle de evidencias
+            if (_mostrarEvidencias && vm.pistas.isNotEmpty)
+              PolygonLayer(polygons: vm.pistas.map((p) {
+                const double radioBase = 0.0007;
+                final rp = radioBase *
+                    _calcularNivel(p.createdAt?.toIso8601String());
+                return Polygon(
+                  points: [
+                    LatLng(p.punto.latitude - rp, p.punto.longitude - rp),
+                    LatLng(p.punto.latitude - rp, p.punto.longitude + rp),
+                    LatLng(p.punto.latitude + rp, p.punto.longitude + rp),
+                    LatLng(p.punto.latitude + rp, p.punto.longitude - rp),
+                  ],
+                  color: const Color(0xFF10B981).withOpacity(0.18),
+                  borderColor: const Color(0xFF059669),
+                  borderStrokeWidth: 1.5,
+                );
+              }).toList()),
             if (_mostrarRecorridos)
               PolylineLayer(
                 polylines: List.generate(vm.rutasVoluntarios.length, (index) {

@@ -37,6 +37,27 @@ class NotificacionesViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> marcarTodasComoLeidas() async {
+    final noLeidas = _notificaciones.where((n) => !n.leida).toList();
+    if (noLeidas.isEmpty) return;
+
+    // Optimistic update
+    _notificaciones = _notificaciones.map((n) => n.leida
+        ? n
+        : NotificacionModel(
+            id: n.id,
+            tipo: n.tipo,
+            titulo: n.titulo,
+            mensaje: n.mensaje,
+            leida: true,
+            createdAt: n.createdAt,
+            datosJson: n.datosJson,
+          )).toList();
+    notifyListeners();
+
+    await _apiService.marcarTodasComoLeidas(noLeidas.map((n) => n.id).toList());
+  }
+
   Future<void> marcarComoLeida(String notificacionId) async {
     final index = _notificaciones.indexWhere((n) => n.id == notificacionId);
     if (index == -1 || _notificaciones[index].leida) return;

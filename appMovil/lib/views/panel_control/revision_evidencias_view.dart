@@ -64,6 +64,7 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
         scrolledUnderElevation: 0,
         elevation: 0,
         centerTitle: false,
+        titleSpacing: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
           'Revisión de evidencias',
@@ -99,6 +100,8 @@ class _RevisionEvidenciasViewState extends State<RevisionEvidenciasView>
                     fontWeight: FontWeight.w600, fontSize: 13),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
                 elevation: 0,
@@ -715,17 +718,17 @@ class _EvidenciaCardState extends State<_EvidenciaCard> {
   }
 
   Future<void> _accion(bool aprobar) async {
-    setState(() => _procesando = true);
+    final messenger = ScaffoldMessenger.of(context);
     final vm = context.read<EvidenciaViewModel>();
+    setState(() => _procesando = true);
     bool ok;
     if (aprobar) {
       ok = await vm.aprobarEvidencia(widget.evidencia.id, widget.reporteId);
     } else {
       ok = await vm.rechazarEvidencia(widget.evidencia.id, widget.reporteId);
     }
-    if (!mounted) return;
-    setState(() => _procesando = false);
-    ScaffoldMessenger.of(context).showSnackBar(
+    if (mounted) setState(() => _procesando = false);
+    messenger.showSnackBar(
       SnackBar(
         content: Text(
           ok
@@ -739,13 +742,13 @@ class _EvidenciaCardState extends State<_EvidenciaCard> {
   }
 
   Future<void> _toggleClave() async {
-    setState(() => _procesando = true);
+    final messenger = ScaffoldMessenger.of(context);
     final vm = context.read<EvidenciaViewModel>();
+    setState(() => _procesando = true);
     final ok = await vm.toggleEvidenciaClave(widget.evidencia.id, widget.reporteId);
-    if (!mounted) return;
-    setState(() => _procesando = false);
+    if (mounted) setState(() => _procesando = false);
     if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('No se pudo actualizar la evidencia clave.',
               style: TextStyle(color: AppTheme.darkDark)),
@@ -775,16 +778,20 @@ class _EvidenciaCardState extends State<_EvidenciaCard> {
     );
     if (confirmar != true) return;
 
-    setState(() => _procesando = true);
+    // Capturar antes del await: el widget puede desmontarse cuando la lista
+    // se recarga tras la eliminación exitosa, invalidando context.
+    final messenger = ScaffoldMessenger.of(context);
     final vm = context.read<EvidenciaViewModel>();
-    final ok =
-        await vm.eliminarEvidencia(widget.evidencia.id, widget.reporteId);
-    if (!mounted) return;
-    setState(() => _procesando = false);
-    ScaffoldMessenger.of(context).showSnackBar(
+
+    setState(() => _procesando = true);
+    final ok = await vm.eliminarEvidencia(widget.evidencia.id, widget.reporteId);
+
+    if (mounted) setState(() => _procesando = false);
+
+    messenger.showSnackBar(
       SnackBar(
         content: Text(
-          ok ? 'Evidencia eliminada' : 'Error al eliminar evidencia',
+          ok ? 'Evidencia eliminada correctamente' : 'Error al eliminar la evidencia',
           style: const TextStyle(color: AppTheme.darkDark),
         ),
         backgroundColor: AppTheme.accent,
