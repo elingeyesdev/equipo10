@@ -133,7 +133,7 @@ class ReporteModel {
       final host = ApiService().apiHost;
       // Reemplazamos cualquier IP o localhost en la URL por el host actual del API
       primeraImg = primeraImg.replaceFirst(
-          RegExp(r'http://[0-9a-zA-Z\.]+(:[0-9]+)?'), host);
+          RegExp(r'https?://[^/]+'), host);
     }
     // Extraer nombre de categoría del objeto anidado
     String? catNombre;
@@ -179,7 +179,7 @@ class ReporteModel {
       final host = ApiService().apiHost;
       // Reemplazamos cualquier IP o localhost en la URL por el host actual del API
       uAvatar = uAvatar.replaceFirst(
-          RegExp(r'http://[0-9a-zA-Z\.]+(:[0-9]+)?'), host);
+          RegExp(r'https?://[^/]+'), host);
     }
 
     // Parsear características (backend devuelve lista de objetos [{clave: '...', valor: '...'}])

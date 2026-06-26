@@ -47,7 +47,7 @@ class EvidenciaModel {
     } else if (imgUrl != null) {
       final host = ApiService().apiHost;
       imgUrl =
-          imgUrl.replaceFirst(RegExp(r'http://[0-9a-zA-Z\.]+(:[0-9]+)?'), host);
+          imgUrl.replaceFirst(RegExp(r'https?://[^/]+'), host);
     }
 
     // Extraer datos del usuario
@@ -64,7 +64,7 @@ class EvidenciaModel {
       } else if (uAvatar != null) {
         final host = ApiService().apiHost;
         uAvatar = uAvatar.replaceFirst(
-            RegExp(r'http://[0-9a-zA-Z\.]+(:[0-9]+)?'), host);
+            RegExp(r'https?://[^/]+'), host);
       }
     }
 
